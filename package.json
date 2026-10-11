@@ -1,0 +1,32 @@
+{
+  "name": "talenthub",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev -w api",
+    "dev:web": "npm run dev -w web",
+    "build:api": "npm run build -w api",
+    "build:web": "npm run build -w web",
+    "lint:api": "npm run lint -w api",
+    "lint:web": "npm run lint -w web",
+    "test:api": "npm run test -w api",
+    "test:e2e": "playwright test -c e2e/playwright.config.ts",
+    "test:e2e:ui": "playwright test -c e2e/playwright.config.ts --ui",
+    "db:generate": "npm run prisma:generate -w api",
+    "db:migrate": "npm run prisma:migrate -w api",
+    "db:deploy": "npm run prisma:deploy -w api",
+    "db:seed": "npm run prisma:seed -w api"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@nestjs/platform-express": "^11.2.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
+  }
+}

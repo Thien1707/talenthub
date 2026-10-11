@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.next/
+coverage/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+apps/api/prisma/*.db
+apps/api/certs/*.pem
+apps/api/certs/*.crt

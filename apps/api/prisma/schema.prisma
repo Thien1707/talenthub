@@ -1,0 +1,833 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Enums ---
+
+enum UserRole {
+  STUDENT
+  COMPANY
+  STAFF
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+  BANNED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum CategoryStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum EmploymentType {
+  FULL_TIME
+}
+
+enum JobType {
+  NORMAL
+  VIP
+}
+
+enum JobStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  PAUSED
+  CLOSED
+  EXPIRED
+  REMOVED
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  REVIEWING
+  SHORTLISTED
+  INTERVIEW
+  OFFERED
+  HIRED
+  REJECTED
+  WITHDRAWN
+}
+
+enum CvSourceType {
+  BUILDER
+  UPLOAD
+}
+
+enum CvVisibility {
+  PRIVATE
+  PUBLIC
+}
+
+enum AnalysisType {
+  GENERAL
+  JOB_MATCH
+}
+
+enum AnalysisStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum PlanType {
+  NORMAL_POST
+  VIP_POST
+  PACKAGE
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum OrderItemType {
+  NORMAL_POST
+  VIP_UPGRADE
+  PACKAGE
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum AssetType {
+  AVATAR
+  COMPANY_LOGO
+  CV
+  CV_PREVIEW
+  CHAT_ATTACHMENT
+  OTHER
+}
+
+enum AssetStatus {
+  ACTIVE
+  DELETED
+  FAILED
+}
+
+enum ConversationType {
+  DIRECT
+  APPLICATION
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+enum ReviewStatus {
+  PENDING
+  PUBLISHED
+  HIDDEN
+}
+
+enum ReportStatus {
+  PENDING
+  IN_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+enum ModerationTargetType {
+  JOB
+  COMPANY
+  USER
+  REVIEW
+  REPORT
+  MESSAGE
+}
+
+enum ExpenseStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+// --- Models ---
+
+model User {
+  userId          BigInt     @id @default(autoincrement()) @map("user_id")
+  email           String     @unique @db.VarChar(255)
+  passwordHash    String     @map("password_hash") @db.VarChar(255)
+  fullName        String     @map("full_name") @db.VarChar(150)
+  phone           String?    @db.VarChar(20)
+  avatarAssetId   BigInt?    @map("avatar_asset_id")
+  role            UserRole
+  status          UserStatus @default(PENDING)
+  emailVerifiedAt DateTime?  @map("email_verified_at")
+  lastLoginAt     DateTime?  @map("last_login_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  deletedAt       DateTime?  @map("deleted_at")
+
+  avatarAsset MediaAsset? @relation("UserAvatar", fields: [avatarAssetId], references: [assetId], onDelete: SetNull)
+
+  studentProfile StudentProfile?
+  companyProfile CompanyProfile?
+  staffProfile   StaffProfile?
+
+  ownedMediaAssets   MediaAsset[] @relation("MediaOwner")
+  refreshTokens      RefreshToken[]
+  applications       Application[] @relation("StudentApplications")
+  savedJobs          SavedJob[]
+  cvs                Cv[]
+  cvVersionsCreated  CvVersion[] @relation("CvVersionCreator")
+  aiAnalysesRequested CvAiAnalysis[] @relation("AnalysisRequester")
+  conversationsCreated Conversation[] @relation("ConversationCreator")
+  conversationMembers ConversationMember[]
+  messagesSent       Message[]
+  notifications      Notification[]
+  reviewsGiven       Review[] @relation("Reviewer")
+  reviewsReceived    Review[] @relation("Reviewed")
+  reportsFiled       UserReport[] @relation("Reporter")
+  reportsAgainst     UserReport[] @relation("ReportedUser")
+  reportsAssigned    UserReport[] @relation("AssignedStaff")
+  reportsResolved    UserReport[] @relation("ReportResolver")
+  moderationLogs     ModerationLog[]
+  expensesCreated    Expense[] @relation("ExpenseCreator")
+  expensesApproved   Expense[] @relation("ExpenseApprover")
+  auditLogs          AuditLog[]
+  jobsModerated      Job[] @relation("JobModerator")
+  jobStatusChanges   JobStatusHistory[] @relation("JobStatusChanger")
+  companyVerified    CompanyProfile[] @relation("CompanyVerifier")
+  reviewsModerated   Review[] @relation("ReviewModerator")
+
+  @@index([role, status])
+  @@map("users")
+}
+
+model RefreshToken {
+  refreshTokenId BigInt    @id @default(autoincrement()) @map("refresh_token_id")
+  userId         BigInt    @map("user_id")
+  tokenHash      String    @map("token_hash") @db.VarChar(255)
+  expiresAt      DateTime  @map("expires_at")
+  revokedAt      DateTime? @map("revoked_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model StudentProfile {
+  studentProfileId BigInt   @id @default(autoincrement()) @map("student_profile_id")
+  userId           BigInt   @unique @map("user_id")
+  dateOfBirth      DateTime? @map("date_of_birth") @db.Date
+  gender           Gender?
+  address          String?  @db.VarChar(255)
+  city             String?  @db.VarChar(100)
+  educationLevel   String?  @map("education_level") @db.VarChar(100)
+  schoolName       String?  @map("school_name") @db.VarChar(255)
+  major            String?  @db.VarChar(150)
+  graduationYear   Int?     @map("graduation_year") @db.SmallInt
+  experienceYears  Decimal? @map("experience_years") @db.Decimal(4, 1)
+  bio              String?  @db.Text
+  linkedinUrl      String?  @map("linkedin_url") @db.VarChar(500)
+  portfolioUrl     String?  @map("portfolio_url") @db.VarChar(500)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+model CompanyProfile {
+  companyId          BigInt             @id @default(autoincrement()) @map("company_id")
+  userId             BigInt             @unique @map("user_id")
+  companyName        String             @map("company_name") @db.VarChar(255)
+  taxCode            String?            @map("tax_code") @db.VarChar(50)
+  industry           String?            @db.VarChar(150)
+  companySize        String?            @map("company_size") @db.VarChar(50)
+  website            String?            @db.VarChar(500)
+  description        String?            @db.Text
+  address            String?            @db.VarChar(255)
+  city               String?            @db.VarChar(100)
+  logoAssetId        BigInt?            @map("logo_asset_id")
+  verificationStatus VerificationStatus @default(PENDING) @map("verification_status")
+  verifiedBy         BigInt?            @map("verified_by")
+  verifiedAt         DateTime?          @map("verified_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  user       User        @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  logoAsset  MediaAsset? @relation("CompanyLogo", fields: [logoAssetId], references: [assetId], onDelete: SetNull)
+  verifier   User?       @relation("CompanyVerifier", fields: [verifiedBy], references: [userId], onDelete: SetNull)
+
+  jobs           Job[]
+  orders         Order[]
+  postingQuota   CompanyPostingQuota?
+
+  @@map("company_profiles")
+}
+
+model StaffProfile {
+  staffProfileId BigInt    @id @default(autoincrement()) @map("staff_profile_id")
+  userId         BigInt    @unique @map("user_id")
+  employeeCode   String    @unique @map("employee_code") @db.VarChar(50)
+  department     String?   @db.VarChar(100)
+  position       String?   @db.VarChar(100)
+  hiredAt        DateTime? @map("hired_at") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("staff_profiles")
+}
+
+model Category {
+  categoryId       BigInt         @id @default(autoincrement()) @map("category_id")
+  categoryName     String         @unique @map("category_name") @db.VarChar(150)
+  slug             String         @unique @db.VarChar(180)
+  description      String?        @db.Text
+  parentCategoryId BigInt?        @map("parent_category_id")
+  status           CategoryStatus @default(ACTIVE)
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  parent   Category?  @relation("CategoryTree", fields: [parentCategoryId], references: [categoryId], onDelete: SetNull)
+  children Category[] @relation("CategoryTree")
+  jobs     Job[]
+
+  @@map("categories")
+}
+
+model Job {
+  jobId           BigInt         @id @default(autoincrement()) @map("job_id")
+  companyId       BigInt         @map("company_id")
+  categoryId      BigInt         @map("category_id")
+  title           String         @db.VarChar(255)
+  slug            String         @unique @db.VarChar(300)
+  description     String         @db.LongText
+  requirements    String         @db.LongText
+  benefits        String?        @db.LongText
+  location        String         @db.VarChar(255)
+  salaryMin       Decimal?       @map("salary_min") @db.Decimal(15, 2)
+  salaryMax       Decimal?       @map("salary_max") @db.Decimal(15, 2)
+  salaryCurrency  String         @default("VND") @map("salary_currency") @db.Char(3)
+  employmentType  EmploymentType @default(FULL_TIME) @map("employment_type")
+  experienceLevel String?        @map("experience_level") @db.VarChar(100)
+  quantity        Int            @default(1)
+  jobType         JobType        @default(NORMAL) @map("job_type")
+  status          JobStatus      @default(DRAFT)
+  isPaid          Boolean        @default(false) @map("is_paid")
+  quotaConsumed   Boolean        @default(false) @map("quota_consumed")
+  moderatedBy     BigInt?        @map("moderated_by")
+  moderatedAt     DateTime?      @map("moderated_at")
+  rejectionReason String?        @map("rejection_reason") @db.Text
+  publishedAt     DateTime?      @map("published_at")
+  expiresAt       DateTime?      @map("expires_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  deletedAt       DateTime?      @map("deleted_at")
+
+  company    CompanyProfile @relation(fields: [companyId], references: [companyId], onDelete: Restrict)
+  category   Category       @relation(fields: [categoryId], references: [categoryId], onDelete: Restrict)
+  moderator  User?          @relation("JobModerator", fields: [moderatedBy], references: [userId], onDelete: SetNull)
+
+  statusHistory JobStatusHistory[]
+  applications  Application[]
+  savedBy       SavedJob[]
+  orderItems    OrderItem[]
+  aiAnalyses    CvAiAnalysis[]
+  reports       UserReport[]
+
+  @@index([status, jobType, publishedAt])
+  @@index([companyId])
+  @@index([expiresAt])
+  @@map("jobs")
+}
+
+model JobStatusHistory {
+  historyId BigInt   @id @default(autoincrement()) @map("history_id")
+  jobId     BigInt   @map("job_id")
+  oldStatus String?  @map("old_status") @db.VarChar(30)
+  newStatus String   @map("new_status") @db.VarChar(30)
+  changedBy BigInt   @map("changed_by")
+  reason    String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  job     Job  @relation(fields: [jobId], references: [jobId], onDelete: Cascade)
+  changer User @relation("JobStatusChanger", fields: [changedBy], references: [userId], onDelete: Restrict)
+
+  @@index([jobId])
+  @@map("job_status_history")
+}
+
+model Application {
+  applicationId  BigInt            @id @default(autoincrement()) @map("application_id")
+  jobId          BigInt            @map("job_id")
+  studentUserId  BigInt            @map("student_user_id")
+  cvVersionId    BigInt            @map("cv_version_id")
+  coverLetter    String?           @map("cover_letter") @db.Text
+  status         ApplicationStatus @default(SUBMITTED)
+  appliedAt      DateTime          @default(now()) @map("applied_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  job         Job         @relation(fields: [jobId], references: [jobId], onDelete: Restrict)
+  student     User        @relation("StudentApplications", fields: [studentUserId], references: [userId], onDelete: Restrict)
+  cvVersion   CvVersion   @relation(fields: [cvVersionId], references: [cvVersionId], onDelete: Restrict)
+  conversations Conversation[]
+  reviews     Review[]
+
+  @@unique([jobId, studentUserId])
+  @@index([studentUserId])
+  @@map("applications")
+}
+
+model SavedJob {
+  savedJobId    BigInt   @id @default(autoincrement()) @map("saved_job_id")
+  studentUserId BigInt   @map("student_user_id")
+  jobId         BigInt   @map("job_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  student User @relation(fields: [studentUserId], references: [userId], onDelete: Cascade)
+  job     Job  @relation(fields: [jobId], references: [jobId], onDelete: Cascade)
+
+  @@unique([studentUserId, jobId])
+  @@map("saved_jobs")
+}
+
+model CvTemplate {
+  templateId     BigInt   @id @default(autoincrement()) @map("template_id")
+  templateName   String   @map("template_name") @db.VarChar(150)
+  description    String?  @db.Text
+  previewAssetId BigInt?  @map("preview_asset_id")
+  templateConfig Json     @map("template_config")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  previewAsset MediaAsset? @relation("TemplatePreview", fields: [previewAssetId], references: [assetId], onDelete: SetNull)
+  cvs          Cv[]
+
+  @@map("cv_templates")
+}
+
+model Cv {
+  cvId              BigInt       @id @default(autoincrement()) @map("cv_id")
+  studentUserId     BigInt       @map("student_user_id")
+  templateId        BigInt?      @map("template_id")
+  cvName            String       @map("cv_name") @db.VarChar(200)
+  currentVersionId  BigInt?      @unique @map("current_version_id")
+  visibility        CvVisibility @default(PRIVATE)
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  deletedAt         DateTime?    @map("deleted_at")
+
+  student        User        @relation(fields: [studentUserId], references: [userId], onDelete: Cascade)
+  template       CvTemplate? @relation(fields: [templateId], references: [templateId], onDelete: SetNull)
+  currentVersion CvVersion?  @relation("CvCurrentVersion", fields: [currentVersionId], references: [cvVersionId], onDelete: SetNull)
+  versions       CvVersion[] @relation("CvVersions")
+
+  @@index([studentUserId])
+  @@map("cvs")
+}
+
+model CvVersion {
+  cvVersionId      BigInt       @id @default(autoincrement()) @map("cv_version_id")
+  cvId             BigInt       @map("cv_id")
+  versionNumber    Int          @map("version_number")
+  sourceType       CvSourceType @map("source_type")
+  contentJson      Json?        @map("content_json")
+  fileAssetId      BigInt?      @map("file_asset_id")
+  plainTextContent String?      @map("plain_text_content") @db.LongText
+  createdBy        BigInt       @map("created_by")
+  createdAt        DateTime     @default(now()) @map("created_at")
+
+  cv           Cv             @relation("CvVersions", fields: [cvId], references: [cvId], onDelete: Cascade)
+  cvAsCurrent  Cv?            @relation("CvCurrentVersion")
+  fileAsset    MediaAsset?    @relation("CvFile", fields: [fileAssetId], references: [assetId], onDelete: SetNull)
+  creator      User           @relation("CvVersionCreator", fields: [createdBy], references: [userId], onDelete: Restrict)
+  applications Application[]
+  aiAnalyses   CvAiAnalysis[]
+
+  @@unique([cvId, versionNumber])
+  @@map("cv_versions")
+}
+
+model CvAiAnalysis {
+  analysisId            BigInt         @id @default(autoincrement()) @map("analysis_id")
+  cvVersionId           BigInt         @map("cv_version_id")
+  jobId                 BigInt?        @map("job_id")
+  requestedBy           BigInt         @map("requested_by")
+  analysisType          AnalysisType   @map("analysis_type")
+  modelProvider         String         @default("GEMINI") @map("model_provider") @db.VarChar(50)
+  modelName             String?        @map("model_name") @db.VarChar(100)
+  score                 Decimal?       @db.Decimal(5, 2)
+  skillMatchScore       Decimal?       @map("skill_match_score") @db.Decimal(5, 2)
+  experienceMatchScore  Decimal?       @map("experience_match_score") @db.Decimal(5, 2)
+  educationMatchScore   Decimal?       @map("education_match_score") @db.Decimal(5, 2)
+  strengths             Json?
+  weaknesses            Json?
+  recommendations       Json?
+  analysisResult        Json?          @map("analysis_result")
+  status                AnalysisStatus @default(PENDING)
+  errorMessage          String?        @map("error_message") @db.Text
+  createdAt             DateTime       @default(now()) @map("created_at")
+  completedAt           DateTime?      @map("completed_at")
+
+  cvVersion CvVersion @relation(fields: [cvVersionId], references: [cvVersionId], onDelete: Cascade)
+  job       Job?      @relation(fields: [jobId], references: [jobId], onDelete: SetNull)
+  requester User      @relation("AnalysisRequester", fields: [requestedBy], references: [userId], onDelete: Restrict)
+
+  @@index([cvVersionId])
+  @@index([requestedBy])
+  @@map("cv_ai_analyses")
+}
+
+model PricingPlan {
+  planId        BigInt    @id @default(autoincrement()) @map("plan_id")
+  planName      String    @map("plan_name") @db.VarChar(150)
+  planType      PlanType  @map("plan_type")
+  description   String?   @db.Text
+  price         Decimal   @db.Decimal(15, 2)
+  currency      String    @default("VND") @db.Char(3)
+  durationDays  Int?      @map("duration_days")
+  includedPosts Int?      @map("included_posts")
+  isActive      Boolean   @default(true) @map("is_active")
+  effectiveFrom DateTime? @map("effective_from")
+  effectiveTo   DateTime? @map("effective_to")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  orderItems OrderItem[]
+
+  @@map("pricing_plans")
+}
+
+model Order {
+  orderId        BigInt      @id @default(autoincrement()) @map("order_id")
+  orderCode      String      @unique @map("order_code") @db.VarChar(50)
+  companyId      BigInt      @map("company_id")
+  subtotal       Decimal     @db.Decimal(15, 2)
+  discountAmount Decimal     @default(0) @map("discount_amount") @db.Decimal(15, 2)
+  totalAmount    Decimal     @map("total_amount") @db.Decimal(15, 2)
+  currency       String      @default("VND") @db.Char(3)
+  status         OrderStatus @default(PENDING)
+  notes          String?     @db.Text
+  createdAt      DateTime    @default(now()) @map("created_at")
+  paidAt         DateTime?   @map("paid_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  company  CompanyProfile       @relation(fields: [companyId], references: [companyId], onDelete: Restrict)
+  items    OrderItem[]
+  payments PaymentTransaction[]
+
+  @@index([companyId, status])
+  @@map("orders")
+}
+
+model OrderItem {
+  orderItemId BigInt        @id @default(autoincrement()) @map("order_item_id")
+  orderId     BigInt        @map("order_id")
+  planId      BigInt?       @map("plan_id")
+  jobId       BigInt?       @map("job_id")
+  itemType    OrderItemType @map("item_type")
+  itemName    String        @map("item_name") @db.VarChar(200)
+  quantity    Int           @default(1)
+  unitPrice   Decimal       @map("unit_price") @db.Decimal(15, 2)
+  totalPrice  Decimal       @map("total_price") @db.Decimal(15, 2)
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  order Order        @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+  plan  PricingPlan? @relation(fields: [planId], references: [planId], onDelete: SetNull)
+  job   Job?         @relation(fields: [jobId], references: [jobId], onDelete: SetNull)
+
+  @@map("order_items")
+}
+
+model PaymentTransaction {
+  paymentId               BigInt        @id @default(autoincrement()) @map("payment_id")
+  orderId                 BigInt        @map("order_id")
+  provider                String        @default("VNPAY") @db.VarChar(30)
+  providerTransactionNo   String?       @map("provider_transaction_no") @db.VarChar(100)
+  vnpTxnRef               String        @unique @map("vnp_txn_ref") @db.VarChar(100)
+  amount                  Decimal       @db.Decimal(15, 2)
+  currency                String        @default("VND") @db.Char(3)
+  status                  PaymentStatus @default(INITIATED)
+  responseCode            String?       @map("response_code") @db.VarChar(20)
+  responseMessage         String?       @map("response_message") @db.VarChar(500)
+  paymentMethod           String?       @map("payment_method") @db.VarChar(50)
+  requestData             Json?         @map("request_data")
+  responseData            Json?         @map("response_data")
+  verifiedAt              DateTime?     @map("verified_at")
+  paidAt                  DateTime?     @map("paid_at")
+  createdAt               DateTime      @default(now()) @map("created_at")
+  updatedAt               DateTime      @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [orderId], onDelete: Restrict)
+
+  @@index([orderId])
+  @@map("payment_transactions")
+}
+
+model CompanyPostingQuota {
+  quotaId       BigInt   @id @default(autoincrement()) @map("quota_id")
+  companyId     BigInt   @unique @map("company_id")
+  freePostLimit Int      @default(3) @map("free_post_limit")
+  freePostUsed  Int      @default(0) @map("free_post_used")
+  paidPostCount Int      @default(0) @map("paid_post_count")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  company CompanyProfile @relation(fields: [companyId], references: [companyId], onDelete: Cascade)
+
+  @@map("company_posting_quotas")
+}
+
+model MediaAsset {
+  assetId          BigInt      @id @default(autoincrement()) @map("asset_id")
+  ownerUserId      BigInt      @map("owner_user_id")
+  assetType        AssetType   @map("asset_type")
+  provider         String      @default("CLOUDINARY") @db.VarChar(30)
+  publicId         String      @unique @map("public_id") @db.VarChar(255)
+  resourceType     String      @map("resource_type") @db.VarChar(30)
+  cloudinaryType   String      @default("upload") @map("cloudinary_type") @db.VarChar(20)
+  secureUrl        String      @map("secure_url") @db.VarChar(1000)
+  originalFilename String?     @map("original_filename") @db.VarChar(255)
+  mimeType         String?     @map("mime_type") @db.VarChar(100)
+  fileSize         BigInt?     @map("file_size")
+  width            Int?
+  height           Int?
+  status           AssetStatus @default(ACTIVE)
+  createdAt        DateTime    @default(now()) @map("created_at")
+  deletedAt        DateTime?   @map("deleted_at")
+
+  owner User @relation("MediaOwner", fields: [ownerUserId], references: [userId], onDelete: Restrict)
+
+  userAvatars      User[]         @relation("UserAvatar")
+  companyLogos     CompanyProfile[] @relation("CompanyLogo")
+  templatePreviews CvTemplate[]   @relation("TemplatePreview")
+  cvFiles          CvVersion[]    @relation("CvFile")
+  messageAssets    Message[]
+  reportEvidence   UserReport[]
+  expenseReceipts  Expense[]
+
+  @@index([ownerUserId, assetType])
+  @@map("media_assets")
+}
+
+model Conversation {
+  conversationId   BigInt           @id @default(autoincrement()) @map("conversation_id")
+  conversationType ConversationType @map("conversation_type")
+  applicationId    BigInt?          @map("application_id")
+  createdBy        BigInt           @map("created_by")
+  lastMessageAt    DateTime?        @map("last_message_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  application Application? @relation(fields: [applicationId], references: [applicationId], onDelete: SetNull)
+  creator     User         @relation("ConversationCreator", fields: [createdBy], references: [userId], onDelete: Restrict)
+
+  members  ConversationMember[]
+  messages Message[]
+
+  @@map("conversations")
+}
+
+model ConversationMember {
+  conversationMemberId BigInt    @id @default(autoincrement()) @map("conversation_member_id")
+  conversationId       BigInt    @map("conversation_id")
+  userId               BigInt    @map("user_id")
+  joinedAt             DateTime  @default(now()) @map("joined_at")
+  lastReadAt           DateTime? @map("last_read_at")
+  isMuted              Boolean   @default(false) @map("is_muted")
+  leftAt               DateTime? @map("left_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [conversationId], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_members")
+}
+
+model Message {
+  messageId         BigInt      @id @default(autoincrement()) @map("message_id")
+  conversationId    BigInt      @map("conversation_id")
+  senderUserId      BigInt      @map("sender_user_id")
+  messageType       MessageType @default(TEXT) @map("message_type")
+  content           String?     @db.Text
+  assetId           BigInt?     @map("asset_id")
+  replyToMessageId  BigInt?     @map("reply_to_message_id")
+  sentAt            DateTime    @default(now()) @map("sent_at")
+  editedAt          DateTime?   @map("edited_at")
+  deletedAt         DateTime?   @map("deleted_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [conversationId], onDelete: Cascade)
+  sender       User         @relation(fields: [senderUserId], references: [userId], onDelete: Restrict)
+  asset        MediaAsset?  @relation(fields: [assetId], references: [assetId], onDelete: SetNull)
+  replyTo      Message?     @relation("MessageReplies", fields: [replyToMessageId], references: [messageId], onDelete: SetNull)
+  replies      Message[]    @relation("MessageReplies")
+  reports      UserReport[]
+
+  @@index([conversationId, sentAt])
+  @@map("messages")
+}
+
+model Notification {
+  notificationId   BigInt    @id @default(autoincrement()) @map("notification_id")
+  userId           BigInt    @map("user_id")
+  notificationType String    @map("notification_type") @db.VarChar(50)
+  title            String    @db.VarChar(255)
+  content          String    @db.Text
+  referenceType    String?   @map("reference_type") @db.VarChar(50)
+  referenceId      BigInt?   @map("reference_id")
+  isRead           Boolean   @default(false) @map("is_read")
+  readAt           DateTime? @map("read_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model Review {
+  reviewId       BigInt       @id @default(autoincrement()) @map("review_id")
+  reviewerUserId BigInt       @map("reviewer_user_id")
+  reviewedUserId BigInt       @map("reviewed_user_id")
+  applicationId  BigInt?      @map("application_id")
+  rating         Int          @db.TinyInt
+  comment        String?      @db.Text
+  status         ReviewStatus @default(PENDING)
+  moderatedBy    BigInt?      @map("moderated_by")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  reviewer    User         @relation("Reviewer", fields: [reviewerUserId], references: [userId], onDelete: Restrict)
+  reviewed    User         @relation("Reviewed", fields: [reviewedUserId], references: [userId], onDelete: Restrict)
+  application Application? @relation(fields: [applicationId], references: [applicationId], onDelete: SetNull)
+  moderator   User?        @relation("ReviewModerator", fields: [moderatedBy], references: [userId], onDelete: SetNull)
+
+  @@map("reviews")
+}
+
+model UserReport {
+  reportId          BigInt       @id @default(autoincrement()) @map("report_id")
+  reporterUserId    BigInt       @map("reporter_user_id")
+  reportedUserId    BigInt?      @map("reported_user_id")
+  jobId             BigInt?      @map("job_id")
+  messageId         BigInt?      @map("message_id")
+  reportType        String       @map("report_type") @db.VarChar(100)
+  reason            String       @db.Text
+  evidenceAssetId   BigInt?      @map("evidence_asset_id")
+  status            ReportStatus @default(PENDING)
+  assignedStaffId   BigInt?      @map("assigned_staff_id")
+  resolutionNote    String?      @map("resolution_note") @db.Text
+  resolvedBy        BigInt?      @map("resolved_by")
+  resolvedAt        DateTime?    @map("resolved_at")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  reporter      User        @relation("Reporter", fields: [reporterUserId], references: [userId], onDelete: Restrict)
+  reportedUser  User?       @relation("ReportedUser", fields: [reportedUserId], references: [userId], onDelete: SetNull)
+  job           Job?        @relation(fields: [jobId], references: [jobId], onDelete: SetNull)
+  message       Message?    @relation(fields: [messageId], references: [messageId], onDelete: SetNull)
+  evidenceAsset MediaAsset? @relation(fields: [evidenceAssetId], references: [assetId], onDelete: SetNull)
+  assignedStaff User?       @relation("AssignedStaff", fields: [assignedStaffId], references: [userId], onDelete: SetNull)
+  resolver      User?       @relation("ReportResolver", fields: [resolvedBy], references: [userId], onDelete: SetNull)
+
+  @@index([status])
+  @@map("user_reports")
+}
+
+model ModerationLog {
+  moderationLogId BigInt               @id @default(autoincrement()) @map("moderation_log_id")
+  actorId         BigInt               @map("actor_id")
+  targetType      ModerationTargetType @map("target_type")
+  targetId        BigInt               @map("target_id")
+  action          String               @db.VarChar(100)
+  reason          String?              @db.Text
+  beforeData      Json?                @map("before_data")
+  afterData       Json?                @map("after_data")
+  createdAt       DateTime             @default(now()) @map("created_at")
+
+  actor User @relation(fields: [actorId], references: [userId], onDelete: Restrict)
+
+  @@index([targetType, targetId])
+  @@map("moderation_logs")
+}
+
+model Expense {
+  expenseId      BigInt        @id @default(autoincrement()) @map("expense_id")
+  expenseCode    String        @unique @map("expense_code") @db.VarChar(50)
+  category       String        @db.VarChar(100)
+  description    String        @db.Text
+  amount         Decimal       @db.Decimal(15, 2)
+  currency       String        @default("VND") @db.Char(3)
+  expenseDate    DateTime      @map("expense_date") @db.Date
+  vendorName     String?       @map("vendor_name") @db.VarChar(255)
+  receiptAssetId BigInt?       @map("receipt_asset_id")
+  status         ExpenseStatus @default(DRAFT)
+  createdBy      BigInt        @map("created_by")
+  approvedBy     BigInt?       @map("approved_by")
+  approvedAt     DateTime?     @map("approved_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  receiptAsset MediaAsset? @relation(fields: [receiptAssetId], references: [assetId], onDelete: SetNull)
+  creator      User        @relation("ExpenseCreator", fields: [createdBy], references: [userId], onDelete: Restrict)
+  approver     User?       @relation("ExpenseApprover", fields: [approvedBy], references: [userId], onDelete: SetNull)
+
+  @@map("expenses")
+}
+
+model AuditLog {
+  auditLogId BigInt   @id @default(autoincrement()) @map("audit_log_id")
+  actorId    BigInt?  @map("actor_id")
+  action     String   @db.VarChar(100)
+  entityType String   @map("entity_type") @db.VarChar(100)
+  entityId   BigInt?  @map("entity_id")
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  userAgent  String?  @map("user_agent") @db.VarChar(500)
+  beforeData Json?    @map("before_data")
+  afterData  Json?    @map("after_data")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  actor User? @relation(fields: [actorId], references: [userId], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
