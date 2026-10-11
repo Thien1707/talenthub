@@ -18,7 +18,9 @@
     "db:generate": "npm run prisma:generate -w api",
     "db:migrate": "npm run prisma:migrate -w api",
     "db:deploy": "npm run prisma:deploy -w api",
-    "db:seed": "npm run prisma:seed -w api"
+    "db:seed": "npm run prisma:seed -w api",
+    "build": "npm run db:generate && npm run build:api",
+    "start:api": "npm run start:prod -w api"
   },
   "engines": {
     "node": ">=20"
