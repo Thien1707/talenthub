@@ -20,7 +20,8 @@
     "db:deploy": "npm run prisma:deploy -w api",
     "db:seed": "npm run prisma:seed -w api",
     "build:render": "npm run db:generate && npm run build:api",
-    "start:api": "npm run start:prod -w api"
+    "start:api": "npm run start:prod -w api",
+    "start:render": "npm run build:render && npm run start:api"
   },
   "engines": {
     "node": ">=20"

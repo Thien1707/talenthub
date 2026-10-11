@@ -1,40 +1,67 @@
 # Deploy API lên Render
 
-## Nguyên nhân lỗi `nest start` (exit code 134)
+## Lỗi `Cannot find module .../dist/main.js`
 
-Render thường cấu hình **Start Command** là `npm start`. Script cũ chạy `nest start` (biên dịch TypeScript lúc runtime, cần `@nestjs/cli` trong devDependencies). Ở production, Render có thể **không cài devDependencies** hoặc **hết RAM** khi compile → process abort (**code 134**).
+Start chạy trước khi có file build. Thường do **Build Command để trống** hoặc **chỉ `npm install`** (không có `nest build`).
 
-API đã đổi `start` thành **`node dist/main`** — bắt buộc **build trước** khi start.
+Log chỉ thấy `Running 'npm run start'` / `node dist/main.js` mà **không** có `nest build` ở bước Build → cần sửa lệnh bên dưới.
 
-## Cấu hình Web Service (API)
+Script `npm start` trong `apps/api` giờ dùng `scripts/start-prod.cjs`: **tự build nếu thiếu `dist`** (cần đã cài devDependencies lúc build).
 
-### Cách 1 — Monorepo (khuyến nghị): Root Directory = *(để trống, root repo)*
+---
 
-| Mục | Giá trị |
-|-----|---------|
-| **Root Directory** | *(trống)* |
-| **Build Command** | `npm install && npm run build:render && npm run db:deploy` |
-| **Start Command** | `npm run start:api` |
+## Cấu hình A — Root Directory `apps/api` (hay dùng)
 
-Biến môi trường: copy từ `apps/api/.env.example` (DATABASE_URL, JWT_*, WEB_URL, API_URL, …). Render tự gán **PORT** — không cần hard-code.
-
-### Cách 2 — Root Directory = `apps/api`
+**Settings → Build & Deploy**
 
 | Mục | Giá trị |
 |-----|---------|
 | **Root Directory** | `apps/api` |
-| **Build Command** | `cd ../.. && npm install && npm run build -w api && npm run prisma:deploy -w api` |
+| **Build Command** | `cd ../.. && NPM_CONFIG_PRODUCTION=false npm install && npm run build -w api && npm run prisma:deploy -w api` |
 | **Start Command** | `npm start` |
 
-*(Build phải chạy từ root workspace để npm workspaces và Prisma hoạt động đúng.)*
+---
 
-## Sau khi deploy
+## Cấu hình B — Root repo (monorepo)
 
-- Health: `GET https://<service>.onrender.com/api/v1/health` (nếu có route health)
-- Swagger: `https://<service>.onrender.com/api/docs`
-- **WEB_URL** trên API = URL frontend (CORS)
-- Frontend **NEXT_PUBLIC_API_URL** = `https://<service>.onrender.com/api/v1`
+| Mục | Giá trị |
+|-----|---------|
+| **Root Directory** | *(trống)* |
+| **Build Command** | `NPM_CONFIG_PRODUCTION=false npm install && npm run build:render && npm run db:deploy` |
+| **Start Command** | `npm run start:api` |
 
-## Free tier
+---
 
-Instance sleep khi idle; lần wake đầu có thể chậm. Nếu build vẫn fail, xem **Logs** ngay trước dòng `Lifecycle script start failed` — thiếu `dist/main.js` nghĩa là build chưa chạy hoặc fail.
+## Cấu hình C — Build Command trống (tạm thời)
+
+Chỉ khi chưa kịp sửa Build; mỗi lần start sẽ build lại (chậm hơn).
+
+| Root Directory | *(trống)* |
+| **Build Command** | `NPM_CONFIG_PRODUCTION=false npm install` |
+| **Start Command** | `npm run start:render` |
+
+`start:render` = build API + chạy `node dist/main.js`.
+
+---
+
+## Biến môi trường
+
+Theo `apps/api/.env.example`: `DATABASE_URL`, `JWT_*`, `WEB_URL`, `API_URL`, …
+
+Render gán **PORT** — không set `PORT=4000`.
+
+- **WEB_URL** = URL Vercel (CORS)
+- **API_URL** = URL Render (vd. `https://xxx.onrender.com`)
+
+## Node
+
+Repo có `.node-version` (22). Trên Render: **Environment → NODE_VERSION = 22** (tránh Node 24 nếu không cần).
+
+## Kiểm tra
+
+- `GET https://<host>/api/v1/health`
+- Swagger: `/api/docs`
+
+## Blueprint
+
+[`render.yaml`](../render.yaml) — copy build/start vào dashboard hoặc deploy Blueprint.

@@ -1,0 +1,31 @@
+# Blueprint Render — API TalentHub (monorepo npm workspaces)
+# Dashboard: New → Blueprint → connect repo, hoặc copy Build/Start vào Web Service hiện có.
+services:
+  - type: web
+    name: talenthub-api
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: .
+    buildCommand: >-
+      NPM_CONFIG_PRODUCTION=false npm install &&
+      npm run build:render &&
+      npm run db:deploy
+    startCommand: npm run start:api
+    # Nếu build trên dashboard bị bỏ trống, dùng:
+    # buildCommand: NPM_CONFIG_PRODUCTION=false npm install
+    # startCommand: npm run start:render
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: WEB_URL
+        sync: false
+      - key: API_URL
+        sync: false
