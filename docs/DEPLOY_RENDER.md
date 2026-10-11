@@ -1,5 +1,13 @@
 # Deploy API lên Render
 
+## Lỗi `build` exit code **134** (`prisma generate && nest build`)
+
+Thường là **hết RAM** trên gói free Render khi biên dịch TypeScript. Repo đã bật **SWC** (`nest-cli.json`) để build nhẹ hơn.
+
+Trên Render thêm env **NODE_VERSION** = `22`, và trong Build Command có `NODE_OPTIONS=--max-old-space-size=512` (xem bảng dưới). Push code mới có `@swc/core` rồi deploy lại.
+
+---
+
 ## Lỗi `Cannot find module .../dist/main.js`
 
 Start chạy trước khi có file build. Thường do **Build Command để trống** hoặc **chỉ `npm install`** (không có `nest build`).
@@ -17,7 +25,7 @@ Script `npm start` trong `apps/api` giờ dùng `scripts/start-prod.cjs`: **tự
 | Mục | Giá trị |
 |-----|---------|
 | **Root Directory** | `apps/api` |
-| **Build Command** | `cd ../.. && NPM_CONFIG_PRODUCTION=false npm install && npm run build -w api && npm run prisma:deploy -w api` |
+| **Build Command** | `cd ../.. && NPM_CONFIG_PRODUCTION=false npm install && NODE_OPTIONS=--max-old-space-size=512 npm run build -w api && npm run prisma:deploy -w api` |
 | **Start Command** | `npm start` |
 
 ---

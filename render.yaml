@@ -9,7 +9,7 @@ services:
     rootDir: .
     buildCommand: >-
       NPM_CONFIG_PRODUCTION=false npm install &&
-      npm run build:render &&
+      NODE_OPTIONS=--max-old-space-size=512 npm run build:render &&
       npm run db:deploy
     startCommand: npm run start:api
     # Nếu build trên dashboard bị bỏ trống, dùng:

@@ -1,14 +1,22 @@
 /**
  * Production start for Render / Docker.
- * Builds dist/main.js when missing (if @nestjs/cli is installed from build phase).
+ * Builds when dist entry missing (if @nestjs/cli is installed from build phase).
  */
 const fs = require('fs');
 const path = require('path');
 const { execSync, spawnSync } = require('child_process');
 
 const apiRoot = path.resolve(__dirname, '..');
-const distMain = path.join(apiRoot, 'dist', 'main.js');
 const monorepoRoot = path.resolve(apiRoot, '../..');
+
+const DIST_CANDIDATES = [
+  path.join(apiRoot, 'dist', 'main.js'),
+  path.join(apiRoot, 'dist', 'src', 'main.js'),
+];
+
+function resolveDistMain() {
+  return DIST_CANDIDATES.find((p) => fs.existsSync(p)) ?? null;
+}
 
 function tryBuild(label, cwd, cmd) {
   console.log(`[api] ${label}: ${cmd}`);
@@ -16,9 +24,9 @@ function tryBuild(label, cwd, cmd) {
 }
 
 function ensureBuilt() {
-  if (fs.existsSync(distMain)) return;
+  if (resolveDistMain()) return;
 
-  console.warn('[api] dist/main.js missing — running build before start…');
+  console.warn('[api] dist entry missing — running build before start…');
 
   try {
     tryBuild('workspace build', monorepoRoot, 'npm run build -w api');
@@ -33,13 +41,12 @@ function ensureBuilt() {
 
 ensureBuilt();
 
-if (!fs.existsSync(distMain)) {
+const distMain = resolveDistMain();
+if (!distMain) {
   console.error(
-    '\n[api] Build failed — dist/main.js still missing.\n' +
-      'Render: set Build Command to:\n' +
-      '  cd ../.. && NPM_CONFIG_PRODUCTION=false npm install && npm run build -w api\n' +
-      'Or Root Directory empty, Build: NPM_CONFIG_PRODUCTION=false npm install,\n' +
-      'Start: npm run start:render\n' +
+    '\n[api] Build failed — no dist/main.js or dist/src/main.js.\n' +
+      'Render Build Command (Root Directory apps/api):\n' +
+      '  cd ../.. && NPM_CONFIG_PRODUCTION=false npm install && NODE_OPTIONS=--max-old-space-size=512 npm run build -w api && npm run prisma:deploy -w api\n' +
       'See docs/DEPLOY_RENDER.md\n',
   );
   process.exit(1);
