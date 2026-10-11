@@ -13,7 +13,7 @@ API đã đổi `start` thành **`node dist/main`** — bắt buộc **build tr�
 | Mục | Giá trị |
 |-----|---------|
 | **Root Directory** | *(trống)* |
-| **Build Command** | `npm install && npm run build && npm run db:deploy` |
+| **Build Command** | `npm install && npm run build:render && npm run db:deploy` |
 | **Start Command** | `npm run start:api` |
 
 Biến môi trường: copy từ `apps/api/.env.example` (DATABASE_URL, JWT_*, WEB_URL, API_URL, …). Render tự gán **PORT** — không cần hard-code.
