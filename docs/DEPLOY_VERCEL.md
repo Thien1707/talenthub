@@ -1,5 +1,15 @@
 # Deploy frontend (Next.js) lên Vercel
 
+## Lỗi `@tailwindcss/postcss` / webpack khi `next build`
+
+Tailwind v4 cần lúc **build** trên Vercel. Repo đã chuyển `tailwindcss` + `@tailwindcss/postcss` sang **dependencies** (không chỉ devDependencies).
+
+**Install Command** (dashboard hoặc `vercel.json`): `cd ../.. && NPM_CONFIG_PRODUCTION=false npm install`
+
+**Build Command** phải là `npm run build`, **không** phải `npm install`.
+
+---
+
 ## Lỗi `.next` không tìm thấy tại `apps/web/.next`
 
 Thường do một trong các nguyên nhân sau:
@@ -22,7 +32,7 @@ Trong **Vercel → Project → Settings → General**:
 
 File [`apps/web/vercel.json`](../apps/web/vercel.json) đã cấu hình:
 
-- `installCommand`: `cd ../.. && npm install` (cài workspace từ root)
+- `installCommand`: `cd ../.. && NPM_CONFIG_PRODUCTION=false npm install`
 - `buildCommand`: `npm run build` (chạy `next build` trong `apps/web`)
 
 ## Biến môi trường (Vercel → Environment Variables)
