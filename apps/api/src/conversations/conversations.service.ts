@@ -15,7 +15,7 @@ import {
 import { getCompanyProfileForUser } from '../common/utils/company-access.util';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { ChatGateway } from '../chat/chat.gateway';
+import type { ChatGateway } from '../chat/chat.gateway';
 import { SendMessageDto } from './dto/send-message.dto';
 
 @Injectable()
@@ -23,7 +23,9 @@ export class ConversationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
-    @Inject(forwardRef(() => ChatGateway))
+    @Inject(
+      forwardRef(() => require('../chat/chat.gateway').ChatGateway),
+    )
     private readonly chatGateway: ChatGateway,
   ) {}
 

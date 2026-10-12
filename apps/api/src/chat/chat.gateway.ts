@@ -1,3 +1,4 @@
+import { forwardRef, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import {
@@ -10,7 +11,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { ConversationsService } from '../conversations/conversations.service';
+import type { ConversationsService } from '../conversations/conversations.service';
 
 @WebSocketGateway({
   cors: {
@@ -29,6 +30,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    @Inject(forwardRef(() => require('../conversations/conversations.service').ConversationsService))
     private readonly conversations: ConversationsService,
   ) {}
 
