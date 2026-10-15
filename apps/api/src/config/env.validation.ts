@@ -34,6 +34,16 @@ export class EnvironmentVariables {
   @IsUrl({ require_tld: false })
   API_URL: string = 'http://localhost:4000';
 
+  /** Thêm origin FE (phân tách dấu phẩy), vd URL preview Vercel */
+  @IsOptional()
+  @IsString()
+  CORS_ORIGINS?: string;
+
+  /** true → cho phép mọi https://*.vercel.app (preview deploy) */
+  @IsOptional()
+  @IsString()
+  CORS_ALLOW_VERCEL?: string;
+
   @IsString()
   @IsNotEmpty()
   JWT_ACCESS_SECRET: string;

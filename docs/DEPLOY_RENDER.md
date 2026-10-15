@@ -58,8 +58,12 @@ Theo `apps/api/.env.example`: `DATABASE_URL`, `JWT_*`, `WEB_URL`, `API_URL`, …
 
 Render gán **PORT** — không set `PORT=4000`.
 
-- **WEB_URL** = URL Vercel (CORS)
+- **WEB_URL** = URL Vercel production (vd. `https://talenthub-gray.vercel.app`) — **bắt buộc** cho CORS
+- **CORS_ALLOW_VERCEL** = `true` nếu bạn mở FE bằng URL preview `*.vercel.app`
+- **CORS_ORIGINS** = thêm origin (cách nhau dấu phẩy) nếu không dùng `CORS_ALLOW_VERCEL`
 - **API_URL** = URL Render (vd. `https://xxx.onrender.com`)
+
+Lỗi console *Access-Control-Allow-Origin … localhost:3000* → **WEB_URL trên Render vẫn là local**; sửa env và **restart** service.
 
 ## Node
 
