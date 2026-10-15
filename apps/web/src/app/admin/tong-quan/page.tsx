@@ -23,6 +23,9 @@ export default function AdminOverviewPage() {
             <Link href="/admin/chi-phi" className="text-blue-700 hover:underline">
               Chi phí
             </Link>
+            <Link href="/admin/tai-khoan" className="text-blue-700 hover:underline">
+              Tài khoản SV / NTD
+            </Link>
           </nav>
           <SuperAdminDashboard />
         </RequireAuth>

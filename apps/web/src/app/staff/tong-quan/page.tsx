@@ -26,6 +26,9 @@ export default function StaffOverviewPage() {
             <Link href="/staff/danh-gia" className="text-blue-700 hover:underline">
               Đánh giá
             </Link>
+            <Link href="/admin/tai-khoan" className="text-blue-700 hover:underline">
+              Tài khoản SV / NTD
+            </Link>
           </nav>
           <StaffDashboard />
         </RequireAuth>

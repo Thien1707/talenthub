@@ -3,17 +3,20 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
+import { UserRole, UserStatus } from '@prisma/client';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { AdminService } from './admin.service';
+import { AdminResetPasswordDto } from './dto/admin-reset-password.dto';
+import { AdminUpdateUserStatusDto } from './dto/admin-update-user-status.dto';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { ExpenseActionDto } from './dto/expense-action.dto';
@@ -186,6 +189,56 @@ export class AdminController {
       BigInt(user.userId),
       user.role,
       BigInt(expenseId),
+    );
+  }
+
+  @Get('users')
+  @Roles(UserRole.STAFF, UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Danh sách tài khoản SV / NTD' })
+  platformUsers(
+    @CurrentUser() user: { role: UserRole },
+    @Query('role') role?: UserRole,
+    @Query('status') status?: UserStatus,
+    @Query('search') search?: string,
+    @Query('limit') limit?: number,
+  ) {
+    return this.adminService.listPlatformUsers(user.role, {
+      role,
+      status,
+      search,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
+  @Patch('users/:userId/password')
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Đặt lại mật khẩu SV / NTD (Super Admin)' })
+  resetUserPassword(
+    @CurrentUser() user: { userId: string; role: UserRole },
+    @Param('userId') userId: string,
+    @Body() dto: AdminResetPasswordDto,
+  ) {
+    return this.adminService.resetPlatformUserPassword(
+      BigInt(user.userId),
+      user.role,
+      BigInt(userId),
+      dto,
+    );
+  }
+
+  @Patch('users/:userId/status')
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Cập nhật trạng thái SV / NTD' })
+  updateUserStatus(
+    @CurrentUser() user: { userId: string; role: UserRole },
+    @Param('userId') userId: string,
+    @Body() dto: AdminUpdateUserStatusDto,
+  ) {
+    return this.adminService.setPlatformUserStatus(
+      BigInt(user.userId),
+      user.role,
+      BigInt(userId),
+      dto,
     );
   }
 

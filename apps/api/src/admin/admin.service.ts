@@ -21,6 +21,8 @@ import {
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import * as argon2 from 'argon2';
+import { AdminResetPasswordDto } from './dto/admin-reset-password.dto';
+import { AdminUpdateUserStatusDto } from './dto/admin-update-user-status.dto';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { VerifyCompanyDto } from './dto/verify-company.dto';
@@ -341,6 +343,144 @@ export class AdminService {
       throw new NotFoundException('Không tìm thấy chi phí');
     }
     return exp;
+  }
+
+  listPlatformUsers(
+    role: UserRole,
+    filters: {
+      role?: UserRole;
+      status?: UserStatus;
+      search?: string;
+      limit?: number;
+    },
+  ) {
+    assertStaffOrAdmin(role);
+    const take = Math.min(Math.max(filters.limit ?? 100, 1), 200);
+    const platformRole =
+      filters.role === UserRole.STUDENT || filters.role === UserRole.COMPANY
+        ? filters.role
+        : { in: [UserRole.STUDENT, UserRole.COMPANY] };
+
+    const q = filters.search?.trim();
+    return this.prisma.user.findMany({
+      where: {
+        deletedAt: null,
+        role: platformRole,
+        ...(filters.status ? { status: filters.status } : {}),
+        ...(q
+          ? {
+              OR: [
+                { email: { contains: q } },
+                { fullName: { contains: q } },
+                { phone: { contains: q } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ status: 'asc' }, { lastLoginAt: 'desc' }, { createdAt: 'desc' }],
+      take,
+      select: {
+        userId: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        role: true,
+        status: true,
+        emailVerifiedAt: true,
+        lastLoginAt: true,
+        createdAt: true,
+        studentProfile: {
+          select: { schoolName: true, major: true, city: true },
+        },
+        companyProfile: {
+          select: {
+            companyName: true,
+            city: true,
+            verificationStatus: true,
+          },
+        },
+      },
+    });
+  }
+
+  async resetPlatformUserPassword(
+    actorId: bigint,
+    role: UserRole,
+    userId: bigint,
+    dto: AdminResetPasswordDto,
+  ) {
+    assertSuperAdmin(role);
+    const user = await this.prisma.user.findFirst({
+      where: {
+        userId,
+        deletedAt: null,
+        role: { in: [UserRole.STUDENT, UserRole.COMPANY] },
+      },
+    });
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy tài khoản sinh viên / công ty');
+    }
+    const passwordHash = await argon2.hash(dto.newPassword);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { userId },
+        data: { passwordHash },
+      });
+      await tx.refreshToken.deleteMany({ where: { userId } });
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'ADMIN_RESET_PASSWORD',
+          entityType: 'USER',
+          entityId: userId,
+          afterData: { email: user.email, role: user.role },
+        },
+      });
+    });
+    return { success: true, userId: userId.toString() };
+  }
+
+  async setPlatformUserStatus(
+    actorId: bigint,
+    role: UserRole,
+    userId: bigint,
+    dto: AdminUpdateUserStatusDto,
+  ) {
+    assertSuperAdmin(role);
+    const user = await this.prisma.user.findFirst({
+      where: {
+        userId,
+        deletedAt: null,
+        role: { in: [UserRole.STUDENT, UserRole.COMPANY] },
+      },
+    });
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy tài khoản sinh viên / công ty');
+    }
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.user.update({
+        where: { userId },
+        data: { status: dto.status },
+      });
+      if (
+        dto.status === UserStatus.SUSPENDED ||
+        dto.status === UserStatus.BANNED
+      ) {
+        await tx.refreshToken.deleteMany({ where: { userId } });
+      }
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'ADMIN_USER_STATUS',
+          entityType: 'USER',
+          entityId: userId,
+          beforeData: { status: user.status },
+          afterData: { status: dto.status },
+        },
+      });
+      return u;
+    });
+    return updated;
   }
 
   listAuditLogs(role: UserRole, limit = 50) {
