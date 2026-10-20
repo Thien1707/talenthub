@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { AppShell } from "@/components/app-shell";
 import { EmailVerificationBanner } from "@/components/settings/email-verification-banner";
 import { RequireAuth } from "@/components/require-auth";
 import { CvManager } from "@/components/student/cv-manager";
-import { SiteHeader } from "@/components/site-header";
+import { StudentSubnav } from "@/components/ui/student-subnav";
 
 export default async function StudentCvEditPage({
   params,
@@ -14,27 +15,20 @@ export default async function StudentCvEditPage({
   const { cvId } = await params;
   const sp = await searchParams;
   return (
-    <div className="min-h-screen bg-slate-50">
-      <SiteHeader />
-      <main className="mx-auto max-w-6xl px-4 py-10">
-        <RequireAuth roles={["STUDENT"]}>
-          <EmailVerificationBanner />
-          <Link
-            href="/sinh-vien/cv"
-            className="text-sm text-blue-700 hover:underline"
-          >
-            ← Quản lý CV
-          </Link>
-          <h1 className="mb-6 mt-2 text-2xl font-bold text-slate-900">
-            Chỉnh sửa CV
-          </h1>
-          <CvManager
-            cvId={cvId}
-            jobId={sp.jobId}
-            jobTitle={sp.jobTitle}
-          />
-        </RequireAuth>
-      </main>
-    </div>
+    <AppShell
+      title="Chỉnh sửa CV"
+      description="Soạn nội dung, xem trước, tải PDF và phân tích AI."
+      actions={
+        <Link href="/sinh-vien/cv" className="text-link">
+          ← Danh sách CV
+        </Link>
+      }
+    >
+      <RequireAuth roles={["STUDENT"]}>
+        <EmailVerificationBanner />
+        <StudentSubnav />
+        <CvManager cvId={cvId} jobId={sp.jobId} jobTitle={sp.jobTitle} />
+      </RequireAuth>
+    </AppShell>
   );
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { SiteHeader } from "@/components/site-header";
+import { AppShell } from "@/components/app-shell";
 
 function PaymentResultInner() {
   const params = useSearchParams();
@@ -11,30 +11,23 @@ function PaymentResultInner() {
   const ok = code === "00";
 
   return (
-    <div className="rounded-xl border bg-white p-6 text-slate-800">
+    <div className="th-card">
       {ok ? (
         <>
-          <h2 className="text-lg font-semibold text-emerald-700">
-            Thanh toán thành công
-          </h2>
-          <p className="mt-2 text-sm">
+          <h2 className="text-lg font-bold text-emerald-700">Thanh toán thành công</h2>
+          <p className="mt-2 text-sm text-slate-600">
             Bạn có thể quay lại quản lý tin và bấm <strong>Gửi duyệt</strong>.
           </p>
         </>
       ) : (
         <>
-          <h2 className="text-lg font-semibold text-red-700">
-            Thanh toán chưa thành công
-          </h2>
-          <p className="mt-2 text-sm">
+          <h2 className="text-lg font-bold text-red-700">Thanh toán chưa thành công</h2>
+          <p className="mt-2 text-sm text-slate-600">
             Mã phản hồi: {code ?? "—"}. Vui lòng thử lại hoặc liên hệ hỗ trợ.
           </p>
         </>
       )}
-      <Link
-        href="/cong-ty/tin-tuyen-dung"
-        className="mt-4 inline-block text-blue-700 hover:underline"
-      >
+      <Link href="/cong-ty/tin-tuyen-dung" className="text-link mt-4">
         ← Quản lý tin tuyển dụng
       </Link>
     </div>
@@ -43,14 +36,10 @@ function PaymentResultInner() {
 
 export default function PaymentResultPage() {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <SiteHeader />
-      <main className="mx-auto max-w-lg px-4 py-10">
-        <h1 className="mb-6 text-2xl font-bold text-slate-900">Kết quả thanh toán</h1>
-        <Suspense fallback={<p>Đang xử lý...</p>}>
-          <PaymentResultInner />
-        </Suspense>
-      </main>
-    </div>
+    <AppShell title="Kết quả thanh toán" narrow>
+      <Suspense fallback={<p className="text-sm text-slate-500">Đang xử lý…</p>}>
+        <PaymentResultInner />
+      </Suspense>
+    </AppShell>
   );
 }

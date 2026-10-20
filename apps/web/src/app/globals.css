@@ -1,20 +1,25 @@
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
   --muted: #475569;
+  --th-blue: #2563eb;
+  --th-blue-dark: #1d4ed8;
+  --th-radius: 0.75rem;
+  --th-radius-lg: 1rem;
+  --th-radius-xl: 1.25rem;
   color-scheme: light;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: "Be Vietnam Pro", var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
-/* Giao diện TalentHub mặc định nền sáng — không đảo màu chữ theo dark mode OS */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #f8fafc;
@@ -27,7 +32,25 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
 
 h1,
@@ -49,4 +72,110 @@ select {
 input::placeholder,
 textarea::placeholder {
   color: #94a3b8;
+}
+
+@layer components {
+  .nav-link {
+    @apply rounded-lg px-3.5 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-600;
+  }
+
+  .nav-link-active {
+    @apply bg-blue-50 text-blue-700;
+  }
+
+  .mobile-nav-link {
+    @apply rounded-xl px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-blue-600;
+  }
+
+  .button {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus-visible:ring-4 focus-visible:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .button-primary {
+    @apply bg-blue-600 text-white shadow-sm shadow-blue-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md;
+  }
+
+  .button-secondary {
+    @apply border border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700;
+  }
+
+  .button-ghost {
+    @apply text-slate-600 hover:bg-slate-50 hover:text-blue-600;
+  }
+
+  .button-danger-ghost {
+    @apply text-slate-600 hover:bg-red-50 hover:text-red-600;
+  }
+
+  .icon-button {
+    @apply grid h-10 w-10 shrink-0 place-items-center rounded-xl text-slate-500 outline-none hover:bg-slate-100 hover:text-blue-600 focus-visible:ring-4 focus-visible:ring-blue-100;
+  }
+
+  .section-heading {
+    @apply flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between;
+  }
+
+  .eyebrow {
+    @apply mb-2 text-sm font-bold uppercase tracking-widest text-blue-600;
+  }
+
+  .section-title {
+    @apply text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl;
+  }
+
+  .text-link {
+    @apply inline-flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:gap-2.5 hover:text-blue-700;
+  }
+
+  .th-card {
+    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm;
+  }
+
+  .th-card-hover {
+    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg hover:shadow-slate-200/60;
+  }
+
+  .job-card {
+    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-slate-200/60;
+  }
+
+  .job-tag {
+    @apply rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-600;
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-100;
+  }
+
+  .hero-glow {
+    @apply pointer-events-none absolute rounded-full blur-3xl;
+  }
+
+  .hero-glow-left {
+    @apply -left-24 top-12 h-72 w-72 bg-blue-100/70;
+  }
+
+  .hero-glow-right {
+    @apply -right-24 bottom-0 h-80 w-80 bg-indigo-100/70;
+  }
+
+  .subnav-link {
+    @apply rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-white hover:text-blue-600;
+  }
+
+  .subnav-link-active {
+    @apply bg-white text-blue-700 shadow-sm;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1,17 +1,15 @@
+import { AppShell } from "@/components/app-shell";
 import { RequireAuth } from "@/components/require-auth";
-import { SiteHeader } from "@/components/site-header";
 import { ReviewsQueue } from "@/components/staff/reviews-queue";
+import { StaffSubnav } from "@/components/ui/staff-subnav";
 
 export default function StaffReviewsPage() {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <SiteHeader />
-      <main className="mx-auto max-w-4xl px-4 py-10">
-        <RequireAuth roles={["STAFF", "SUPER_ADMIN"]}>
-          <h1 className="mb-6 text-2xl font-bold">Duyệt đánh giá</h1>
-          <ReviewsQueue />
-        </RequireAuth>
-      </main>
-    </div>
+    <AppShell title="Đánh giá" description="Kiểm duyệt đánh giá từ sinh viên.">
+      <RequireAuth roles={["STAFF", "SUPER_ADMIN"]}>
+        <StaffSubnav />
+        <ReviewsQueue />
+      </RequireAuth>
+    </AppShell>
   );
 }

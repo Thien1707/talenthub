@@ -38,7 +38,7 @@ export function StaffDashboard() {
       {cards.map((c) => (
         <div
           key={c.label}
-          className="rounded-xl border bg-white p-4 shadow-sm"
+          className="th-card-hover"
         >
           <p className="text-sm text-slate-600">{c.label}</p>
           <p className="mt-1 text-2xl font-bold text-slate-900">{c.value ?? 0}</p>

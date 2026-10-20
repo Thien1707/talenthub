@@ -1,0 +1,10 @@
+{
+  "description": "Connects students with part-time job opportunities by enabling job posting, application management, status tracking, and mutual reviews for seamless hiring.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

@@ -60,7 +60,7 @@ export function NotificationsBell() {
         type="button"
         aria-label="Thông báo"
         onClick={() => setOpen((v) => !v)}
-        className="relative rounded-md p-1.5 text-slate-700 hover:bg-slate-100"
+        className="icon-button relative"
       >
         <Bell className="h-5 w-5" />
         {count > 0 && (

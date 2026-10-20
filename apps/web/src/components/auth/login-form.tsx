@@ -36,7 +36,7 @@ export function LoginForm() {
         </label>
         <input
           type="email"
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
+          className="input-field"
           {...register("email")}
         />
         {errors.email && (
@@ -49,7 +49,7 @@ export function LoginForm() {
         </label>
         <input
           type="password"
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
+          className="input-field"
           {...register("password")}
         />
         {errors.password && (
@@ -59,7 +59,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-700 py-2.5 text-white hover:bg-blue-800 disabled:opacity-60"
+        className="button button-primary w-full py-3"
       >
         {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
         Đăng nhập

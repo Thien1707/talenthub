@@ -1,17 +1,18 @@
+import { AppShell } from "@/components/app-shell";
 import { CompanyJobsPanel } from "@/components/company/jobs-panel";
 import { RequireAuth } from "@/components/require-auth";
-import { SiteHeader } from "@/components/site-header";
+import { CompanySubnav } from "@/components/ui/company-subnav";
 
 export default function CompanyJobsPage() {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <SiteHeader />
-      <main className="mx-auto max-w-6xl px-4 py-10">
-        <RequireAuth roles={["COMPANY"]}>
-          <h1 className="mb-6 text-2xl font-bold">Quản lý tin tuyển dụng</h1>
-          <CompanyJobsPanel />
-        </RequireAuth>
-      </main>
-    </div>
+    <AppShell
+      title="Quản lý tin tuyển dụng"
+      description="Tạo tin nháp, gửi duyệt, thanh toán và quản lý ứng viên."
+    >
+      <RequireAuth roles={["COMPANY"]}>
+        <CompanySubnav />
+        <CompanyJobsPanel />
+      </RequireAuth>
+    </AppShell>
   );
 }

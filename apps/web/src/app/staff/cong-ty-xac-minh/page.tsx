@@ -1,17 +1,15 @@
+import { AppShell } from "@/components/app-shell";
 import { RequireAuth } from "@/components/require-auth";
-import { SiteHeader } from "@/components/site-header";
 import { CompanyVerificationPanel } from "@/components/staff/company-verification-panel";
+import { StaffSubnav } from "@/components/ui/staff-subnav";
 
 export default function StaffCompanyVerifyPage() {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <SiteHeader />
-      <main className="mx-auto max-w-4xl px-4 py-10">
-        <RequireAuth roles={["STAFF", "SUPER_ADMIN"]}>
-          <h1 className="mb-6 text-2xl font-bold text-slate-900">Xác minh công ty</h1>
-          <CompanyVerificationPanel />
-        </RequireAuth>
-      </main>
-    </div>
+    <AppShell title="Xác minh doanh nghiệp" description="Duyệt hồ sơ công ty đăng ký trên nền tảng.">
+      <RequireAuth roles={["STAFF", "SUPER_ADMIN"]}>
+        <StaffSubnav />
+        <CompanyVerificationPanel />
+      </RequireAuth>
+    </AppShell>
   );
 }

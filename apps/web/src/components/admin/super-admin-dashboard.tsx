@@ -47,7 +47,7 @@ export function SuperAdminDashboard() {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border bg-white p-4">
+    <div className="th-card">
       <p className="text-sm text-slate-600">{label}</p>
       <p className="mt-1 text-xl font-bold text-slate-900">{value}</p>
     </div>

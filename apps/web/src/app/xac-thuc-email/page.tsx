@@ -4,8 +4,8 @@ import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
+import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/components/auth-provider";
-import { SiteHeader } from "@/components/site-header";
 import { api } from "@/lib/api/client";
 
 function VerifyInner() {
@@ -25,7 +25,7 @@ function VerifyInner() {
 
   if (!token) {
     return (
-      <p className="text-slate-700">
+      <p className="text-sm text-slate-700">
         Thiếu token. Hãy dùng liên kết trong email hoặc bấm gửi lại từ trang cài
         đặt.
       </p>
@@ -33,12 +33,12 @@ function VerifyInner() {
   }
 
   if (verify.isPending) {
-    return <p className="text-slate-700">Đang xác thực...</p>;
+    return <p className="text-sm text-slate-700">Đang xác thực…</p>;
   }
 
   if (verify.isError) {
     return (
-      <p className="text-red-700">
+      <p className="text-sm font-medium text-red-700">
         Xác thực thất bại. Token có thể đã hết hạn — gửi lại liên kết mới.
       </p>
     );
@@ -46,8 +46,8 @@ function VerifyInner() {
 
   return (
     <>
-      <p className="text-emerald-700">Email đã được xác thực thành công.</p>
-      <Link href="/" className="mt-4 inline-block text-blue-700 hover:underline">
+      <p className="font-medium text-emerald-700">Email đã được xác thực thành công.</p>
+      <Link href="/" className="text-link mt-4">
         Về trang chủ
       </Link>
     </>
@@ -56,14 +56,12 @@ function VerifyInner() {
 
 export default function VerifyEmailPage() {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <SiteHeader />
-      <main className="mx-auto max-w-lg px-4 py-10">
-        <h1 className="mb-4 text-2xl font-bold text-slate-900">Xác thực email</h1>
-        <Suspense fallback={<p>Đang tải...</p>}>
+    <AppShell title="Xác thực email" narrow>
+      <div className="th-card">
+        <Suspense fallback={<p className="text-sm text-slate-500">Đang tải…</p>}>
           <VerifyInner />
         </Suspense>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

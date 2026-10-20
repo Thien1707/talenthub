@@ -2,9 +2,9 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { AppShell } from "@/components/app-shell";
 import { ReportForm } from "@/components/reports/report-form";
 import { RequireAuth } from "@/components/require-auth";
-import { SiteHeader } from "@/components/site-header";
 
 function ReportInner() {
   const params = useSearchParams();
@@ -19,16 +19,14 @@ function ReportInner() {
 
 export default function ReportPage() {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <SiteHeader />
-      <main className="mx-auto max-w-6xl px-4 py-10">
-        <RequireAuth roles={["STUDENT", "COMPANY"]}>
-          <h1 className="mb-6 text-2xl font-bold text-slate-900">Báo cáo vi phạm</h1>
-          <Suspense fallback={<p>Đang tải...</p>}>
+    <AppShell title="Báo cáo vi phạm" description="Gửi báo cáo để Staff xử lý.">
+      <RequireAuth roles={["STUDENT", "COMPANY"]}>
+        <div className="th-card max-w-2xl">
+          <Suspense fallback={<p className="text-sm text-slate-500">Đang tải…</p>}>
             <ReportInner />
           </Suspense>
-        </RequireAuth>
-      </main>
-    </div>
+        </div>
+      </RequireAuth>
+    </AppShell>
   );
 }

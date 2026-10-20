@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { SiteHeader } from "@/components/site-header";
+import { AppShell } from "@/components/app-shell";
 
 async function fetchCompany(companyId: string) {
   const base =
@@ -28,29 +28,27 @@ export default async function CompanyPublicPage({
   if (!company) notFound();
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <SiteHeader />
-      <main className="mx-auto max-w-3xl px-4 py-10">
-        <h1 className="text-3xl font-bold">{company.companyName}</h1>
-        <p className="mt-2 text-slate-600">
-          {[company.industry, company.city].filter(Boolean).join(" · ")}
-        </p>
+    <AppShell
+      title={company.companyName}
+      description={[company.industry, company.city].filter(Boolean).join(" · ")}
+    >
+      <article className="th-card mx-auto max-w-3xl">
         {company.website && (
           <a
             href={company.website}
             target="_blank"
             rel="noreferrer"
-            className="mt-2 inline-block text-blue-700 hover:underline"
+            className="text-link"
           >
-            Website
+            Website công ty
           </a>
         )}
         {company.description && (
-          <p className="mt-6 whitespace-pre-wrap text-slate-700">
+          <p className="mt-6 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
             {company.description}
           </p>
         )}
-      </main>
-    </div>
+      </article>
+    </AppShell>
   );
 }

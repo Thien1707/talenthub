@@ -3,8 +3,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
+import { AppShell } from "@/components/app-shell";
 import { RequireAuth } from "@/components/require-auth";
-import { SiteHeader } from "@/components/site-header";
+import { StudentSubnav } from "@/components/ui/student-subnav";
 import { api } from "@/lib/api/client";
 
 export default function MyApplicationsPage() {
@@ -34,41 +35,42 @@ export default function MyApplicationsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <SiteHeader />
-      <main className="mx-auto max-w-4xl px-4 py-10">
-        <RequireAuth roles={["STUDENT"]}>
-          <h1 className="mb-6 text-2xl font-bold text-slate-900">
-            Hồ sơ đã ứng tuyển
-          </h1>
-          {isLoading && <p className="text-slate-600">Đang tải...</p>}
-          <ul className="space-y-3">
-            {data?.map((app) => (
-              <li
-                key={app.applicationId}
-                className="rounded-xl border bg-white p-4 text-slate-800"
+    <AppShell
+      title="Hồ sơ đã ứng tuyển"
+      description="Theo dõi trạng thái và nhắn tin với nhà tuyển dụng."
+    >
+      <RequireAuth roles={["STUDENT"]}>
+        <StudentSubnav />
+        {isLoading && <p className="text-sm text-slate-500">Đang tải…</p>}
+        <ul className="grid gap-4">
+          {data?.map((app) => (
+            <li key={app.applicationId} className="th-card">
+              <Link
+                href={`/viec-lam/${app.job?.slug ?? ""}`}
+                className="font-bold text-slate-900 hover:text-blue-600"
               >
-                <Link
-                  href={`/viec-lam/${app.job?.slug ?? ""}`}
-                  className="font-medium text-blue-800 hover:underline"
-                >
-                  {app.job?.title}
-                </Link>
-                <p className="text-sm text-slate-600">
-                  {app.job?.company?.companyName} · {app.status}
-                </p>
-                <button
-                  type="button"
-                  className="mt-2 text-sm text-blue-700 hover:underline"
-                  onClick={() => openChat.mutate(app.applicationId)}
-                >
-                  Nhắn tin với công ty
-                </button>
-              </li>
-            ))}
-          </ul>
-        </RequireAuth>
-      </main>
-    </div>
+                {app.job?.title}
+              </Link>
+              <p className="mt-1 text-sm text-slate-600">
+                {app.job?.company?.companyName} ·{" "}
+                <span className="font-semibold">{app.status}</span>
+              </p>
+              <button
+                type="button"
+                className="text-link mt-3"
+                onClick={() => openChat.mutate(app.applicationId)}
+              >
+                Nhắn tin với công ty
+              </button>
+            </li>
+          ))}
+          {!isLoading && data?.length === 0 && (
+            <li className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-slate-500">
+              Bạn chưa ứng tuyển tin nào.
+            </li>
+          )}
+        </ul>
+      </RequireAuth>
+    </AppShell>
   );
 }
