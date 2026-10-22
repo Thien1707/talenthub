@@ -97,3 +97,34 @@ export function dashboardPath(role: AuthUser["role"]) {
       return "/";
   }
 }
+
+/** Bảng điều khiển trên navbar (khác route sau login nếu cần). */
+export function navbarDashboardPath(role: AuthUser["role"]) {
+  switch (role) {
+    case "STUDENT":
+      return "/sinh-vien/cv";
+    case "COMPANY":
+      return "/cong-ty/tin-tuyen-dung";
+    case "STAFF":
+      return "/staff/tong-quan";
+    case "SUPER_ADMIN":
+      return "/admin/tong-quan";
+    default:
+      return "/";
+  }
+}
+
+export function profilePath(role: AuthUser["role"]) {
+  switch (role) {
+    case "STUDENT":
+      return "/sinh-vien/ho-so";
+    case "COMPANY":
+      return "/cong-ty/ho-so";
+    case "STAFF":
+      return "/staff/tong-quan";
+    case "SUPER_ADMIN":
+      return "/admin/tong-quan";
+    default:
+      return "/";
+  }
+}

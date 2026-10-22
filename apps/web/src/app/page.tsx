@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { ArrowRight, Briefcase, Search, Sparkles } from "lucide-react";
+import { Briefcase, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { HomeHeroActions } from "@/components/home-hero-actions";
 
 async function getHealth() {
   const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
@@ -39,16 +39,7 @@ export default async function Home() {
               tuyển dụng. Doanh nghiệp đăng tin, duyệt ứng viên và thanh toán
               dịch vụ an toàn qua VNPAY.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/viec-lam" className="button button-primary px-6 py-3">
-                <Search className="h-4 w-4" />
-                Tìm việc ngay
-              </Link>
-              <Link href="/dang-ky?role=company" className="button button-secondary px-6 py-3">
-                Đăng tin tuyển dụng
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+            <HomeHeroActions />
           </div>
           <div className="hidden lg:block" aria-hidden>
             <div className="relative mx-auto max-w-md">

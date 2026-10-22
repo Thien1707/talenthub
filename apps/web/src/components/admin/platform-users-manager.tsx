@@ -47,13 +47,13 @@ export function PlatformUsersManager() {
   const qc = useQueryClient();
   const [role, setRole] = useState<"" | "STUDENT" | "COMPANY">("");
   const [status, setStatus] = useState<"" | "ACTIVE" | "PENDING" | "SUSPENDED">(
-    "ACTIVE",
+    "",
   );
   const [search, setSearch] = useState("");
   const [passwordFor, setPasswordFor] = useState<PlatformUser | null>(null);
   const [newPassword, setNewPassword] = useState("");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["admin", "users", role, status, search],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -67,6 +67,9 @@ export function PlatformUsersManager() {
       return rows;
     },
   });
+
+  const apiErrorStatus = (error as { response?: { status?: number } })?.response
+    ?.status;
 
   const resetPassword = useMutation({
     mutationFn: () =>
@@ -129,6 +132,26 @@ export function PlatformUsersManager() {
       </div>
 
       {isLoading && <p className="text-slate-600">Đang tải…</p>}
+
+      {isError && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {apiErrorStatus === 404 ? (
+            <>
+              API chưa có endpoint <strong>/admin/users</strong> (404). Backend
+              đang chạy bản build cũ — dừng API, chạy{" "}
+              <code className="rounded bg-white px-1">npm run build -w api</code>{" "}
+              rồi <code className="rounded bg-white px-1">npm run dev:api</code>{" "}
+              hoặc <code className="rounded bg-white px-1">npm run start -w api</code>.
+            </>
+          ) : (
+            <>
+              Không tải được danh sách tài khoản
+              {apiErrorStatus ? ` (HTTP ${apiErrorStatus})` : ""}. Kiểm tra API
+              đang chạy và quyền Staff / Super Admin.
+            </>
+          )}
+        </div>
+      )}
 
       <ul className="divide-y rounded-xl border bg-white">
         {data?.map((u) => (

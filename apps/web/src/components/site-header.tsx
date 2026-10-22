@@ -4,9 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, MessageSquare, X } from "lucide-react";
 import { useState } from "react";
-import { dashboardPath, useAuth } from "@/components/auth-provider";
+import { useAuth } from "@/components/auth-provider";
 import { NotificationsBell } from "@/components/notifications/notifications-bell";
 import { TalentHubLogo } from "@/components/ui/talenthub-logo";
+import { UserAccountMenu } from "@/components/user-account-menu";
 
 function navClass(active: boolean) {
   return active ? "nav-link nav-link-active" : "nav-link";
@@ -18,15 +19,11 @@ function mobileNavClass(active: boolean) {
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
-
-  const dashboardHref = user
-    ? dashboardPath(user.role)
-    : "/dang-nhap";
 
   const closeMobile = () => setMobileOpen(false);
 
@@ -83,60 +80,32 @@ export function SiteHeader() {
           )}
         </nav>
 
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {!loading && user && (
             <>
               <Link
                 href="/tin-nhan"
-                className="icon-button relative"
+                className="icon-button relative hidden sm:grid"
                 aria-label="Tin nhắn"
               >
                 <MessageSquare className="h-5 w-5" />
               </Link>
-              <NotificationsBell />
-              <span className="mx-1 hidden h-6 w-px bg-slate-200 xl:block" />
-              <span className="hidden max-w-[10rem] truncate text-sm font-medium text-slate-600 xl:inline">
-                {user.fullName}
-              </span>
-              <Link href={dashboardHref} className="button button-ghost hidden sm:inline-flex">
-                Bảng điều khiển
-              </Link>
-              <Link
-                href="/cai-dat/mat-khau"
-                className="button button-ghost hidden lg:inline-flex"
-              >
-                Mật khẩu
-              </Link>
-              <button
-                type="button"
-                className="button button-danger-ghost"
-                onClick={() => void logout()}
-              >
-                Đăng xuất
-              </button>
+              <div className="hidden sm:block">
+                <NotificationsBell />
+              </div>
             </>
           )}
-          {!loading && !user && (
-            <>
-              <Link href="/dang-nhap" className="button button-ghost">
-                Đăng nhập
-              </Link>
-              <Link href="/dang-ky?role=company" className="button button-primary">
-                Đăng tin miễn phí
-              </Link>
-            </>
-          )}
+          <UserAccountMenu />
+          <button
+            type="button"
+            className="icon-button lg:hidden"
+            onClick={() => setMobileOpen((o) => !o)}
+            aria-label={mobileOpen ? "Đóng menu" : "Mở menu"}
+            aria-expanded={mobileOpen}
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
-
-        <button
-          type="button"
-          className="icon-button lg:hidden"
-          onClick={() => setMobileOpen((o) => !o)}
-          aria-label={mobileOpen ? "Đóng menu" : "Mở menu"}
-          aria-expanded={mobileOpen}
-        >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
       </div>
 
       {mobileOpen && (
@@ -201,20 +170,9 @@ export function SiteHeader() {
                 >
                   Tin nhắn
                 </Link>
-                <Link
-                  href={dashboardHref}
-                  className={mobileNavClass(false)}
-                  onClick={closeMobile}
-                >
-                  Bảng điều khiển
-                </Link>
-                <Link
-                  href="/cai-dat/mat-khau"
-                  className={mobileNavClass(isActive("/cai-dat"))}
-                  onClick={closeMobile}
-                >
-                  Đổi mật khẩu
-                </Link>
+                <div className="py-2 sm:hidden">
+                  <NotificationsBell />
+                </div>
                 {(user.role === "STAFF" || user.role === "SUPER_ADMIN") && (
                   <Link
                     href="/staff/tin-cho-duyet"
@@ -224,31 +182,7 @@ export function SiteHeader() {
                     Duyệt tin
                   </Link>
                 )}
-                <button
-                  type="button"
-                  className="mobile-nav-link text-left text-red-600"
-                  onClick={() => {
-                    closeMobile();
-                    void logout();
-                  }}
-                >
-                  Đăng xuất
-                </button>
               </>
-            )}
-            {!loading && !user && (
-              <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
-                <Link href="/dang-nhap" className="button button-secondary" onClick={closeMobile}>
-                  Đăng nhập
-                </Link>
-                <Link
-                  href="/dang-ky"
-                  className="button button-primary"
-                  onClick={closeMobile}
-                >
-                  Đăng ký
-                </Link>
-              </div>
             )}
           </nav>
         </div>
