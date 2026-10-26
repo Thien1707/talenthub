@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ApplicantAiActions } from "@/components/company/applicant-ai-actions";
 import { ApplicantCvViewer } from "@/components/company/applicant-cv-viewer";
 import { api } from "@/lib/api/client";
+import { jobStatusLabel } from "@/lib/job-status";
 
 const STATUSES = [
   "SUBMITTED",
@@ -19,21 +20,25 @@ const STATUSES = [
 ] as const;
 
 export function JobApplicantsPanel({ jobs }: { jobs: Array<{ jobId: string; title: string; status: string }> }) {
-  const approved = jobs.filter((j) => j.status === "APPROVED" || j.status === "PAUSED");
+  const withApplicants = jobs.filter((j) =>
+    ["APPROVED", "PAUSED", "CLOSED"].includes(j.status),
+  );
   const params = useSearchParams();
   const paramJobId = params.get("jobId") ?? "";
   const [jobId, setJobId] = useState(
-    approved.some((j) => j.jobId === paramJobId)
+    withApplicants.some((j) => j.jobId === paramJobId)
       ? paramJobId
-      : approved[0]?.jobId ?? "",
+      : withApplicants[0]?.jobId ?? "",
   );
   const qc = useQueryClient();
+  const selectedJob = withApplicants.find((j) => j.jobId === jobId);
+  const jobClosed = selectedJob?.status === "CLOSED";
 
   useEffect(() => {
-    if (paramJobId && approved.some((j) => j.jobId === paramJobId)) {
+    if (paramJobId && withApplicants.some((j) => j.jobId === paramJobId)) {
       setJobId(paramJobId);
     }
-  }, [paramJobId, approved]);
+  }, [paramJobId, withApplicants]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["applications", "job", jobId],
@@ -77,7 +82,7 @@ export function JobApplicantsPanel({ jobs }: { jobs: Array<{ jobId: string; titl
     },
   });
 
-  if (approved.length === 0) {
+  if (withApplicants.length === 0) {
     return (
       <p className="text-sm text-slate-600">
         Chưa có tin đã duyệt để xem ứng viên.
@@ -97,12 +102,17 @@ export function JobApplicantsPanel({ jobs }: { jobs: Array<{ jobId: string; titl
         value={jobId}
         onChange={(e) => setJobId(e.target.value)}
       >
-        {approved.map((j) => (
+        {withApplicants.map((j) => (
           <option key={j.jobId} value={j.jobId}>
-            {j.title}
+            {j.title} ({jobStatusLabel(j.status)})
           </option>
         ))}
       </select>
+      {jobClosed && (
+        <p className="mt-2 text-xs text-slate-500">
+          Tin đã đóng — vẫn xem được hồ sơ ứng viên đã nộp.
+        </p>
+      )}
       {isLoading && <p className="mt-3 text-sm text-slate-600">Đang tải...</p>}
       <ul className="mt-4 space-y-3">
         {data?.map((app) => (

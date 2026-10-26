@@ -89,7 +89,7 @@ export function CompanyProfileForm() {
     <div className="space-y-6">
       {data?.postingQuota && (
         <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-800">
-          Quota miễn phí: {data.postingQuota.freePostUsed}/
+          Đăng tin miễn phí: {data.postingQuota.freePostUsed}/
           {data.postingQuota.freePostLimit} · Tin trả phí đã dùng:{" "}
           {data.postingQuota.paidPostCount}
         </div>

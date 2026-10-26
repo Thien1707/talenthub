@@ -285,35 +285,85 @@ export class JobsService {
   }
 
   async pauseJob(userId: bigint, jobId: bigint) {
-    return this.setCompanyJobStatus(userId, jobId, JobStatus.PAUSED, 'Tạm dừng tin');
-  }
-
-  async closeJob(userId: bigint, jobId: bigint) {
-    return this.setCompanyJobStatus(userId, jobId, JobStatus.CLOSED, 'Đóng tin');
-  }
-
-  private async setCompanyJobStatus(
-    userId: bigint,
-    jobId: bigint,
-    status: typeof JobStatus.PAUSED | typeof JobStatus.CLOSED,
-    reason: string,
-  ) {
     const company = await getCompanyProfileForUser(this.prisma, userId);
     const job = await this.getJobOrThrow(jobId);
     assertCompanyOwnsJob(company.companyId, job.companyId);
     if (job.status !== JobStatus.APPROVED) {
-      throw new BadRequestException('Chỉ tạm dừng/đóng tin đang hiển thị');
+      throw new BadRequestException(
+        'Chỉ tạm dừng được tin đang hiển thị (Đang tuyển)',
+      );
     }
+    return this.transitionJobStatus(
+      userId,
+      jobId,
+      job.status,
+      JobStatus.PAUSED,
+      'Tạm dừng tin',
+    );
+  }
+
+  async resumeJob(userId: bigint, jobId: bigint) {
+    const company = await getCompanyProfileForUser(this.prisma, userId);
+    const job = await this.getJobOrThrow(jobId);
+    assertCompanyOwnsJob(company.companyId, job.companyId);
+    if (job.status !== JobStatus.PAUSED) {
+      throw new BadRequestException(
+        'Chỉ tiếp tục được tin đang tạm dừng. Tin đã đóng không thể mở lại.',
+      );
+    }
+    const now = new Date();
+    if (job.expiresAt && job.expiresAt <= now) {
+      throw new BadRequestException(
+        'Tin đã hết hạn. Không thể tiếp tục hiển thị.',
+      );
+    }
+    return this.transitionJobStatus(
+      userId,
+      jobId,
+      job.status,
+      JobStatus.APPROVED,
+      'Tiếp tục hiển thị tin',
+    );
+  }
+
+  async closeJob(userId: bigint, jobId: bigint) {
+    const company = await getCompanyProfileForUser(this.prisma, userId);
+    const job = await this.getJobOrThrow(jobId);
+    assertCompanyOwnsJob(company.companyId, job.companyId);
+    if (
+      job.status !== JobStatus.APPROVED &&
+      job.status !== JobStatus.PAUSED
+    ) {
+      throw new BadRequestException(
+        'Chỉ đóng được tin đang tuyển hoặc đang tạm dừng',
+      );
+    }
+    return this.transitionJobStatus(
+      userId,
+      jobId,
+      job.status,
+      JobStatus.CLOSED,
+      'Đóng tin — kết thúc tuyển dụng',
+    );
+  }
+
+  private async transitionJobStatus(
+    userId: bigint,
+    jobId: bigint,
+    oldStatus: JobStatus,
+    newStatus: JobStatus,
+    reason: string,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.job.update({
         where: { jobId },
-        data: { status },
+        data: { status: newStatus },
       });
       await tx.jobStatusHistory.create({
         data: {
           jobId,
-          oldStatus: job.status,
-          newStatus: status,
+          oldStatus,
+          newStatus,
           changedBy: userId,
           reason,
         },

@@ -127,6 +127,18 @@ export class JobsController {
     return this.jobsService.pauseJob(BigInt(user.userId), BigInt(jobId));
   }
 
+  @Post('company/:jobId/resume')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.COMPANY)
+  @ApiOperation({ summary: 'Tiếp tục tin đang tạm dừng' })
+  resume(
+    @CurrentUser() user: { userId: string },
+    @Param('jobId') jobId: string,
+  ) {
+    return this.jobsService.resumeJob(BigInt(user.userId), BigInt(jobId));
+  }
+
   @Post('company/:jobId/close')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
