@@ -1,8 +1,9 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { ConversationsModule } from '../conversations/conversations.module';
 import { ChatGateway } from './chat.gateway';
+import { ChatRealtimeListener } from './chat-realtime.listener';
 
 @Module({
   imports: [
@@ -14,9 +15,9 @@ import { ChatGateway } from './chat.gateway';
         secret: config.getOrThrow<string>('JWT_ACCESS_SECRET'),
       }),
     }),
-    forwardRef(() => ConversationsModule),
+    ConversationsModule,
   ],
-  providers: [ChatGateway],
+  providers: [ChatGateway, ChatRealtimeListener],
   exports: [ChatGateway],
 })
 export class ChatModule {}

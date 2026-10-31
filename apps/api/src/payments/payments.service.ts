@@ -6,10 +6,13 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
-import { randomBytes } from 'crypto';
 import { getCompanyProfileForUser } from '../common/utils/company-access.util';
 import { OrdersService } from '../orders/orders.service';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  flattenVnpQuery,
+  isVnpPaymentSuccessful,
+} from './vnp-query.util';
 import {
   buildVnpayPaymentUrl,
   isPublicHttpsUrl,
@@ -19,6 +22,17 @@ import {
 } from './vnpay.util';
 
 const MIN_VNPAY_VND = 5_000;
+
+export type VnpayCallbackResult = {
+  success: boolean;
+  message: string;
+  walletCredited?: boolean;
+  alreadyProcessed?: boolean;
+  vnpTxnRef?: string;
+  orderId?: string;
+  amountVnd?: number;
+  isIpn?: boolean;
+};
 
 function readVnpConfig(config: ConfigService) {
   const tmnCode = (
@@ -35,7 +49,8 @@ function readVnpConfig(config: ConfigService) {
     config.get<string>('VNP_RETURN_URL');
   const ipnUrl =
     config.get<string>('VNPAY_IPN_URL') ?? config.get<string>('VNP_IPN_URL');
-  return { tmnCode, hashSecret, vnpUrl, returnUrl, ipnUrl };
+  const webUrl = config.get<string>('WEB_URL') ?? 'http://localhost:3000';
+  return { tmnCode, hashSecret, vnpUrl, returnUrl, ipnUrl, webUrl };
 }
 
 @Injectable()
@@ -134,13 +149,27 @@ export class PaymentsService {
     };
   }
 
-  async handleVnpayReturn(query: Record<string, string>) {
-    return this.processVnpayCallback(query, false);
+  getWebReturnUrl(): string {
+    return readVnpConfig(this.config).webUrl;
   }
 
-  async handleVnpayIpn(query: Record<string, string>) {
-    const result = await this.processVnpayCallback(query, true);
-    return { RspCode: result.success ? '00' : '97', Message: result.message };
+  async handleVnpayReturn(rawQuery: Record<string, unknown>) {
+    return this.processVnpayCallback(flattenVnpQuery(rawQuery), 'RETURN');
+  }
+
+  async handleVnpayCompleteReturn(rawQuery: Record<string, unknown>) {
+    return this.processVnpayCallback(flattenVnpQuery(rawQuery), 'RETURN_API');
+  }
+
+  async handleVnpayIpn(rawQuery: Record<string, unknown>) {
+    const result = await this.processVnpayCallback(
+      flattenVnpQuery(rawQuery),
+      'IPN',
+    );
+    return {
+      RspCode: result.success ? '00' : '97',
+      Message: result.success ? 'Confirm Success' : result.message,
+    };
   }
 
   async getPayment(userId: bigint, paymentId: bigint) {
@@ -156,71 +185,202 @@ export class PaymentsService {
     return payment;
   }
 
+  async getWalletTopUpStatusByTxnRef(userId: bigint, vnpTxnRef: string) {
+    const company = await getCompanyProfileForUser(this.prisma, userId);
+    const payment = await this.prisma.paymentTransaction.findFirst({
+      where: {
+        vnpTxnRef,
+        order: { companyId: company.companyId },
+      },
+      include: { order: true },
+    });
+    if (!payment) throw new NotFoundException('Không tìm thấy giao dịch thanh toán');
+    const wallet = await this.prisma.companyWallet.findUnique({
+      where: { companyId: company.companyId },
+    });
+    return {
+      paymentStatus: payment.status,
+      orderStatus: payment.order.status,
+      vnpTxnRef,
+      amountVnd: Math.round(Number(payment.amount)),
+      walletBalanceVnd: wallet?.balanceVnd.toString() ?? '0',
+      walletCredited: payment.order.status === OrderStatus.PAID,
+    };
+  }
+
   private async processVnpayCallback(
     query: Record<string, string>,
-    isIpn: boolean,
-  ) {
+    source: 'RETURN' | 'RETURN_API' | 'IPN',
+  ): Promise<VnpayCallbackResult> {
+    const vnpTxnRef = query['vnp_TxnRef'];
+    const responseCode = query['vnp_ResponseCode'];
+    const txnStatus = query['vnp_TransactionStatus'];
+
+    this.logger.log(
+      `VNPAY callback source=${source} txnRef=${vnpTxnRef ?? '-'} responseCode=${responseCode ?? '-'} txnStatus=${txnStatus ?? '-'}`,
+    );
+
     const hashSecret = readVnpConfig(this.config).hashSecret;
     if (!hashSecret) {
-      return { success: false, message: 'Missing VNPAY config' };
+      this.logger.error('VNPAY callback: missing hash secret config');
+      return { success: false, message: 'Missing VNPAY config', isIpn: source === 'IPN' };
     }
 
     const secureHash = query['vnp_SecureHash'];
-    if (!secureHash || !verifyVnpSignature(query, secureHash, hashSecret)) {
-      return { success: false, message: 'Invalid signature' };
+    const signatureOk =
+      !!secureHash && verifyVnpSignature(query, secureHash, hashSecret);
+    this.logger.log(
+      `VNPAY callback txnRef=${vnpTxnRef ?? '-'} signatureValid=${signatureOk}`,
+    );
+    if (!signatureOk) {
+      return { success: false, message: 'Invalid signature', vnpTxnRef, isIpn: source === 'IPN' };
     }
 
-    const vnpTxnRef = query['vnp_TxnRef'];
-    const responseCode = query['vnp_ResponseCode'];
-    const vnpAmount = Number(query['vnp_Amount'] ?? 0);
+    if (!vnpTxnRef) {
+      return { success: false, message: 'Missing vnp_TxnRef', isIpn: source === 'IPN' };
+    }
 
     const payment = await this.prisma.paymentTransaction.findUnique({
       where: { vnpTxnRef },
       include: { order: true },
     });
     if (!payment) {
-      return { success: false, message: 'Payment not found' };
+      this.logger.warn(`VNPAY callback: payment not found txnRef=${vnpTxnRef}`);
+      return { success: false, message: 'Payment not found', vnpTxnRef, isIpn: source === 'IPN' };
+    }
+
+    const amountVnd = Math.round(Number(payment.amount));
+    const vnpAmount = Number(query['vnp_Amount'] ?? 0);
+    const expectedAmount = amountVnd * 100;
+
+    if (vnpAmount !== expectedAmount) {
+      this.logger.warn(
+        `VNPAY amount mismatch txnRef=${vnpTxnRef} expected=${expectedAmount} got=${vnpAmount}`,
+      );
+      await this.markPaymentFailed(payment.paymentId, query, 'Amount mismatch');
+      return {
+        success: false,
+        message: 'Invalid amount',
+        vnpTxnRef,
+        amountVnd,
+        isIpn: source === 'IPN',
+      };
     }
 
     if (payment.status === PaymentStatus.SUCCESS) {
-      return { success: true, message: 'Already processed', payment, isIpn };
+      const walletCredited = await this.ensureOrderFulfilled(payment.orderId);
+      this.logger.log(
+        `VNPAY callback already SUCCESS txnRef=${vnpTxnRef} walletReconciled=${walletCredited}`,
+      );
+      return {
+        success: true,
+        message: 'Already processed',
+        alreadyProcessed: true,
+        walletCredited,
+        vnpTxnRef,
+        orderId: payment.orderId.toString(),
+        amountVnd,
+        isIpn: source === 'IPN',
+      };
     }
 
-    const expectedAmount = Math.round(Number(payment.amount) * 100);
-    if (vnpAmount !== expectedAmount) {
-      await this.markPaymentFailed(payment.paymentId, query, 'Amount mismatch');
-      return { success: false, message: 'Invalid amount', payment, isIpn };
+    if (!isVnpPaymentSuccessful(query)) {
+      await this.markPaymentFailed(
+        payment.paymentId,
+        query,
+        `Code ${responseCode ?? 'unknown'}`,
+      );
+      this.logger.log(
+        `VNPAY payment failed txnRef=${vnpTxnRef} responseCode=${responseCode}`,
+      );
+      return {
+        success: false,
+        message: 'Payment failed',
+        vnpTxnRef,
+        amountVnd,
+        isIpn: source === 'IPN',
+      };
     }
 
-    if (responseCode === '00') {
-      await this.prisma.$transaction(async (tx) => {
-        await tx.paymentTransaction.update({
-          where: { paymentId: payment.paymentId },
-          data: {
-            status: PaymentStatus.SUCCESS,
-            responseCode,
-            responseMessage: query['vnp_Message'] ?? 'Success',
-            providerTransactionNo: query['vnp_TransactionNo'],
-            responseData: query,
-            verifiedAt: new Date(),
-            paidAt: new Date(),
-          },
-        });
-      });
-      await this.ordersService.fulfillPaidOrder(payment.orderId);
-      const updated = await this.prisma.paymentTransaction.findUnique({
-        where: { paymentId: payment.paymentId },
-        include: { order: true },
-      });
-      return { success: true, message: 'OK', payment: updated, isIpn };
-    }
-
-    await this.markPaymentFailed(
-      payment.paymentId,
-      query,
-      `Code ${responseCode}`,
+    const walletBefore = await this.readWalletBalance(payment.order.companyId);
+    this.logger.log(
+      `VNPAY crediting wallet txnRef=${vnpTxnRef} companyId=${payment.order.companyId} balanceBefore=${walletBefore}`,
     );
-    return { success: false, message: 'Payment failed', isIpn };
+
+    const claimed = await this.claimPaymentSuccess(payment.paymentId, query);
+    if (!claimed) {
+      const walletCredited = await this.ensureOrderFulfilled(payment.orderId);
+      return {
+        success: true,
+        message: 'Already processed',
+        alreadyProcessed: true,
+        walletCredited,
+        vnpTxnRef,
+        orderId: payment.orderId.toString(),
+        amountVnd,
+        isIpn: source === 'IPN',
+      };
+    }
+
+    const walletCredited = await this.ensureOrderFulfilled(payment.orderId);
+    const walletAfter = await this.readWalletBalance(payment.order.companyId);
+
+    this.logger.log(
+      `VNPAY wallet credit txnRef=${vnpTxnRef} credited=${walletCredited} balanceBefore=${walletBefore} balanceAfter=${walletAfter}`,
+    );
+
+    return {
+      success: true,
+      message: 'OK',
+      walletCredited,
+      vnpTxnRef,
+      orderId: payment.orderId.toString(),
+      amountVnd,
+      isIpn: source === 'IPN',
+    };
+  }
+
+  /** Chỉ một luồng callback chuyển payment sang SUCCESS. */
+  private async claimPaymentSuccess(
+    paymentId: bigint,
+    query: Record<string, string>,
+  ): Promise<boolean> {
+    const updated = await this.prisma.paymentTransaction.updateMany({
+      where: {
+        paymentId,
+        status: { in: [PaymentStatus.PENDING, PaymentStatus.INITIATED] },
+      },
+      data: {
+        status: PaymentStatus.SUCCESS,
+        responseCode: query['vnp_ResponseCode'],
+        responseMessage: query['vnp_Message'] ?? 'Success',
+        providerTransactionNo: query['vnp_TransactionNo'],
+        responseData: query,
+        verifiedAt: new Date(),
+        paidAt: new Date(),
+      },
+    });
+    return updated.count > 0;
+  }
+
+  /** Cộng ví / hoàn tất đơn nếu chưa PAID (idempotent). */
+  private async ensureOrderFulfilled(orderId: bigint): Promise<boolean> {
+    const before = await this.prisma.order.findUnique({
+      where: { orderId },
+      select: { status: true },
+    });
+    if (before?.status === OrderStatus.PAID) {
+      return true;
+    }
+    const order = await this.ordersService.fulfillPaidOrder(orderId);
+    return order?.status === OrderStatus.PAID;
+  }
+
+  private async readWalletBalance(companyId: bigint): Promise<string> {
+    const w = await this.prisma.companyWallet.findUnique({
+      where: { companyId },
+    });
+    return w?.balanceVnd.toString() ?? '0';
   }
 
   private async markPaymentFailed(
@@ -240,4 +400,3 @@ export class PaymentsService {
     });
   }
 }
-

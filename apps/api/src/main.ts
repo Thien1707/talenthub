@@ -1,8 +1,9 @@
+import 'reflect-metadata';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { BigIntSerializeInterceptor } from './common/interceptors/bigint-serialize.interceptor';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { ExpressAdapter } from '@nestjs/platform-express';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -11,13 +12,18 @@ import { PrismaClientExceptionFilter } from './common/filters/prisma-client-exce
 import { buildCorsOriginOption } from './config/cors-origins.util';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, new ExpressAdapter());
+  const app = await NestFactory.create(AppModule);
+  app.useWebSocketAdapter(new IoAdapter(app));
   const config = app.get(ConfigService);
 
   app.setGlobalPrefix('api');
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
   app.use(cookieParser());
   app.enableCors({
     origin: buildCorsOriginOption(config),

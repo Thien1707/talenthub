@@ -1,11 +1,10 @@
 import {
   BadRequestException,
   ForbiddenException,
-  Inject,
   Injectable,
   NotFoundException,
-  forwardRef,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ConversationType,
   MessageType,
@@ -15,7 +14,7 @@ import {
 import { getCompanyProfileForUser } from '../common/utils/company-access.util';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
-import type { ChatGateway } from '../chat/chat.gateway';
+import { CHAT_EVENTS } from '../chat/chat.events';
 import { SendMessageDto } from './dto/send-message.dto';
 
 @Injectable()
@@ -23,10 +22,7 @@ export class ConversationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
-    @Inject(
-      forwardRef(() => require('../chat/chat.gateway').ChatGateway),
-    )
-    private readonly chatGateway: ChatGateway,
+    private readonly events: EventEmitter2,
   ) {}
 
   private chatEligibleRoles(): UserRole[] {
@@ -60,6 +56,14 @@ export class ConversationsService {
       take: 15,
       orderBy: { fullName: 'asc' },
     });
+  }
+
+  async listConversationIdsForUser(userId: bigint): Promise<string[]> {
+    const rows = await this.prisma.conversationMember.findMany({
+      where: { userId, leftAt: null },
+      select: { conversationId: true },
+    });
+    return rows.map((r) => r.conversationId.toString());
   }
 
   async listMine(userId: bigint) {
@@ -369,19 +373,29 @@ export class ConversationsService {
       ),
     );
 
-    this.chatGateway.broadcastMessage(
-      conversationId.toString(),
+    this.events.emit(CHAT_EVENTS.MESSAGE_CREATED, {
+      conversationId: conversationId.toString(),
       message,
-    );
+    });
 
     return message;
   }
 
   async markRead(userId: bigint, conversationId: bigint) {
     await this.ensureConversationAccess(conversationId, userId);
+    const now = new Date();
     await this.prisma.conversationMember.updateMany({
       where: { conversationId, userId },
-      data: { lastReadAt: new Date() },
+      data: { lastReadAt: now },
+    });
+    this.events.emit(CHAT_EVENTS.CONVERSATION_EVENT, {
+      conversationId: conversationId.toString(),
+      event: 'message:read',
+      payload: {
+        conversationId: conversationId.toString(),
+        userId: userId.toString(),
+        readAt: now.toISOString(),
+      },
     });
     return { success: true };
   }
