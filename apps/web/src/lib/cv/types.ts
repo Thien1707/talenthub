@@ -1,3 +1,5 @@
+import type { CvSectionKey } from "@/lib/cv/section-order";
+
 export type CvContent = {
   personal: {
     fullName?: string;
@@ -40,6 +42,11 @@ export type CvContent = {
   }>;
   certificates?: Array<{ name?: string; year?: string }>;
   awards?: Array<{ name?: string; year?: string }>;
+  /** Tùy chỉnh giao diện (tham khảo CVAurum — lưu cùng contentJson). */
+  design?: {
+    accentColor?: string;
+    sectionOrder?: CvSectionKey[];
+  };
 };
 
 export function emptyCvContent(fullName?: string, email?: string): CvContent {

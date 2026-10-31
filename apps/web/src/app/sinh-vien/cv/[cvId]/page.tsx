@@ -17,7 +17,7 @@ export default async function StudentCvEditPage({
   return (
     <AppShell
       title="Chỉnh sửa CV"
-      description="Soạn nội dung, xem trước, tải PDF và phân tích AI."
+      description="Soạn CV trực quan: panel nội dung / thiết kế, xem trước A4, PDF và AI."
       actions={
         <Link href="/sinh-vien/cv" className="text-link">
           ← Danh sách CV

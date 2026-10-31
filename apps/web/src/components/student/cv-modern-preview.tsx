@@ -1,37 +1,103 @@
 "use client";
 
+import { CvEditableField } from "@/components/student/cv-editable-field";
+import { CvModernMainSections } from "@/components/student/cv-preview-sections";
+import type { PersonalKey } from "@/lib/cv/edit-personal";
 import type { CvContent } from "@/lib/cv/types";
+
+const DEFAULT_ACCENT = "#1e3a5f";
 
 export function CvModernPreview({
   content,
   cvName,
+  accentColor,
+  editable,
+  onEditPersonal,
 }: {
   content: CvContent;
   cvName: string;
+  accentColor?: string;
+  editable?: boolean;
+  onEditPersonal?: (key: PersonalKey, value: string) => void;
 }) {
   const name = content.personal.fullName?.trim() || cvName;
   const headline = content.personal.headline?.trim() || "Sinh viên / Ứng viên";
+  const accent = accentColor ?? content.design?.accentColor ?? DEFAULT_ACCENT;
+  const commit = (key: PersonalKey, value: string) => onEditPersonal?.(key, value);
+
+  const textField = (
+    key: PersonalKey,
+    display: string,
+    placeholder: string,
+    className: string,
+    multiline?: boolean,
+    block?: boolean,
+  ) =>
+    editable && onEditPersonal ? (
+      <CvEditableField
+        block={block}
+        multiline={multiline}
+        value={content.personal[key] ?? ""}
+        placeholder={placeholder || display}
+        className={className}
+        onCommit={(v) => commit(key, v)}
+      />
+    ) : (
+      <>{display}</>
+    );
 
   return (
-    <div className="mx-auto aspect-[210/297] w-full max-w-[520px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+    <div className="aspect-[210/297] w-full overflow-hidden rounded-sm border border-slate-300/80 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.18)]">
       <div className="flex h-full min-h-[640px] text-[11px] leading-snug text-slate-800">
-        <aside className="flex w-[34%] shrink-0 flex-col bg-[#1e3a5f] px-4 py-6 text-white">
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border-2 border-sky-300/60 bg-[#16304d] text-2xl font-light text-sky-100">
+        <aside
+          className="flex w-[34%] shrink-0 flex-col px-4 py-6 text-white"
+          style={{ backgroundColor: accent }}
+        >
+          <div
+            className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border-2 border-white/40 text-2xl font-light text-white"
+            style={{ backgroundColor: `${accent}cc` }}
+          >
             {name.charAt(0).toUpperCase() || "?"}
           </div>
           <h2 className="text-center text-sm font-bold uppercase tracking-wide">
-            {name}
+            {textField(
+              "fullName",
+              name,
+              "Họ và tên",
+              "min-w-[4rem] text-center",
+              false,
+              true,
+            )}
           </h2>
           <p className="mt-1 text-center text-[10px] font-medium text-sky-200">
-            {headline}
+            {textField(
+              "headline",
+              headline,
+              "Vị trí / headline",
+              "min-w-[4rem] text-center",
+              false,
+              true,
+            )}
           </p>
           <div className="mt-6 space-y-2 border-t border-white/20 pt-4 text-[10px]">
             <p className="text-[9px] font-semibold uppercase tracking-widest text-sky-200">
               Liên hệ
             </p>
-            {content.personal.email && <p>{content.personal.email}</p>}
-            {content.personal.phone && <p>{content.personal.phone}</p>}
-            {content.personal.city && <p>{content.personal.city}</p>}
+            {(editable || content.personal.email) && (
+              <p>
+                {textField("email", content.personal.email ?? "", "Email", "min-w-[3rem]", false, true)}
+              </p>
+            )}
+            {(editable || content.personal.phone) && (
+              <p>
+                {textField("phone", content.personal.phone ?? "", "SĐT", "min-w-[3rem]", false, true)}
+              </p>
+            )}
+            {(editable || content.personal.city) && (
+              <p>
+                {textField("city", content.personal.city ?? "", "Thành phố", "min-w-[3rem]", false, true)}
+              </p>
+            )}
           </div>
           {content.skills.length > 0 && (
             <div className="mt-5 space-y-2 border-t border-white/20 pt-4">
@@ -52,85 +118,27 @@ export function CvModernPreview({
           )}
         </aside>
         <main className="flex-1 px-5 py-6">
-          {content.personal.summary && (
+          {(editable || content.personal.summary?.trim()) && (
             <section className="mb-5">
-              <h3 className="border-b-2 border-[#1e3a5f] pb-1 text-[10px] font-bold uppercase tracking-wider text-[#1e3a5f]">
+              <h3
+                className="border-b-2 pb-1 text-[10px] font-bold uppercase tracking-wider"
+                style={{ borderColor: accent, color: accent }}
+              >
                 Giới thiệu
               </h3>
               <p className="mt-2 whitespace-pre-wrap text-[10px] text-slate-700">
-                {content.personal.summary}
+                {textField(
+                  "summary",
+                  content.personal.summary ?? "",
+                  "Giới thiệu / mục tiêu nghề nghiệp…",
+                  "min-h-[2rem] min-w-[4rem]",
+                  true,
+                  true,
+                )}
               </p>
             </section>
           )}
-          {content.experience.length > 0 && (
-            <section className="mb-5">
-              <h3 className="border-b-2 border-[#1e3a5f] pb-1 text-[10px] font-bold uppercase tracking-wider text-[#1e3a5f]">
-                Kinh nghiệm
-              </h3>
-              <ul className="mt-2 space-y-3">
-                {content.experience.map((ex, i) => (
-                  <li key={i}>
-                    <p className="font-semibold text-slate-900">
-                      {ex.title || "Vị trí"}
-                      {ex.company ? ` · ${ex.company}` : ""}
-                    </p>
-                    {(ex.from || ex.to) && (
-                      <p className="text-[9px] text-slate-500">
-                        {[ex.from, ex.to].filter(Boolean).join(" – ")}
-                      </p>
-                    )}
-                    {ex.description && (
-                      <p className="mt-1 whitespace-pre-wrap text-[10px] text-slate-600">
-                        {ex.description}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-          {content.education.length > 0 && (
-            <section className="mb-5">
-              <h3 className="border-b-2 border-[#1e3a5f] pb-1 text-[10px] font-bold uppercase tracking-wider text-[#1e3a5f]">
-                Học vấn
-              </h3>
-              <ul className="mt-2 space-y-2">
-                {content.education.map((ed, i) => (
-                  <li key={i}>
-                    <p className="font-semibold text-slate-900">
-                      {ed.school || "Trường"}
-                    </p>
-                    <p className="text-[10px] text-slate-600">{ed.major}</p>
-                    {(ed.from || ed.to) && (
-                      <p className="text-[9px] text-slate-500">
-                        {[ed.from, ed.to].filter(Boolean).join(" – ")}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-          {content.projects.length > 0 && (
-            <section>
-              <h3 className="border-b-2 border-[#1e3a5f] pb-1 text-[10px] font-bold uppercase tracking-wider text-[#1e3a5f]">
-                Dự án
-              </h3>
-              <ul className="mt-2 space-y-2">
-                {content.projects.map((p, i) => (
-                  <li key={i}>
-                    <p className="font-semibold text-slate-900">{p.name}</p>
-                    {p.description && (
-                      <p className="text-[10px] text-slate-600">{p.description}</p>
-                    )}
-                    {p.link && (
-                      <p className="truncate text-[9px] text-sky-700">{p.link}</p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          <CvModernMainSections content={content} accent={accent} />
         </main>
       </div>
     </div>

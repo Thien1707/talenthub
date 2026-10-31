@@ -16,15 +16,51 @@ import {
   AI_ANALYSIS_REQUESTED,
   type AiAnalysisRequestedPayload,
 } from './ai-analysis.events';
+import { CvContent, emptyCvContent } from '../cvs/cv-content.schema';
 import { AnalyzeGeneralDto } from './dto/analyze-general.dto';
 import { AnalyzeJobMatchDto } from './dto/analyze-job-match.dto';
+import { CvBuildChatDto } from './dto/cv-build-chat.dto';
+import { GeminiService } from './gemini.service';
 
 @Injectable()
 export class AiService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: EventEmitter2,
+    private readonly gemini: GeminiService,
   ) {}
+
+  async cvBuildChat(studentUserId: bigint, dto: CvBuildChatDto) {
+    if (dto.cvVersionId) {
+      const cvVersion = await this.prisma.cvVersion.findUnique({
+        where: { cvVersionId: BigInt(dto.cvVersionId) },
+        include: { cv: true },
+      });
+      if (!cvVersion) {
+        throw new NotFoundException('Không tìm thấy phiên bản CV');
+      }
+      if (cvVersion.cv.studentUserId !== studentUserId) {
+        throw new ForbiddenException('CV không thuộc về bạn');
+      }
+    }
+
+    const currentContent = {
+      ...emptyCvContent(),
+      ...(dto.currentContent as CvContent),
+    };
+
+    const { modelName, result } = await this.gemini.cvBuildChat({
+      messages: dto.messages,
+      currentContent,
+      jobTitle: dto.jobTitle,
+    });
+
+    return {
+      modelName,
+      message: result.message,
+      content: result.content ?? currentContent,
+    };
+  }
 
   analyzeGeneral(studentUserId: bigint, dto: AnalyzeGeneralDto) {
     return this.runAnalysis({
