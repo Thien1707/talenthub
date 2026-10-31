@@ -113,6 +113,32 @@ enum OrderItemType {
   NORMAL_POST
   VIP_UPGRADE
   PACKAGE
+  WALLET_TOPUP
+}
+
+enum WalletTransactionType {
+  DEPOSIT
+  JOB_PUBLISH
+  REFUND
+  ADJUSTMENT
+}
+
+enum WalletTransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum PromotionFeatureCode {
+  TOP_LISTING
+  HIGHLIGHT
+  FEATURED
+}
+
+enum JobPublishRequestStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
 }
 
 enum PaymentStatus {
@@ -297,6 +323,9 @@ model CompanyProfile {
   jobs           Job[]
   orders         Order[]
   postingQuota   CompanyPostingQuota?
+  wallet         CompanyWallet?
+  walletTransactions WalletTransaction[]
+  jobPublishRequests JobPublishRequest[]
 
   @@map("company_profiles")
 }
@@ -358,6 +387,9 @@ model Job {
   rejectionReason String?        @map("rejection_reason") @db.Text
   publishedAt     DateTime?      @map("published_at")
   expiresAt       DateTime?      @map("expires_at")
+  promotionTopUntil DateTime?    @map("promotion_top_until")
+  highlightUntil  DateTime?      @map("highlight_until")
+  featuredUntil   DateTime?      @map("featured_until")
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
   deletedAt       DateTime?      @map("deleted_at")
@@ -372,8 +404,12 @@ model Job {
   orderItems    OrderItem[]
   aiAnalyses    CvAiAnalysis[]
   reports       UserReport[]
+  promotions    JobPromotion[]
+  publishRequests JobPublishRequest[]
+  walletTransactions WalletTransaction[]
 
   @@index([status, jobType, publishedAt])
+  @@index([promotionTopUntil])
   @@index([companyId])
   @@index([expiresAt])
   @@map("jobs")
@@ -830,4 +866,120 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+model PostingFeeConfig {
+  configId           BigInt   @id @default(autoincrement()) @map("config_id")
+  basePostFeeVnd     Int      @default(5000) @map("base_post_fee_vnd")
+  freePostAllowance  Int      @default(3) @map("free_post_allowance")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("posting_fee_config")
+}
+
+model PromotionFeatureDefinition {
+  featureId     BigInt               @id @default(autoincrement()) @map("feature_id")
+  code          PromotionFeatureCode @unique
+  displayName   String               @map("display_name") @db.VarChar(150)
+  description   String?              @db.Text
+  priceVnd      Int                  @map("price_vnd")
+  durationDays  Int                  @default(7) @map("duration_days")
+  isActive      Boolean              @default(true) @map("is_active")
+  sortOrder     Int                  @default(0) @map("sort_order")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+
+  jobPromotions JobPromotion[]
+
+  @@map("promotion_feature_definitions")
+}
+
+model CompanyWallet {
+  walletId    BigInt   @id @default(autoincrement()) @map("wallet_id")
+  companyId   BigInt   @unique @map("company_id")
+  balanceVnd  BigInt   @default(0) @map("balance_vnd")
+  version     Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  company      CompanyProfile      @relation(fields: [companyId], references: [companyId], onDelete: Cascade)
+  transactions WalletTransaction[]
+
+  @@map("company_wallets")
+}
+
+model WalletTransaction {
+  transactionId   BigInt                  @id @default(autoincrement()) @map("transaction_id")
+  walletId        BigInt                  @map("wallet_id")
+  companyId       BigInt                  @map("company_id")
+  jobId           BigInt?                 @map("job_id")
+  type            WalletTransactionType
+  status          WalletTransactionStatus @default(PENDING)
+  amountVnd       BigInt                  @map("amount_vnd")
+  balanceAfterVnd BigInt                  @map("balance_after_vnd")
+  idempotencyKey  String?                 @unique @map("idempotency_key") @db.VarChar(64)
+  description     String?                 @db.VarChar(500)
+  metadata        Json?
+  createdAt       DateTime                @default(now()) @map("created_at")
+  completedAt     DateTime?               @map("completed_at")
+
+  wallet   CompanyWallet            @relation(fields: [walletId], references: [walletId], onDelete: Restrict)
+  company  CompanyProfile           @relation(fields: [companyId], references: [companyId], onDelete: Restrict)
+  job      Job?                     @relation(fields: [jobId], references: [jobId], onDelete: SetNull)
+  lines    WalletTransactionLine[]
+  publishRequest JobPublishRequest?
+
+  @@index([companyId, createdAt])
+  @@index([walletId])
+  @@map("wallet_transactions")
+}
+
+model WalletTransactionLine {
+  lineId        BigInt  @id @default(autoincrement()) @map("line_id")
+  transactionId BigInt  @map("transaction_id")
+  label         String  @db.VarChar(200)
+  amountVnd     Int     @map("amount_vnd")
+  featureCode   PromotionFeatureCode? @map("feature_code")
+
+  transaction WalletTransaction @relation(fields: [transactionId], references: [transactionId], onDelete: Cascade)
+
+  @@map("wallet_transaction_lines")
+}
+
+model JobPromotion {
+  jobPromotionId BigInt               @id @default(autoincrement()) @map("job_promotion_id")
+  jobId          BigInt               @map("job_id")
+  featureId      BigInt               @map("feature_id")
+  code           PromotionFeatureCode
+  priceVnd       Int                  @map("price_vnd")
+  startsAt       DateTime             @map("starts_at")
+  expiresAt      DateTime             @map("expires_at")
+  createdAt      DateTime             @default(now()) @map("created_at")
+
+  job     Job                        @relation(fields: [jobId], references: [jobId], onDelete: Cascade)
+  feature PromotionFeatureDefinition @relation(fields: [featureId], references: [featureId], onDelete: Restrict)
+
+  @@index([jobId])
+  @@index([expiresAt])
+  @@map("job_promotions")
+}
+
+model JobPublishRequest {
+  requestId      BigInt                  @id @default(autoincrement()) @map("request_id")
+  idempotencyKey String                  @unique @map("idempotency_key") @db.VarChar(64)
+  jobId          BigInt                  @map("job_id")
+  companyId      BigInt                  @map("company_id")
+  status         JobPublishRequestStatus @default(PROCESSING)
+  walletTransactionId BigInt?            @unique @map("wallet_transaction_id")
+  totalVnd       Int                     @default(0) @map("total_vnd")
+  response       Json?
+  createdAt      DateTime                @default(now()) @map("created_at")
+  completedAt    DateTime?               @map("completed_at")
+
+  job         Job                @relation(fields: [jobId], references: [jobId], onDelete: Cascade)
+  company     CompanyProfile     @relation(fields: [companyId], references: [companyId], onDelete: Restrict)
+  transaction WalletTransaction? @relation(fields: [walletTransactionId], references: [transactionId], onDelete: SetNull)
+
+  @@index([jobId])
+  @@map("job_publish_requests")
 }

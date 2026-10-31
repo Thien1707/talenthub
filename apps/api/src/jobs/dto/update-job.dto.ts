@@ -7,8 +7,10 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   Min,
 } from 'class-validator';
+import { MAX_VND_SALARY } from '../../common/constants/money.constants';
 
 export class UpdateJobDto {
   @ApiPropertyOptional()
@@ -44,15 +46,17 @@ export class UpdateJobDto {
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 0 })
   @Min(0)
+  @Max(MAX_VND_SALARY)
   salaryMin?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 0 })
   @Min(0)
+  @Max(MAX_VND_SALARY)
   salaryMax?: number;
 
   @ApiPropertyOptional()

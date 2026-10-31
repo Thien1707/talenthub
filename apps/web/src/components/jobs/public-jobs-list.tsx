@@ -5,6 +5,7 @@ import { ArrowRight, MapPin, Search } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { api } from "@/lib/api/client";
+import { formatSalaryRange } from "@/lib/format-money";
 
 type JobItem = {
   jobId: string;
@@ -12,17 +13,17 @@ type JobItem = {
   slug: string;
   location: string;
   jobType: string;
+  highlightUntil?: string | null;
+  featuredUntil?: string | null;
+  promotionTopUntil?: string | null;
   salaryMin?: string | null;
   salaryMax?: string | null;
   company?: { companyName: string; city?: string | null };
 };
 
-function formatSalary(min?: string | null, max?: string | null) {
-  if (!min && !max) return "Thỏa thuận";
-  const fmt = (v: string) =>
-    new Intl.NumberFormat("vi-VN").format(Number(v)) + " ₫";
-  if (min && max) return `${fmt(min)} – ${fmt(max)}`;
-  return min ? `Từ ${fmt(min)}` : `Đến ${fmt(max!)}`;
+function promoActive(until?: string | null) {
+  if (!until) return false;
+  return new Date(until) > new Date();
 }
 
 export function PublicJobsList() {
@@ -88,9 +89,20 @@ export function PublicJobsList() {
                 <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-blue-100 text-lg font-extrabold text-blue-700">
                   {(job.company?.companyName ?? "T").charAt(0).toUpperCase()}
                 </div>
-                {job.jobType === "VIP" && (
-                  <span className="job-tag bg-amber-100 text-amber-800">VIP</span>
-                )}
+                <div className="flex flex-wrap gap-1">
+                  {job.jobType === "VIP" && (
+                    <span className="job-tag bg-amber-100 text-amber-800">VIP</span>
+                  )}
+                  {promoActive(job.highlightUntil) && (
+                    <span className="job-tag bg-violet-100 text-violet-800">Nổi bật</span>
+                  )}
+                  {promoActive(job.promotionTopUntil) && (
+                    <span className="job-tag bg-sky-100 text-sky-800">Top</span>
+                  )}
+                  {promoActive(job.featuredUntil) && (
+                    <span className="job-tag bg-emerald-100 text-emerald-800">Featured</span>
+                  )}
+                </div>
               </div>
               <p className="mt-4 text-sm font-semibold text-slate-500">
                 {job.company?.companyName ?? "Doanh nghiệp"}
@@ -113,7 +125,7 @@ export function PublicJobsList() {
               </div>
               <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-5">
                 <span className="font-extrabold text-blue-600">
-                  {formatSalary(job.salaryMin, job.salaryMax)}
+                  {formatSalaryRange(job.salaryMin, job.salaryMax)}
                 </span>
                 <Link href={`/viec-lam/${job.slug}`} className="text-link">
                   Chi tiết

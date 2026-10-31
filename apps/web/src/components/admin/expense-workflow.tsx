@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api/client";
+import { formatVND } from "@/lib/format-money";
 
 type Expense = {
   expenseId: string;
@@ -75,7 +76,7 @@ export function ExpenseWorkflow() {
         {data?.map((e) => (
           <li key={e.expenseId} className="rounded border bg-white p-3 text-sm">
             <p className="font-medium">{e.expenseCode} · {e.category} · {e.status}</p>
-            <p>{e.description} — {Number(e.amount).toLocaleString("vi-VN")} ₫</p>
+            <p>{e.description} — {formatVND(e.amount)}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {e.status === "DRAFT" && (
                 <button type="button" className="text-blue-700" onClick={() => action.mutate({ id: e.expenseId, step: "submit" })}>Gửi duyệt</button>

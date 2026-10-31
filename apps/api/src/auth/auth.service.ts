@@ -67,6 +67,12 @@ export class AuthService {
             freePostLimit: 3,
           },
         });
+        await tx.companyWallet.create({
+          data: {
+            companyId: created.companyProfile.companyId,
+            balanceVnd: BigInt(0),
+          },
+        });
       }
       return created;
     });

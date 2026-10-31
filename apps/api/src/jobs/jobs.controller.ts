@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
+import { PromotionFeatureCode, UserRole } from '@prisma/client';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -19,12 +19,16 @@ import { CreateJobDto } from './dto/create-job.dto';
 import { PublicJobsQueryDto } from './dto/public-jobs-query.dto';
 import { RejectJobDto } from './dto/reject-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
+import { PublishJobDto } from './dto/publish-job.dto';
+import { JobPublishService } from './job-publish.service';
 import { JobsService } from './jobs.service';
-
 @ApiTags('jobs')
 @Controller('jobs')
 export class JobsController {
-  constructor(private readonly jobsService: JobsService) {}
+  constructor(
+    private readonly jobsService: JobsService,
+    private readonly jobPublishService: JobPublishService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Danh sách tin tuyển dụng công khai' })
@@ -67,11 +71,17 @@ export class JobsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.COMPANY)
   @ApiOperation({ summary: 'Tạo tin nháp' })
-  create(
+  async create(
     @CurrentUser() user: { userId: string },
     @Body() dto: CreateJobDto,
   ) {
-    return this.jobsService.createDraft(BigInt(user.userId), dto);
+    const job = await this.jobsService.createDraft(BigInt(user.userId), dto);
+    return {
+      jobId: job.jobId.toString(),
+      title: job.title,
+      status: job.status,
+      slug: job.slug,
+    };
   }
 
   @Patch('company/:jobId')
@@ -91,11 +101,50 @@ export class JobsController {
     );
   }
 
+  @Get('company/:jobId/publish-quote')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.COMPANY)
+  @ApiOperation({ summary: 'Báo giá đăng tin + quảng bá (server-side)' })
+  publishQuote(
+    @CurrentUser() user: { userId: string },
+    @Param('jobId') jobId: string,
+    @Query('promotions') promotions?: string,
+  ) {
+    const codes = (promotions ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean) as PromotionFeatureCode[];
+    return this.jobPublishService.getPublishQuote(
+      BigInt(user.userId),
+      BigInt(jobId),
+      codes,
+    );
+  }
+
+  @Post('company/:jobId/publish')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.COMPANY)
+  @ApiOperation({ summary: 'Thanh toán ví và gửi tin kiểm duyệt' })
+  publish(
+    @CurrentUser() user: { userId: string },
+    @Param('jobId') jobId: string,
+    @Body() dto: PublishJobDto,
+  ) {
+    return this.jobPublishService.publishJob(
+      BigInt(user.userId),
+      BigInt(jobId),
+      dto.promotionCodes ?? [],
+      dto.idempotencyKey,
+    );
+  }
+
   @Post('company/:jobId/submit')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.COMPANY)
-  @ApiOperation({ summary: 'Gửi tin để kiểm duyệt (tiêu thụ quota nếu cần)' })
+  @ApiOperation({ summary: 'Gửi tin để kiểm duyệt (legacy — ưu tiên /publish)' })
   submit(
     @CurrentUser() user: { userId: string },
     @Param('jobId') jobId: string,

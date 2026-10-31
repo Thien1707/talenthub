@@ -7,6 +7,7 @@ const links = [
   { href: "/admin/tong-quan", label: "Tổng quan" },
   { href: "/admin/nhan-vien", label: "Nhân viên" },
   { href: "/admin/chi-phi", label: "Chi phí" },
+  { href: "/admin/bang-gia", label: "Giá đăng tin" },
   { href: "/admin/tai-khoan", label: "Tài khoản SV/NTD" },
   { href: "/staff/tong-quan", label: "Staff" },
 ];

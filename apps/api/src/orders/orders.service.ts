@@ -12,12 +12,14 @@ import { randomBytes } from 'crypto';
 import { getCompanyProfileForUser } from '../common/utils/company-access.util';
 import { PricingService } from '../pricing/pricing.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { WalletService } from '../wallet/wallet.service';
 
 @Injectable()
 export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly pricing: PricingService,
+    private readonly wallet: WalletService,
   ) {}
 
   async createPostOrder(userId: bigint, jobId: bigint) {
@@ -93,6 +95,17 @@ export class OrdersService {
   }
 
   async fulfillPaidOrder(orderId: bigint) {
+    const preview = await this.prisma.order.findUnique({
+      where: { orderId },
+      include: { items: true },
+    });
+    if (!preview || preview.status === OrderStatus.PAID) return preview;
+    if (
+      preview.items.some((i) => i.itemType === OrderItemType.WALLET_TOPUP)
+    ) {
+      return this.wallet.creditFromPaidOrder(orderId);
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { orderId },

@@ -5,6 +5,7 @@ import { CompanyJobApplicantsHint } from "@/components/company/company-job-appli
 import { ApplyJobPanel } from "@/components/jobs/apply-job-panel";
 import { SaveJobButton } from "@/components/jobs/save-job-button";
 import { ReportJobLink } from "@/components/reports/report-job-link";
+import { formatSalaryRange } from "@/lib/format-money";
 
 async function fetchJob(slug: string) {
   const base =
@@ -22,6 +23,8 @@ async function fetchJob(slug: string) {
     benefits?: string | null;
     location: string;
     jobType: string;
+    salaryMin?: string | null;
+    salaryMax?: string | null;
     company?: { companyName: string; companyId: string };
   }>;
 }
@@ -46,6 +49,9 @@ export default async function JobDetailPage({
       }
     >
       <article className="th-card mx-auto max-w-3xl space-y-8">
+        <p className="text-sm font-semibold text-blue-700">
+          Mức lương: {formatSalaryRange(job.salaryMin, job.salaryMax)}
+        </p>
         <section>
           <h2 className="text-lg font-bold text-slate-900">Mô tả công việc</h2>
           <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">

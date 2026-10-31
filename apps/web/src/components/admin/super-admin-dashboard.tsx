@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
+import { formatVND } from "@/lib/format-money";
 
 type SuperStats = {
   pendingJobs: number;
@@ -24,10 +25,7 @@ export function SuperAdminDashboard() {
 
   if (isLoading) return <p className="text-slate-600">Đang tải...</p>;
 
-  const fmt = (v?: string) => {
-    const n = Number(v ?? 0);
-    return new Intl.NumberFormat("vi-VN").format(n) + " ₫";
-  };
+  const fmt = (v?: string) => formatVND(v ?? 0);
 
   return (
     <div className="space-y-6">

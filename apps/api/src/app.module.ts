@@ -27,6 +27,8 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SavedJobsModule } from './saved-jobs/saved-jobs.module';
 import { StudentsModule } from './students/students.module';
+import { WalletModule } from './wallet/wallet.module';
+import { PostingModule } from './posting/posting.module';
 
 @Module({
   imports: [
@@ -64,6 +66,8 @@ import { StudentsModule } from './students/students.module';
     AdminModule,
     ReviewsModule,
     ChatModule,
+    WalletModule,
+    PostingModule,
   ],
   providers: [
     {

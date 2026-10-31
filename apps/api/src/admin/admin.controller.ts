@@ -14,6 +14,8 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { PromotionFeatureCode } from '@prisma/client';
+import { PostingFeeService } from '../posting/posting-fee.service';
 import { AdminService } from './admin.service';
 import { AdminResetPasswordDto } from './dto/admin-reset-password.dto';
 import { AdminUpdateUserStatusDto } from './dto/admin-update-user-status.dto';
@@ -27,7 +29,10 @@ import { VerifyCompanyDto } from './dto/verify-company.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly postingFee: PostingFeeService,
+  ) {}
 
   @Get('dashboard/staff')
   @Roles(UserRole.STAFF, UserRole.SUPER_ADMIN)
@@ -240,6 +245,43 @@ export class AdminController {
       BigInt(userId),
       dto,
     );
+  }
+
+  @Get('posting-config')
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Cấu hình phí đăng tin & gói quảng bá' })
+  getPostingConfig() {
+    return Promise.all([
+      this.postingFee.getConfig(),
+      this.postingFee.listAllPromotions(),
+    ]).then(([config, promotions]) => ({ config, promotions }));
+  }
+
+  @Patch('posting-config')
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Cập nhật phí cơ bản / lượt miễn phí' })
+  patchPostingConfig(
+    @Body() body: { basePostFeeVnd?: number; freePostAllowance?: number },
+  ) {
+    return this.postingFee.updateConfig(body);
+  }
+
+  @Patch('posting-promotions/:code')
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Cập nhật gói quảng bá' })
+  patchPromotion(
+    @Param('code') code: PromotionFeatureCode,
+    @Body()
+    body: {
+      displayName?: string;
+      description?: string;
+      priceVnd?: number;
+      durationDays?: number;
+      isActive?: boolean;
+      sortOrder?: number;
+    },
+  ) {
+    return this.postingFee.patchPromotion(code, body);
   }
 
   @Get('audit-logs')

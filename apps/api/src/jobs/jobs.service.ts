@@ -19,6 +19,7 @@ import {
 import { uniqueJobSlug } from '../common/utils/slug.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentRequiredException } from '../common/exceptions/payment-required.exception';
+import { MAX_VND_SALARY } from '../common/constants/money.constants';
 import { CreateJobDto } from './dto/create-job.dto';
 import { PublicJobsQueryDto } from './dto/public-jobs-query.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
@@ -30,6 +31,25 @@ export class JobsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createDraft(userId: bigint, dto: CreateJobDto) {
+    if (dto.salaryMin != null && dto.salaryMin > MAX_VND_SALARY) {
+      throw new BadRequestException(
+        `Lương tối thiểu vượt giới hạn ${MAX_VND_SALARY.toLocaleString('en-US')} VND`,
+      );
+    }
+    if (dto.salaryMax != null && dto.salaryMax > MAX_VND_SALARY) {
+      throw new BadRequestException(
+        `Lương tối đa vượt giới hạn ${MAX_VND_SALARY.toLocaleString('en-US')} VND`,
+      );
+    }
+    if (
+      dto.salaryMin != null &&
+      dto.salaryMax != null &&
+      dto.salaryMin > dto.salaryMax
+    ) {
+      throw new BadRequestException(
+        'Lương tối thiểu không được lớn hơn lương tối đa',
+      );
+    }
     const company = await getCompanyProfileForUser(this.prisma, userId);
     const slug = await uniqueJobSlug(dto.title, async (s) => {
       const found = await this.prisma.job.findUnique({ where: { slug: s } });
@@ -59,6 +79,25 @@ export class JobsService {
   }
 
   async updateJob(userId: bigint, jobId: bigint, dto: UpdateJobDto) {
+    if (dto.salaryMin != null && dto.salaryMin > MAX_VND_SALARY) {
+      throw new BadRequestException(
+        `Lương tối thiểu vượt giới hạn ${MAX_VND_SALARY.toLocaleString('en-US')} VND`,
+      );
+    }
+    if (dto.salaryMax != null && dto.salaryMax > MAX_VND_SALARY) {
+      throw new BadRequestException(
+        `Lương tối đa vượt giới hạn ${MAX_VND_SALARY.toLocaleString('en-US')} VND`,
+      );
+    }
+    if (
+      dto.salaryMin != null &&
+      dto.salaryMax != null &&
+      dto.salaryMin > dto.salaryMax
+    ) {
+      throw new BadRequestException(
+        'Lương tối thiểu không được lớn hơn lương tối đa',
+      );
+    }
     const company = await getCompanyProfileForUser(this.prisma, userId);
     const job = await this.getJobOrThrow(jobId);
     assertCompanyOwnsJob(company.companyId, job.companyId);
@@ -79,11 +118,12 @@ export class JobsService {
         return !!found;
       });
     }
+    const { categoryId, ...rest } = dto;
     return this.prisma.job.update({
       where: { jobId },
       data: {
-        ...dto,
-        categoryId: dto.categoryId ? BigInt(dto.categoryId) : undefined,
+        ...rest,
+        categoryId: categoryId ? BigInt(categoryId) : undefined,
         slug,
       },
       include: { category: true },
@@ -236,7 +276,12 @@ export class JobsService {
         where,
         skip,
         take: limit,
-        orderBy: [{ jobType: 'desc' }, { publishedAt: 'desc' }],
+        orderBy: [
+          { promotionTopUntil: 'desc' },
+          { featuredUntil: 'desc' },
+          { jobType: 'desc' },
+          { publishedAt: 'desc' },
+        ],
         include: {
           category: true,
           company: {

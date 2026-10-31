@@ -1,9 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
 import { toast } from "sonner";
 import { JobApplicantsPanel } from "@/components/company/job-applicants-panel";
 import { api } from "@/lib/api/client";
@@ -15,84 +14,17 @@ type JobRow = {
   status: string;
   jobType: string;
   slug: string;
+  isPaid: boolean;
 };
-
-type Category = { categoryId: string; categoryName: string };
 
 export function CompanyJobsPanel() {
   const qc = useQueryClient();
-  const [form, setForm] = useState({
-    title: "",
-    categoryId: "",
-    description: "",
-    requirements: "",
-    location: "",
-  });
-
-  const { data: categories } = useQuery({
-    queryKey: ["categories"],
-    queryFn: async () => {
-      const { data } = await api.get<Category[]>("/categories");
-      return data;
-    },
-  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["jobs", "company"],
     queryFn: async () => {
       const { data } = await api.get<{ items: JobRow[] }>("/jobs/company/mine");
       return data.items;
-    },
-  });
-
-  const createJob = useMutation({
-    mutationFn: () => api.post("/jobs/company", form),
-    onSuccess: () => {
-      toast.success("Đã tạo tin nháp");
-      setForm({
-        title: "",
-        categoryId: "",
-        description: "",
-        requirements: "",
-        location: "",
-      });
-      void qc.invalidateQueries({ queryKey: ["jobs", "company"] });
-    },
-    onError: () => toast.error("Tạo tin thất bại"),
-  });
-
-  const payForJob = async (jobId: string) => {
-    const { data: order } = await api.post<{ orderId: string }>(
-      "/orders/post-job",
-      { jobId },
-    );
-    const { data: payment } = await api.post<{ paymentUrl: string }>(
-      "/payments/vnpay/create",
-      { orderId: order.orderId },
-    );
-    window.location.href = payment.paymentUrl;
-  };
-
-  const submitJob = useMutation({
-    mutationFn: (jobId: string) => api.post(`/jobs/company/${jobId}/submit`),
-    onSuccess: () => {
-      toast.success("Đã gửi kiểm duyệt");
-      void qc.invalidateQueries({ queryKey: ["jobs", "company"] });
-    },
-    onError: async (err: unknown, jobId: string) => {
-      const res = (err as { response?: { status?: number; data?: { code?: string; message?: string } } })
-        .response;
-      if (res?.status === 402 || res?.data?.code === "PAYMENT_REQUIRED") {
-        toast.message("Cần thanh toán để gửi tin");
-        try {
-          await payForJob(jobId);
-        } catch {
-          toast.error("Không tạo được thanh toán VNPAY. Kiểm tra cấu hình .env");
-        }
-        return;
-      }
-      const msg = res?.data?.message;
-      toast.error(msg ?? "Gửi duyệt thất bại");
     },
   });
 
@@ -133,62 +65,32 @@ export function CompanyJobsPanel() {
   });
 
   return (
-    <div className="grid gap-10 lg:grid-cols-2">
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold">Tạo tin nháp</h2>
-        <div className="space-y-3">
-          <input
-            placeholder="Tiêu đề"
-            className="w-full rounded-lg border px-3 py-2"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-          />
-          <select
-            className="w-full rounded-lg border px-3 py-2"
-            value={form.categoryId}
-            onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-          >
-            <option value="">Chọn danh mục</option>
-            {categories?.map((c) => (
-              <option key={c.categoryId} value={c.categoryId}>
-                {c.categoryName}
-              </option>
-            ))}
-          </select>
-          <input
-            placeholder="Địa điểm"
-            className="w-full rounded-lg border px-3 py-2"
-            value={form.location}
-            onChange={(e) => setForm({ ...form, location: e.target.value })}
-          />
-          <textarea
-            placeholder="Mô tả"
-            rows={3}
-            className="w-full rounded-lg border px-3 py-2"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
-          <textarea
-            placeholder="Yêu cầu"
-            rows={3}
-            className="w-full rounded-lg border px-3 py-2"
-            value={form.requirements}
-            onChange={(e) => setForm({ ...form, requirements: e.target.value })}
-          />
-          <button
-            type="button"
-            disabled={createJob.isPending}
-            onClick={() => createJob.mutate()}
-            className="flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-800 disabled:opacity-60"
-          >
-            {createJob.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            Lưu nháp
-          </button>
+    <div className="space-y-8">
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-blue-100 bg-blue-50/60 p-5">
+        <div>
+          <h2 className="font-semibold text-slate-900">Đăng tin mới</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            3 tin thường đầu miễn phí — từ tin thứ 4 tính phí theo bảng giá admin. Thanh toán qua ví.
+          </p>
         </div>
+        <Link
+          href="/cong-ty/tin-tuyen-dung/tao"
+          className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+        >
+          + Tạo tin
+        </Link>
       </section>
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold">Tin của công ty</h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">Tin của công ty</h2>
+          <Link
+            href="/cong-ty/vi-tien"
+            className="text-sm font-medium text-blue-700 hover:underline"
+          >
+            Ví đăng tin →
+          </Link>
+        </div>
         {isLoading && <p className="text-slate-500">Đang tải...</p>}
         <ul className="space-y-3">
           {data?.map((job) => (
@@ -218,14 +120,12 @@ export function CompanyJobsPanel() {
                     </Link>
                   )}
                   {(job.status === "DRAFT" || job.status === "REJECTED") && (
-                    <button
-                      type="button"
-                      className="rounded bg-emerald-600 px-3 py-1 text-sm text-white hover:bg-emerald-700 disabled:opacity-60"
-                      disabled={submitJob.isPending}
-                      onClick={() => submitJob.mutate(job.jobId)}
+                    <Link
+                      href={`/cong-ty/tin-tuyen-dung/${job.jobId}/dang-tin`}
+                      className="rounded bg-emerald-600 px-3 py-1 text-sm text-white hover:bg-emerald-700"
                     >
-                      Gửi duyệt
-                    </button>
+                      Thanh toán &amp; gửi duyệt
+                    </Link>
                   )}
                   {job.status === "APPROVED" && (
                     <>

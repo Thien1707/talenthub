@@ -7,6 +7,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { PrismaClientExceptionFilter } from './common/filters/prisma-client-exception.filter';
 import { buildCorsOriginOption } from './config/cors-origins.util';
 
 async function bootstrap() {
@@ -24,6 +25,7 @@ async function bootstrap() {
   });
 
   app.useGlobalInterceptors(new BigIntSerializeInterceptor());
+  app.useGlobalFilters(new PrismaClientExceptionFilter());
 
   app.useGlobalPipes(
     new ValidationPipe({
