@@ -8,14 +8,32 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ConversationType,
   MessageType,
+  Prisma,
   UserRole,
   UserStatus,
 } from '@prisma/client';
 import { getCompanyProfileForUser } from '../common/utils/company-access.util';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { serializeForJson } from '../common/utils/serialize-response.util';
 import { CHAT_EVENTS } from '../chat/chat.events';
 import { SendMessageDto } from './dto/send-message.dto';
+
+const RECALLED_PLACEHOLDER = 'Tin nhắn đã được thu hồi';
+
+const messageInclude = {
+  sender: { select: { userId: true, fullName: true } },
+  asset: {
+    select: {
+      assetId: true,
+      secureUrl: true,
+      mimeType: true,
+      originalFilename: true,
+    },
+  },
+} as const;
+
+type MessageRow = Prisma.MessageGetPayload<{ include: typeof messageInclude }>;
 
 @Injectable()
 export class ConversationsService {
@@ -24,6 +42,45 @@ export class ConversationsService {
     private readonly notifications: NotificationsService,
     private readonly events: EventEmitter2,
   ) {}
+
+  private async fetchMessageRow(messageId: bigint) {
+    return this.prisma.message.findUniqueOrThrow({
+      where: { messageId },
+      include: messageInclude,
+    });
+  }
+
+  /** Không trả nội dung gốc của tin đã thu hồi (API + socket). */
+  mapMessageForClient(message: MessageRow) {
+    const base = serializeForJson(message) as Record<string, unknown>;
+    if (message.deletedAt) {
+      return {
+        ...base,
+        content: RECALLED_PLACEHOLDER,
+        asset: null,
+        assetId: null,
+        isRecalled: true,
+        recalledAt:
+          message.deletedAt instanceof Date
+            ? message.deletedAt.toISOString()
+            : String(message.deletedAt),
+        editedAt: null,
+      };
+    }
+    return { ...base, isRecalled: false };
+  }
+
+  private emitConversationEvent(
+    conversationId: string,
+    event: string,
+    payload: unknown,
+  ) {
+    this.events.emit(CHAT_EVENTS.CONVERSATION_EVENT, {
+      conversationId,
+      event,
+      payload,
+    });
+  }
 
   private chatEligibleRoles(): UserRole[] {
     return [
@@ -202,7 +259,6 @@ export class ConversationsService {
     const messages = await this.prisma.message.findMany({
       where: {
         conversationId,
-        deletedAt: null,
         ...(beforeMessageId ? { messageId: { lt: beforeMessageId } } : {}),
       },
       orderBy: { sentAt: 'desc' },
@@ -223,7 +279,10 @@ export class ConversationsService {
       messages.length === limit
         ? messages[messages.length - 1]!.messageId.toString()
         : null;
-    return { items: messages, nextBefore };
+    return {
+      items: messages.map((m) => this.mapMessageForClient(m)),
+      nextBefore,
+    };
   }
 
   async editMessage(
@@ -245,31 +304,23 @@ export class ConversationsService {
       },
     });
     if (!existing) throw new NotFoundException('Không tìm thấy tin nhắn');
+    if (existing.deletedAt) {
+      throw new BadRequestException('Không thể sửa tin nhắn đã thu hồi');
+    }
     if (existing.messageType !== MessageType.TEXT) {
       throw new BadRequestException('Chỉ sửa được tin nhắn văn bản');
     }
 
-    const updated = await this.prisma.message.update({
+    await this.prisma.message.update({
       where: { messageId },
       data: { content: trimmed, editedAt: new Date() },
-      include: {
-        sender: { select: { userId: true, fullName: true } },
-        asset: {
-          select: {
-            assetId: true,
-            originalFilename: true,
-            mimeType: true,
-          },
-        },
-      },
     });
 
-    this.chatGateway.broadcastConversationEvent(
-      conversationId.toString(),
-      'message_updated',
-      updated,
-    );
-    return updated;
+    const updated = await this.fetchMessageRow(messageId);
+    const publicMessage = this.mapMessageForClient(updated);
+    const convId = conversationId.toString();
+    this.emitConversationEvent(convId, 'message:updated', publicMessage);
+    return publicMessage;
   }
 
   async deleteMessage(
@@ -287,18 +338,25 @@ export class ConversationsService {
       },
     });
     if (!existing) throw new NotFoundException('Không tìm thấy tin nhắn');
+    if (existing.deletedAt) {
+      throw new BadRequestException('Tin nhắn đã được thu hồi');
+    }
 
-    const updated = await this.prisma.message.update({
+    const recalledAt = new Date();
+    await this.prisma.message.update({
       where: { messageId },
-      data: { deletedAt: new Date(), content: null },
+      data: {
+        deletedAt: recalledAt,
+        content: null,
+        assetId: null,
+      },
     });
 
-    this.chatGateway.broadcastConversationEvent(
-      conversationId.toString(),
-      'message_deleted',
-      { messageId: messageId.toString(), conversationId: conversationId.toString() },
-    );
-    return updated;
+    const recalled = await this.fetchMessageRow(messageId);
+    const publicMessage = this.mapMessageForClient(recalled);
+    const convId = conversationId.toString();
+    this.emitConversationEvent(convId, 'message:recalled', publicMessage);
+    return publicMessage;
   }
 
   async sendMessage(

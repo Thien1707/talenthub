@@ -205,8 +205,21 @@ export class ChatGateway
     event: string,
     payload: unknown,
   ) {
+    if (!this.server) {
+      this.logger.error(
+        `Socket.IO chưa sẵn sàng — không emit ${event} tới conv:${conversationId}`,
+      );
+      return;
+    }
     const data = serializeForJson(payload);
-    this.server.to(`conv:${conversationId}`).emit(event, data);
+    const room = `conv:${conversationId}`;
+    this.server.to(room).emit(event, data);
+    if (event === 'message:updated') {
+      this.server.to(room).emit('message_updated', data);
+    }
+    if (event === 'message:recalled') {
+      this.server.to(room).emit('message_recalled', data);
+    }
   }
 
   private async joinConversationRoom(client: Socket, conversationId: string) {

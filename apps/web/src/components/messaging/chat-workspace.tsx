@@ -7,7 +7,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { Loader2, MessageCirclePlus, Paperclip, Send } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api/client";
 import {
@@ -38,6 +38,8 @@ type Message = {
   content?: string | null;
   sentAt: string;
   editedAt?: string | null;
+  isRecalled?: boolean;
+  recalledAt?: string | null;
   sender?: { fullName: string; userId: string };
   asset?: {
     assetId?: string;
@@ -45,6 +47,10 @@ type Message = {
     originalFilename?: string | null;
   } | null;
 };
+
+function isMessageRecalled(m: Message) {
+  return Boolean(m.isRecalled || m.recalledAt);
+}
 
 type MessagesPage = {
   items: Message[];
@@ -87,8 +93,35 @@ export function ChatWorkspace({
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [connStatus, setConnStatus] =
     useState<ChatConnectionStatus>("disconnected");
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [recallTarget, setRecallTarget] = useState<Message | null>(null);
 
   activeIdRef.current = activeId;
+
+  const upsertMessageInCache = useCallback(
+    (conversationId: string, msg: Message) => {
+      qc.setQueryData<{ pages: MessagesPage[]; pageParams: unknown[] }>(
+        ["conversations", conversationId, "messages"],
+        (old) => {
+          if (!old?.pages?.length) return old;
+          let found = false;
+          const pages = old.pages.map((p) => ({
+            ...p,
+            items: p.items.map((m) => {
+              if (m.messageId !== msg.messageId) return m;
+              found = true;
+              return { ...m, ...msg, conversationId };
+            }),
+          }));
+          if (found) return { ...old, pages };
+          return old;
+        },
+      );
+      void qc.invalidateQueries({ queryKey: ["conversations", "me"] });
+    },
+    [qc],
+  );
 
   function appendMessageToCache(conversationId: string, msg: Message) {
     qc.setQueryData<{ pages: MessagesPage[]; pageParams: unknown[] }>(
@@ -202,44 +235,27 @@ export function ChatWorkspace({
 
     const onUpdated = (raw: Record<string, unknown>) => {
       const msg = normalizeSocketMessage(raw) as Message;
-      const convId = msg.conversationId || activeIdRef.current;
-      if (!convId) return;
-      qc.setQueryData<{ pages: MessagesPage[]; pageParams: unknown[] }>(
-        ["conversations", convId, "messages"],
-        (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            pages: old.pages.map((p) => ({
-              ...p,
-              items: p.items.map((m) =>
-                m.messageId === msg.messageId ? { ...m, ...msg } : m,
-              ),
-            })),
-          };
-        },
-      );
+      const convId =
+        msg.conversationId ||
+        String(raw.conversationId ?? activeIdRef.current ?? "");
+      if (!convId || !msg.messageId) return;
+      upsertMessageInCache(convId, { ...msg, conversationId: convId });
     };
 
-    const onDeleted = (payload: {
-      messageId: string;
-      conversationId?: string;
-    }) => {
-      const convId = payload.conversationId ?? activeIdRef.current;
-      if (!convId) return;
-      qc.setQueryData<{ pages: MessagesPage[]; pageParams: unknown[] }>(
-        ["conversations", convId, "messages"],
-        (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            pages: old.pages.map((p) => ({
-              ...p,
-              items: p.items.filter((m) => m.messageId !== payload.messageId),
-            })),
-          };
-        },
-      );
+    const onRecalled = (raw: Record<string, unknown>) => {
+      const msg = normalizeSocketMessage(raw) as Message;
+      const convId =
+        msg.conversationId ||
+        String(raw.conversationId ?? activeIdRef.current ?? "");
+      if (!convId || !msg.messageId) return;
+      upsertMessageInCache(convId, {
+        ...msg,
+        conversationId: convId,
+        isRecalled: true,
+        content: msg.content ?? "Tin nhắn đã được thu hồi",
+        asset: null,
+        editedAt: null,
+      });
     };
 
     const onPresence = (payload: {
@@ -273,8 +289,10 @@ export function ChatWorkspace({
 
     socket.on("message", onIncoming);
     socket.on("message:new", onIncoming);
+    socket.on("message:updated", onUpdated);
     socket.on("message_updated", onUpdated);
-    socket.on("message_deleted", onDeleted);
+    socket.on("message:recalled", onRecalled);
+    socket.on("message_recalled", onRecalled);
     socket.on("presence", onPresence);
     socket.on("typing", onTyping);
     socket.on("typing:start", (p: { userId: string; conversationId: string }) =>
@@ -289,13 +307,15 @@ export function ChatWorkspace({
       unsubStatus();
       socket.off("message", onIncoming);
       socket.off("message:new", onIncoming);
+      socket.off("message:updated", onUpdated);
       socket.off("message_updated", onUpdated);
-      socket.off("message_deleted", onDeleted);
+      socket.off("message:recalled", onRecalled);
+      socket.off("message_recalled", onRecalled);
       socket.off("presence", onPresence);
       socket.off("typing", onTyping);
       socket.io.off("reconnect", onReconnect);
     };
-  }, [userId, qc]);
+  }, [userId, qc, upsertMessageInCache]);
 
   const prevActiveRef = useRef<string>("");
   useEffect(() => {
@@ -370,12 +390,34 @@ export function ChatWorkspace({
         `/conversations/${activeId}/messages/${messageId}`,
         { content },
       ),
+    onSuccess: (res) => {
+      const msg = {
+        ...res.data,
+        messageId: String(res.data.messageId),
+        conversationId: activeId,
+      };
+      upsertMessageInCache(activeId, msg);
+      setEditingMessageId(null);
+      setEditDraft("");
+      toast.success("Đã lưu tin nhắn");
+    },
     onError: () => toast.error("Không sửa được tin nhắn"),
   });
 
-  const deleteMessage = useMutation({
+  const recallMessage = useMutation({
     mutationFn: (messageId: string) =>
-      api.delete(`/conversations/${activeId}/messages/${messageId}`),
+      api.delete<Message>(`/conversations/${activeId}/messages/${messageId}`),
+    onSuccess: (res) => {
+      const msg = {
+        ...res.data,
+        messageId: String(res.data.messageId),
+        conversationId: activeId,
+        isRecalled: true,
+      };
+      upsertMessageInCache(activeId, msg);
+      setRecallTarget(null);
+      toast.success("Đã thu hồi tin nhắn");
+    },
     onError: () => toast.error("Không thu hồi được tin nhắn"),
   });
 
@@ -430,6 +472,35 @@ export function ChatWorkspace({
           </p>
         )}
       </aside>
+
+      {recallTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-4 shadow-lg">
+            <h3 className="font-semibold text-slate-900">Thu hồi tin nhắn?</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Bạn có chắc chắn muốn thu hồi tin nhắn này không?
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-lg border px-4 py-2 text-sm"
+                disabled={recallMessage.isPending}
+                onClick={() => setRecallTarget(null)}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white disabled:opacity-60"
+                disabled={recallMessage.isPending}
+                onClick={() => recallMessage.mutate(recallTarget.messageId)}
+              >
+                {recallMessage.isPending ? "Đang thu hồi…" : "Thu hồi"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {directOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -507,58 +578,104 @@ export function ChatWorkspace({
           )}
           {messages.map((m) => {
             const mine = m.sender?.userId === userId;
+            const recalled = isMessageRecalled(m);
+            const isEditing = editingMessageId === m.messageId;
             return (
               <div
                 key={m.messageId}
                 className={`group max-w-[85%] rounded-lg px-3 py-2 text-sm ${
                   mine ? "ml-auto bg-blue-700 text-white" : "bg-slate-100 text-slate-900"
-                }`}
+                } ${recalled ? "opacity-90" : ""}`}
               >
                 {!mine && (
                   <p className="text-xs font-medium opacity-80">
                     {m.sender?.fullName}
                   </p>
                 )}
-                {m.content && <p className="whitespace-pre-wrap">{m.content}</p>}
-                {m.editedAt && (
-                  <p className={`text-[10px] ${mine ? "text-blue-200" : "text-slate-500"}`}>
-                    (đã sửa)
-                  </p>
-                )}
-                {m.asset?.assetId && (
-                  <MessageAttachmentLink
-                    assetId={m.asset.assetId}
-                    label={m.asset.originalFilename ?? "Tệp đính kèm"}
-                    className={mine ? "text-blue-100" : "text-blue-700"}
-                  />
-                )}
-                {mine && m.content && (
-                  <div className="mt-1 flex gap-2 opacity-0 group-hover:opacity-100">
-                    <button
-                      type="button"
-                      className="text-[10px] underline"
-                      onClick={() => {
-                        const next = window.prompt("Sửa tin nhắn", m.content ?? "");
-                        if (next?.trim()) {
+                {isEditing ? (
+                  <div className="mt-1 space-y-2">
+                    <textarea
+                      className="w-full rounded border border-blue-200 bg-white px-2 py-1 text-sm text-slate-900"
+                      rows={3}
+                      value={editDraft}
+                      onChange={(e) => setEditDraft(e.target.value)}
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={editMessage.isPending || !editDraft.trim()}
+                        className="rounded bg-white/20 px-2 py-1 text-xs font-medium disabled:opacity-50"
+                        onClick={() => {
+                          const trimmed = editDraft.trim();
+                          if (!trimmed) return;
                           editMessage.mutate({
                             messageId: m.messageId,
-                            content: next.trim(),
+                            content: trimmed,
                           });
-                        }
-                      }}
-                    >
-                      Sửa
-                    </button>
+                        }}
+                      >
+                        Lưu
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded px-2 py-1 text-xs underline"
+                        onClick={() => {
+                          setEditingMessageId(null);
+                          setEditDraft("");
+                        }}
+                      >
+                        Hủy
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {m.content && (
+                      <p
+                        className={`whitespace-pre-wrap ${
+                          recalled ? "italic opacity-80" : ""
+                        }`}
+                      >
+                        {m.content}
+                      </p>
+                    )}
+                    {m.editedAt && !recalled && (
+                      <p
+                        className={`text-[10px] ${mine ? "text-blue-200" : "text-slate-500"}`}
+                      >
+                        Đã chỉnh sửa
+                      </p>
+                    )}
+                    {!recalled && m.asset?.assetId && (
+                      <MessageAttachmentLink
+                        assetId={m.asset.assetId}
+                        label={m.asset.originalFilename ?? "Tệp đính kèm"}
+                        className={mine ? "text-blue-100" : "text-blue-700"}
+                      />
+                    )}
+                  </>
+                )}
+                {mine && !recalled && !isEditing && (m.content || m.asset?.assetId) && (
+                  <div className="mt-1 flex gap-3 opacity-0 group-hover:opacity-100">
+                    {m.content && (
+                      <button
+                        type="button"
+                        className="text-[10px] underline"
+                        onClick={() => {
+                          setEditingMessageId(m.messageId);
+                          setEditDraft(m.content ?? "");
+                        }}
+                      >
+                        Chỉnh sửa
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="text-[10px] underline"
-                      onClick={() => {
-                        if (window.confirm("Thu hồi tin nhắn?")) {
-                          deleteMessage.mutate(m.messageId);
-                        }
-                      }}
+                      onClick={() => setRecallTarget(m)}
                     >
-                      Thu hồi
+                      Thu hồi tin nhắn
                     </button>
                   </div>
                 )}

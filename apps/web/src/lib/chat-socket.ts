@@ -137,5 +137,12 @@ export function normalizeSocketMessage(raw: Record<string, unknown>) {
           originalFilename: asset.originalFilename as string | null | undefined,
         }
       : null,
+    isRecalled: Boolean(raw.isRecalled),
+    recalledAt:
+      raw.recalledAt != null
+        ? typeof raw.recalledAt === "string"
+          ? raw.recalledAt
+          : new Date(String(raw.recalledAt)).toISOString()
+        : null,
   };
 }

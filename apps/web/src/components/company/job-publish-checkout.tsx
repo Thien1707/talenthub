@@ -9,8 +9,10 @@ import { toast } from "sonner";
 import { api } from "@/lib/api/client";
 import { extractApiErrorMessage } from "@/lib/extract-api-error";
 import { formatVND, parseVndAmount } from "@/lib/format-money";
-
-type PromoCode = "TOP_LISTING" | "HIGHLIGHT" | "FEATURED";
+import {
+  computePromotionTotals,
+  type PromoCode,
+} from "@/lib/posting-quote";
 
 type Quote = {
   job: { jobId: string; title: string; jobType: string };
@@ -44,26 +46,38 @@ export function JobPublishCheckout({ jobId }: { jobId: string }) {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<PromoCode[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const promoParam = selected.join(",");
 
   const { data: quote, isLoading, isError } = useQuery({
-    queryKey: ["publish-quote", jobId, promoParam],
+    queryKey: ["publish-quote", jobId],
     queryFn: async () => {
       const { data } = await api.get<Quote>(
         `/jobs/company/${jobId}/publish-quote`,
-        { params: promoParam ? { promotions: promoParam } : undefined },
       );
       return data;
     },
+    staleTime: 60_000,
   });
 
-  const walletBalance = quote ? parseVndAmount(quote.walletBalanceVnd) ?? 0 : 0;
-  const balanceAfter = quote ? parseVndAmount(quote.balanceAfterVnd) ?? 0 : 0;
+  const pricing = useMemo(() => {
+    if (!quote) return null;
+    const { promotionTotalVnd, totalVnd } = computePromotionTotals(
+      quote.baseFeeVnd,
+      quote.availablePromotions,
+      selected,
+    );
+    const walletBalance = parseVndAmount(quote.walletBalanceVnd) ?? 0;
+    return {
+      promotionTotalVnd,
+      totalVnd,
+      walletBalance,
+      balanceAfter: walletBalance - totalVnd,
+    };
+  }, [quote, selected]);
 
   const insufficient = useMemo(() => {
-    if (!quote) return false;
-    return quote.totalVnd > walletBalance;
-  }, [quote, walletBalance]);
+    if (!pricing) return false;
+    return pricing.totalVnd > pricing.walletBalance;
+  }, [pricing]);
 
   const toggle = (code: PromoCode) => {
     setSelected((prev) =>
@@ -100,10 +114,10 @@ export function JobPublishCheckout({ jobId }: { jobId: string }) {
     },
   });
 
-  if (isLoading) {
+  if (isLoading && !quote) {
     return <p className="text-sm text-slate-500">Đang tải báo giá…</p>;
   }
-  if (isError || !quote) {
+  if (isError || !quote || !pricing) {
     return (
       <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         Không tải được thông tin thanh toán. Kiểm tra API hoặc quyền truy cập tin nháp.
@@ -127,27 +141,44 @@ export function JobPublishCheckout({ jobId }: { jobId: string }) {
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold">Gói quảng bá (tùy chọn)</h2>
           <ul className="mt-4 space-y-3">
-            {quote.availablePromotions.map((p) => (
-              <li key={p.code}>
-                <label className="flex cursor-pointer gap-3 rounded-xl border border-slate-200 p-4 hover:border-blue-300">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(p.code)}
-                    onChange={() => toggle(p.code)}
-                    className="mt-1"
-                  />
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-900">{p.displayName}</p>
-                    {p.description ? (
-                      <p className="mt-1 text-sm text-slate-600">{p.description}</p>
-                    ) : null}
-                    <p className="mt-1 text-xs text-slate-500">
-                      {p.durationDays} ngày · {formatVND(p.priceVnd)}
-                    </p>
-                  </div>
-                </label>
-              </li>
-            ))}
+            {quote.availablePromotions.map((p) => {
+              const isOn = selected.includes(p.code);
+              return (
+                <li key={p.code}>
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={isOn}
+                    onClick={() => toggle(p.code)}
+                    className={`flex w-full cursor-pointer gap-3 rounded-xl border p-4 text-left transition-colors hover:border-blue-300 ${
+                      isOn
+                        ? "border-blue-500 bg-blue-50/50 ring-1 ring-blue-200"
+                        : "border-slate-200"
+                    }`}
+                  >
+                    <span
+                      className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                        isOn
+                          ? "border-blue-600 bg-blue-600 text-white"
+                          : "border-slate-300 bg-white"
+                      }`}
+                      aria-hidden
+                    >
+                      {isOn ? "✓" : ""}
+                    </span>
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-900">{p.displayName}</p>
+                      {p.description ? (
+                        <p className="mt-1 text-sm text-slate-600">{p.description}</p>
+                      ) : null}
+                      <p className="mt-1 text-xs text-slate-500">
+                        {p.durationDays} ngày · {formatVND(p.priceVnd)}
+                      </p>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </section>
       </div>
@@ -175,18 +206,18 @@ export function JobPublishCheckout({ jobId }: { jobId: string }) {
             <tr className="border-t">
               <td className="pt-3 font-semibold">Tổng</td>
               <td className="pt-3 text-right text-lg font-bold text-blue-700">
-                {formatVND(quote.totalVnd)}
+                {formatVND(pricing.totalVnd)}
               </td>
             </tr>
           </tbody>
         </table>
         <div className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
           <p>
-            Số dư ví: <strong>{formatVND(walletBalance)}</strong>
+            Số dư ví: <strong>{formatVND(pricing.walletBalance)}</strong>
           </p>
           <p className="mt-1 text-slate-600">
             Còn lại sau thanh toán:{" "}
-            <strong>{formatVND(Math.max(0, balanceAfter))}</strong>
+            <strong>{formatVND(Math.max(0, pricing.balanceAfter))}</strong>
           </p>
         </div>
         {insufficient ? (
@@ -228,13 +259,15 @@ export function JobPublishCheckout({ jobId }: { jobId: string }) {
                 <strong>Tin:</strong> {quote.job.title}
               </li>
               <li>
-                <strong>Tổng thanh toán:</strong> {formatVND(quote.totalVnd)}
+                <strong>Tổng thanh toán:</strong> {formatVND(pricing.totalVnd)}
               </li>
               <li>
-                <strong>Số dư hiện tại:</strong> {formatVND(walletBalance)}
+                <strong>Số dư hiện tại:</strong>{" "}
+                {formatVND(pricing.walletBalance)}
               </li>
               <li>
-                <strong>Số dư sau:</strong> {formatVND(Math.max(0, balanceAfter))}
+                <strong>Số dư sau:</strong>{" "}
+                {formatVND(Math.max(0, pricing.balanceAfter))}
               </li>
             </ul>
             <div className="mt-6 flex gap-2">
