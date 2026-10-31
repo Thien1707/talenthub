@@ -45,16 +45,19 @@ export class PaymentsController {
     );
   }
 
-  @Get('vnpay/return')
-  @ApiOperation({ summary: 'VNPAY return URL (redirect browser)' })
-  vnpayReturn(@Query() query: Record<string, string>) {
-    return this.paymentsService.handleVnpayReturn(query);
-  }
-
-  @Post('vnpay/ipn')
-  @ApiOperation({ summary: 'VNPAY IPN (server callback)' })
-  vnpayIpn(@Query() query: Record<string, string>) {
-    return this.paymentsService.handleVnpayIpn(query);
+  @Get('vnpay/status')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.COMPANY)
+  @ApiOperation({ summary: 'Trạng thái nạp ví theo vnp_TxnRef' })
+  topUpStatus(
+    @CurrentUser() user: { userId: string },
+    @Query('vnp_TxnRef') vnpTxnRef: string,
+  ) {
+    return this.paymentsService.getWalletTopUpStatusByTxnRef(
+      BigInt(user.userId),
+      vnpTxnRef,
+    );
   }
 
   @Get(':paymentId')

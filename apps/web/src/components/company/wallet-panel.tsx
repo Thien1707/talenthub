@@ -30,6 +30,8 @@ export function WalletPanel() {
       const { data } = await api.get<{ balanceVnd: string }>("/wallet/me");
       return data;
     },
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const { data: txs } = useQuery({

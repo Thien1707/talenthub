@@ -40,8 +40,11 @@ File [`apps/web/vercel.json`](../apps/web/vercel.json) đã cấu hình:
 | Biến | Ví dụ |
 |------|--------|
 | `NEXT_PUBLIC_API_URL` | `https://your-api.onrender.com/api/v1` |
+| `NEXT_PUBLIC_SOCKET_URL` | *(tùy chọn)* `https://your-api.onrender.com` — mặc định suy ra từ `NEXT_PUBLIC_API_URL` |
 
 Trên API (Render), đặt **WEB_URL** = URL Vercel (ví dụ `https://your-app.vercel.app`) để CORS hoạt động.
+
+Chat realtime dùng **Socket.IO** trên cùng host Render (`wss://…/socket.io`, namespace `/chat`). Vercel chỉ phục vụ frontend; không chạy WebSocket serverless.
 
 ## Monorepo — không dùng Turborepo
 

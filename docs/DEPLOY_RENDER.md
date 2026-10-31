@@ -63,6 +63,10 @@ Render gán **PORT** — không set `PORT=4000`.
 - **CORS_ORIGINS** = thêm origin (cách nhau dấu phẩy) nếu không dùng `CORS_ALLOW_VERCEL`
 - **API_URL** = URL Render (vd. `https://xxx.onrender.com`)
 
+**WebSocket (chat):** Socket.IO gắn cùng process HTTP — path `/socket.io`, namespace `/chat`. Render Web Service hỗ trợ WSS; không cần service riêng. Bật **CORS_ALLOW_VERCEL=true** hoặc khai báo **WEB_URL** đúng URL Vercel.
+
+Monorepo: Build phải `npm install` tại **root** repo (không chỉ `apps/api`) để `@nestjs/websockets` nằm cạnh `@nestjs/core` — nếu thiếu, log API **không** có `Chat gateway initialized` và `/socket.io` trả **404**.
+
 Lỗi console *Access-Control-Allow-Origin … localhost:3000* → **WEB_URL trên Render vẫn là local**; sửa env và **restart** service.
 
 ## Node

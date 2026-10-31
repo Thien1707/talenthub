@@ -9,8 +9,15 @@ import {
 import { Loader2, MessageCirclePlus, Paperclip, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { io, type Socket } from "socket.io-client";
-import { api, getStoredAccessToken } from "@/lib/api/client";
+import { api } from "@/lib/api/client";
+import {
+  connectChatSocket,
+  joinChatConversation,
+  leaveChatConversation,
+  normalizeSocketMessage,
+  subscribeChatStatus,
+  type ChatConnectionStatus,
+} from "@/lib/chat-socket";
 import { uploadMedia } from "@/lib/api/upload";
 import { MessageAttachmentLink } from "@/components/messaging/message-attachment-link";
 
@@ -27,6 +34,7 @@ type Conversation = {
 
 type Message = {
   messageId: string;
+  conversationId?: string;
   content?: string | null;
   sentAt: string;
   editedAt?: string | null;
@@ -75,8 +83,38 @@ export function ChatWorkspace({
   const [onlineIds, setOnlineIds] = useState<string[]>([]);
   const [typingUserId, setTypingUserId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const socketRef = useRef<Socket | null>(null);
+  const activeIdRef = useRef(activeId);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [connStatus, setConnStatus] =
+    useState<ChatConnectionStatus>("disconnected");
+
+  activeIdRef.current = activeId;
+
+  function appendMessageToCache(conversationId: string, msg: Message) {
+    qc.setQueryData<{ pages: MessagesPage[]; pageParams: unknown[] }>(
+      ["conversations", conversationId, "messages"],
+      (old) => {
+        if (!old?.pages?.length) {
+          void qc.invalidateQueries({
+            queryKey: ["conversations", conversationId, "messages"],
+          });
+          return old;
+        }
+        const first = old.pages[0]!;
+        if (first.items.some((m) => m.messageId === msg.messageId)) {
+          return old;
+        }
+        return {
+          ...old,
+          pages: [
+            { ...first, items: [msg, ...first.items] },
+            ...old.pages.slice(1),
+          ],
+        };
+      },
+    );
+    void qc.invalidateQueries({ queryKey: ["conversations", "me"] });
+  }
 
   const { data: conversations, isLoading } = useQuery({
     queryKey: ["conversations", "me"],
@@ -143,45 +181,31 @@ export function ChatWorkspace({
   }, [messages]);
 
   useEffect(() => {
-    if (!activeId) return;
-    const token = getStoredAccessToken();
-    const apiBase =
-      process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
-    const origin = apiBase.replace(/\/api\/v1\/?$/, "");
-    const socket = io(`${origin}/chat`, {
-      auth: { token },
-      transports: ["websocket"],
-    });
-    socketRef.current = socket;
-    socket.emit("join", activeId);
-    socket.on("message", (msg: Message) => {
+    if (!userId) return;
+    const unsubStatus = subscribeChatStatus(setConnStatus);
+    let socket;
+    try {
+      socket = connectChatSocket();
+    } catch {
+      setConnStatus("error");
+      return unsubStatus;
+    }
+
+    const onIncoming = (raw: Record<string, unknown>) => {
+      const msg = normalizeSocketMessage(raw) as Message;
+      const convId =
+        msg.conversationId ||
+        String(raw.conversationId ?? activeIdRef.current ?? "");
+      if (!convId) return;
+      appendMessageToCache(convId, { ...msg, conversationId: convId });
+    };
+
+    const onUpdated = (raw: Record<string, unknown>) => {
+      const msg = normalizeSocketMessage(raw) as Message;
+      const convId = msg.conversationId || activeIdRef.current;
+      if (!convId) return;
       qc.setQueryData<{ pages: MessagesPage[]; pageParams: unknown[] }>(
-        ["conversations", activeId, "messages"],
-        (old) => {
-          if (!old?.pages?.length) {
-            void qc.invalidateQueries({
-              queryKey: ["conversations", activeId, "messages"],
-            });
-            return old;
-          }
-          const first = old.pages[0]!;
-          if (first.items.some((m) => m.messageId === msg.messageId)) {
-            return old;
-          }
-          return {
-            ...old,
-            pages: [
-              { ...first, items: [msg, ...first.items] },
-              ...old.pages.slice(1),
-            ],
-          };
-        },
-      );
-      void qc.invalidateQueries({ queryKey: ["conversations", "me"] });
-    });
-    socket.on("message_updated", (msg: Message) => {
-      qc.setQueryData<{ pages: MessagesPage[]; pageParams: unknown[] }>(
-        ["conversations", activeId, "messages"],
+        ["conversations", convId, "messages"],
         (old) => {
           if (!old) return old;
           return {
@@ -195,43 +219,95 @@ export function ChatWorkspace({
           };
         },
       );
-    });
-    socket.on(
-      "message_deleted",
-      (payload: { messageId: string }) => {
-        qc.setQueryData<{ pages: MessagesPage[]; pageParams: unknown[] }>(
-          ["conversations", activeId, "messages"],
-          (old) => {
-            if (!old) return old;
-            return {
-              ...old,
-              pages: old.pages.map((p) => ({
-                ...p,
-                items: p.items.filter((m) => m.messageId !== payload.messageId),
-              })),
-            };
-          },
-        );
-      },
-    );
-    socket.on("presence", (payload: { onlineUserIds?: string[] }) => {
-      setOnlineIds(payload.onlineUserIds ?? []);
-    });
-    socket.on(
-      "typing",
-      (payload: { userId: string; typing: boolean; conversationId: string }) => {
-        if (payload.conversationId !== activeId) return;
-        if (payload.userId === userId) return;
-        setTypingUserId(payload.typing ? payload.userId : null);
-      },
-    );
-    return () => {
-      socket.disconnect();
-      socketRef.current = null;
-      setOnlineIds([]);
-      setTypingUserId(null);
     };
-  }, [activeId, qc, userId]);
+
+    const onDeleted = (payload: {
+      messageId: string;
+      conversationId?: string;
+    }) => {
+      const convId = payload.conversationId ?? activeIdRef.current;
+      if (!convId) return;
+      qc.setQueryData<{ pages: MessagesPage[]; pageParams: unknown[] }>(
+        ["conversations", convId, "messages"],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((p) => ({
+              ...p,
+              items: p.items.filter((m) => m.messageId !== payload.messageId),
+            })),
+          };
+        },
+      );
+    };
+
+    const onPresence = (payload: {
+      conversationId?: string;
+      onlineUserIds?: string[];
+    }) => {
+      if (payload.conversationId !== activeIdRef.current) return;
+      setOnlineIds(payload.onlineUserIds ?? []);
+    };
+
+    const onTyping = (payload: {
+      userId: string;
+      typing?: boolean;
+      conversationId: string;
+    }) => {
+      if (payload.conversationId !== activeIdRef.current) return;
+      if (payload.userId === userId) return;
+      setTypingUserId(payload.typing ? payload.userId : null);
+    };
+
+    const onReconnect = () => {
+      const id = activeIdRef.current;
+      if (id) {
+        joinChatConversation(id);
+        void qc.invalidateQueries({
+          queryKey: ["conversations", id, "messages"],
+        });
+      }
+      void qc.invalidateQueries({ queryKey: ["conversations", "me"] });
+    };
+
+    socket.on("message", onIncoming);
+    socket.on("message:new", onIncoming);
+    socket.on("message_updated", onUpdated);
+    socket.on("message_deleted", onDeleted);
+    socket.on("presence", onPresence);
+    socket.on("typing", onTyping);
+    socket.on("typing:start", (p: { userId: string; conversationId: string }) =>
+      onTyping({ ...p, typing: true }),
+    );
+    socket.on("typing:stop", (p: { userId: string; conversationId: string }) =>
+      onTyping({ ...p, typing: false }),
+    );
+    socket.io.on("reconnect", onReconnect);
+
+    return () => {
+      unsubStatus();
+      socket.off("message", onIncoming);
+      socket.off("message:new", onIncoming);
+      socket.off("message_updated", onUpdated);
+      socket.off("message_deleted", onDeleted);
+      socket.off("presence", onPresence);
+      socket.off("typing", onTyping);
+      socket.io.off("reconnect", onReconnect);
+    };
+  }, [userId, qc]);
+
+  const prevActiveRef = useRef<string>("");
+  useEffect(() => {
+    if (!userId || !activeId) return;
+    if (prevActiveRef.current && prevActiveRef.current !== activeId) {
+      leaveChatConversation(prevActiveRef.current);
+    }
+    joinChatConversation(activeId);
+    prevActiveRef.current = activeId;
+    setOnlineIds([]);
+    setTypingUserId(null);
+  }, [activeId, userId]);
 
   useEffect(() => {
     if (activeId) {
@@ -240,8 +316,14 @@ export function ChatWorkspace({
   }, [activeId, messages?.length]);
 
   const emitTyping = (typing: boolean) => {
-    if (!activeId || !socketRef.current) return;
-    socketRef.current.emit(typing ? "typing_start" : "typing_stop", activeId);
+    if (!activeId) return;
+    try {
+      const socket = connectChatSocket();
+      if (!socket.connected) return;
+      socket.emit(typing ? "typing_start" : "typing_stop", activeId);
+    } catch {
+      /* chưa đăng nhập */
+    }
   };
 
   const openDirect = useMutation({
@@ -253,6 +335,7 @@ export function ChatWorkspace({
       setDirectOpen(false);
       setPartnerQuery("");
       setActiveId(res.data.conversationId);
+      joinChatConversation(res.data.conversationId);
       void qc.invalidateQueries({ queryKey: ["conversations", "me"] });
       toast.success("Đã mở chat trực tiếp");
     },
@@ -265,25 +348,12 @@ export function ChatWorkspace({
     onSuccess: (res) => {
       setText("");
       emitTyping(false);
-      const msg = res.data;
-      qc.setQueryData<{ pages: MessagesPage[]; pageParams: unknown[] }>(
-        ["conversations", activeId, "messages"],
-        (old) => {
-          if (!old?.pages?.length) return old;
-          const first = old.pages[0]!;
-          if (first.items.some((m) => m.messageId === msg.messageId)) {
-            return old;
-          }
-          return {
-            ...old,
-            pages: [
-              { ...first, items: [msg, ...first.items] },
-              ...old.pages.slice(1),
-            ],
-          };
-        },
-      );
-      void qc.invalidateQueries({ queryKey: ["conversations", "me"] });
+      const msg = {
+        ...res.data,
+        messageId: String(res.data.messageId),
+        conversationId: activeId,
+      };
+      appendMessageToCache(activeId, msg);
     },
     onError: () => toast.error("Gửi tin nhắn thất bại"),
   });
@@ -413,7 +483,13 @@ export function ChatWorkspace({
           </p>
           {otherMember && (
             <p className="text-xs text-slate-500">
-              {otherOnline ? "● Đang trực tuyến" : "○ Ngoại tuyến"}
+              {connStatus === "connected"
+                ? otherOnline
+                  ? "● Đang trực tuyến"
+                  : "○ Ngoại tuyến"
+                : connStatus === "connecting"
+                  ? "Đang kết nối chat…"
+                  : "Mất kết nối realtime — tin vẫn lưu khi gửi/làm mới"}
               {typingUserId === otherMember.user.userId && " · đang gõ…"}
             </p>
           )}
