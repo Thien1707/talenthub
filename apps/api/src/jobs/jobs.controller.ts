@@ -36,6 +36,16 @@ export class JobsController {
     return this.jobsService.listPublic(query);
   }
 
+  @Get('search-suggestions')
+  @ApiOperation({ summary: 'Gợi ý tìm việc (tiêu đề tin, ngành)' })
+  searchSuggestions(
+    @Query('q') q: string,
+    @Query('limit') limit?: string,
+  ) {
+    const n = limit ? Math.min(Number(limit) || 8, 12) : 8;
+    return this.jobsService.publicSearchSuggestions(q ?? '', n);
+  }
+
   @Get('slug/:slug')
   @ApiOperation({ summary: 'Chi tiết tin theo slug' })
   getBySlug(@Param('slug') slug: string) {

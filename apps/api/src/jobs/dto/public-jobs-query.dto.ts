@@ -4,10 +4,15 @@ import { IsOptional, IsString } from 'class-validator';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 export class PublicJobsQueryDto extends PaginationQueryDto {
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Từ khóa tìm việc' })
   @IsOptional()
   @IsString()
   keyword?: string;
+
+  @ApiPropertyOptional({ description: 'Alias của keyword (URL)' })
+  @IsOptional()
+  @IsString()
+  q?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

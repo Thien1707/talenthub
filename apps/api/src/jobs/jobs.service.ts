@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  CategoryStatus,
   EmploymentType,
   JobStatus,
   JobType,
@@ -22,6 +23,7 @@ import { PaymentRequiredException } from '../common/exceptions/payment-required.
 import { MAX_VND_SALARY } from '../common/constants/money.constants';
 import { CreateJobDto } from './dto/create-job.dto';
 import { PublicJobsQueryDto } from './dto/public-jobs-query.dto';
+import { buildPublicJobKeywordWhere } from './job-search.util';
 import { UpdateJobDto } from './dto/update-job.dto';
 
 const DEFAULT_POST_DAYS = 30;
@@ -230,13 +232,8 @@ export class JobsService {
     return job;
   }
 
-  async listPublic(query: PublicJobsQueryDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
-    const now = new Date();
-
-    const where: Prisma.JobWhereInput = {
+  private publicJobVisibilityWhere(now = new Date()): Prisma.JobWhereInput {
+    return {
       status: JobStatus.APPROVED,
       deletedAt: null,
       OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
@@ -249,16 +246,74 @@ export class JobsService {
         },
       ],
     };
+  }
 
-    if (query.keyword) {
+  async publicSearchSuggestions(q: string, limit = 8) {
+    const keyword = q.trim();
+    if (keyword.length < 2) {
+      return { titles: [] as string[], categories: [] as { categoryId: string; name: string }[] };
+    }
+    const now = new Date();
+    const keywordWhere = buildPublicJobKeywordWhere(keyword);
+    const visibility = this.publicJobVisibilityWhere(now);
+    const where: Prisma.JobWhereInput = keywordWhere
+      ? {
+          ...visibility,
+          AND: [
+            ...(Array.isArray(visibility.AND)
+              ? visibility.AND
+              : visibility.AND
+                ? [visibility.AND]
+                : []),
+            keywordWhere,
+          ],
+        }
+      : visibility;
+
+    const [jobs, categories] = await Promise.all([
+      this.prisma.job.findMany({
+        where,
+        select: { title: true },
+        distinct: ['title'],
+        take: Math.min(limit, 12),
+        orderBy: { publishedAt: 'desc' },
+      }),
+      this.prisma.category.findMany({
+        where: {
+          categoryName: { contains: keyword },
+          status: CategoryStatus.ACTIVE,
+        },
+        select: { categoryId: true, categoryName: true },
+        take: 6,
+        orderBy: { categoryName: 'asc' },
+      }),
+    ]);
+
+    return {
+      titles: jobs.map((j) => j.title),
+      categories: categories.map((c) => ({
+        categoryId: c.categoryId.toString(),
+        name: c.categoryName,
+      })),
+    };
+  }
+
+  async listPublic(query: PublicJobsQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+    const now = new Date();
+
+    const where: Prisma.JobWhereInput = {
+      ...this.publicJobVisibilityWhere(now),
+    };
+
+    const keyword = (query.keyword ?? query.q)?.trim();
+    const keywordWhere = buildPublicJobKeywordWhere(keyword);
+    if (keywordWhere) {
       where.AND = [
         ...(Array.isArray(where.AND) ? where.AND : []),
-        {
-          OR: [
-            { title: { contains: query.keyword } },
-            { description: { contains: query.keyword } },
-          ],
-        },
+        keywordWhere,
       ];
     }
     if (query.categoryId) {
