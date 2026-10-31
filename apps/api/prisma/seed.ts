@@ -67,6 +67,7 @@ async function main() {
       templateConfig: {
         layout: 'classic',
         primaryColor: '#1e40af',
+        accentColor: '#1e40af',
         fontFamily: 'Inter',
       },
     },
@@ -76,6 +77,7 @@ async function main() {
       templateConfig: {
         layout: 'modern',
         primaryColor: '#0f766e',
+        accentColor: '#0f766e',
         fontFamily: 'Inter',
       },
     },
@@ -86,17 +88,39 @@ async function main() {
       templateConfig: {
         layout: 'topcv',
         primaryColor: '#00b14f',
+        accentColor: '#00b14f',
         fontFamily: 'Inter',
       },
     },
   ];
 
+  const activeNames = new Set(templates.map((t) => t.templateName));
+
   for (const tpl of templates) {
     const existing = await prisma.cvTemplate.findFirst({
       where: { templateName: tpl.templateName },
     });
-    if (!existing) {
+    if (existing) {
+      await prisma.cvTemplate.update({
+        where: { templateId: existing.templateId },
+        data: {
+          description: tpl.description,
+          templateConfig: tpl.templateConfig,
+          isActive: true,
+        },
+      });
+    } else {
       await prisma.cvTemplate.create({ data: tpl });
+    }
+  }
+
+  const allTpl = await prisma.cvTemplate.findMany();
+  for (const row of allTpl) {
+    if (!activeNames.has(row.templateName) && row.isActive) {
+      await prisma.cvTemplate.update({
+        where: { templateId: row.templateId },
+        data: { isActive: false },
+      });
     }
   }
 

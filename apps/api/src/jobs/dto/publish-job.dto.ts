@@ -1,12 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PromotionFeatureCode } from '@prisma/client';
 import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { PromotionFeatureCodeEnum } from '../../common/enums/promotion-feature-code.enum';
 
 export class PublishJobQuoteQueryDto {
-  @ApiPropertyOptional({ enum: PromotionFeatureCode, isArray: true })
+  @ApiPropertyOptional({ enum: PromotionFeatureCodeEnum, isArray: true })
   @IsOptional()
   @IsArray()
-  @IsEnum(PromotionFeatureCode, { each: true })
+  @IsEnum(PromotionFeatureCodeEnum, { each: true })
   promotions?: PromotionFeatureCode[];
 }
 
@@ -16,9 +17,9 @@ export class PublishJobDto {
   @IsNotEmpty()
   idempotencyKey: string;
 
-  @ApiPropertyOptional({ enum: PromotionFeatureCode, isArray: true })
+  @ApiPropertyOptional({ enum: PromotionFeatureCodeEnum, isArray: true })
   @IsOptional()
   @IsArray()
-  @IsEnum(PromotionFeatureCode, { each: true })
+  @IsEnum(PromotionFeatureCodeEnum, { each: true })
   promotionCodes?: PromotionFeatureCode[];
 }

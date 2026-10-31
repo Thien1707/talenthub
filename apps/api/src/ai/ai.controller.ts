@@ -16,6 +16,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { AiService } from './ai.service';
 import { AnalyzeGeneralDto } from './dto/analyze-general.dto';
 import { AnalyzeJobMatchDto } from './dto/analyze-job-match.dto';
+import { CvBuildChatDto } from './dto/cv-build-chat.dto';
 
 @ApiTags('ai')
 @ApiBearerAuth()
@@ -23,6 +24,19 @@ import { AnalyzeJobMatchDto } from './dto/analyze-job-match.dto';
 @Controller('ai')
 export class AiController {
   constructor(private readonly aiService: AiService) {}
+
+  @Post('cv/build-chat')
+  @Roles(UserRole.STUDENT)
+  @Throttle({ default: { limit: 15, ttl: 60_000 } })
+  @ApiOperation({
+    summary: 'Trò chuyện với Gemini để soạn / cập nhật CV (JSON)',
+  })
+  cvBuildChat(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: CvBuildChatDto,
+  ) {
+    return this.aiService.cvBuildChat(BigInt(user.userId), dto);
+  }
 
   @Post('analyses/general')
   @Roles(UserRole.STUDENT)

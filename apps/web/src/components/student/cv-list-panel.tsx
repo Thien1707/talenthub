@@ -6,6 +6,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import {
+  CvTemplateGallery,
+  type CvTemplateItem,
+} from "@/components/student/cv-template-gallery";
 import { api } from "@/lib/api/client";
 
 type CvItem = {
@@ -45,13 +49,7 @@ export function CvListPanel({
     queryKey: ["cvs", "templates"],
     enabled: createOpen,
     queryFn: async () => {
-      const { data } = await api.get<
-        Array<{
-          templateId: string;
-          templateName: string;
-          description?: string | null;
-        }>
-      >("/cvs/templates");
+      const { data } = await api.get<CvTemplateItem[]>("/cvs/templates");
       return data;
     },
   });
@@ -152,24 +150,22 @@ export function CvListPanel({
             onChange={(e) => setNewName(e.target.value)}
           />
           {templates && templates.length > 0 && (
-            <>
-              <label className="mt-3 block text-sm text-slate-700">
-                Mẫu (tùy chọn)
-              </label>
-              <select
-                className="mt-1 w-full max-w-md rounded-lg border px-3 py-2"
-                value={templateId}
-                onChange={(e) => setTemplateId(e.target.value)}
-              >
-                <option value="">— Mặc định —</option>
-                {templates.map((t) => (
-                  <option key={t.templateId} value={t.templateId}>
-                    {t.templateName}
-                    {t.description ? ` — ${t.description}` : ""}
-                  </option>
-                ))}
-              </select>
-            </>
+            <div className="mt-4">
+              <p className="text-sm font-medium text-slate-800">Chọn mẫu</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Bỏ chọn không có — API sẽ dùng mẫu mặc định.
+              </p>
+              <div className="mt-2 max-w-2xl">
+                <CvTemplateGallery
+                  templates={templates}
+                  selectedId={templateId || undefined}
+                  onSelect={(id) =>
+                    setTemplateId((prev) => (prev === id ? "" : id))
+                  }
+                  compact
+                />
+              </div>
+            </div>
           )}
           <div className="mt-4 flex gap-2">
             <button

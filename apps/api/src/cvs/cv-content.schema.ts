@@ -40,6 +40,10 @@ export type CvContent = {
   }>;
   certificates?: Array<{ name?: string; year?: string }>;
   awards?: Array<{ name?: string; year?: string }>;
+  design?: {
+    accentColor?: string;
+    sectionOrder?: string[];
+  };
 };
 
 export function emptyCvContent(fullName?: string, email?: string): CvContent {

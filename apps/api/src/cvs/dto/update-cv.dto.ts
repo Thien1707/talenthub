@@ -11,4 +11,9 @@ export class UpdateCvDto {
   @IsOptional()
   @IsObject()
   contentJson?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ description: 'Đổi mẫu CV (CvTemplate)' })
+  @IsOptional()
+  @IsString()
+  templateId?: string;
 }

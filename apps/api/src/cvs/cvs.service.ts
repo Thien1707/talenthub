@@ -84,15 +84,20 @@ export class CvsService {
   async updateCv(userId: bigint, cvId: bigint, dto: UpdateCvDto) {
     await this.ensureStudent(userId);
     const cv = await this.getOwnedCv(userId, cvId);
-    if (!dto.contentJson && !dto.cvName) {
+    if (!dto.contentJson && !dto.cvName && !dto.templateId) {
       return cv;
     }
 
     return this.prisma.$transaction(async (tx) => {
-      if (dto.cvName) {
+      if (dto.cvName || dto.templateId) {
         await tx.cv.update({
           where: { cvId },
-          data: { cvName: dto.cvName },
+          data: {
+            ...(dto.cvName ? { cvName: dto.cvName } : {}),
+            ...(dto.templateId
+              ? { templateId: BigInt(dto.templateId) }
+              : {}),
+          },
         });
       }
       if (dto.contentJson) {

@@ -1,5 +1,9 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { CvEditableField } from "@/components/student/cv-editable-field";
+import { CvTopcvOrderedSections } from "@/components/student/cv-preview-sections";
+import type { PersonalKey } from "@/lib/cv/edit-personal";
 import type { CvContent } from "@/lib/cv/types";
 
 function Section({
@@ -20,183 +24,93 @@ function Section({
   );
 }
 
-function RowHeader({ left, right }: { left: string; right?: string }) {
-  return (
-    <div className="flex items-start justify-between gap-2">
-      <p className="font-semibold text-slate-900">{left}</p>
-      {right && (
-        <p className="shrink-0 text-[9px] text-slate-500">{right}</p>
-      )}
-    </div>
-  );
-}
-
-function BulletText({ text }: { text: string }) {
-  const lines = text
-    .split(/\n/)
-    .map((l) => l.replace(/^[\s•\-–]+/, "").trim())
-    .filter(Boolean);
-  if (!lines.length) return null;
-  return (
-    <ul className="mt-1 list-none space-y-0.5 pl-1 text-[10px] text-slate-700">
-      {lines.map((line, i) => (
-        <li key={i} className="before:mr-1 before:content-['•']">
-          {line}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export function CvTopCvPreview({
   content,
   cvName,
+  editable,
+  onEditPersonal,
 }: {
   content: CvContent;
   cvName: string;
+  editable?: boolean;
+  onEditPersonal?: (key: PersonalKey, value: string) => void;
 }) {
   const name = content.personal.fullName?.trim() || cvName;
-  const headline = content.personal.headline?.trim();
-  const contact = [
-    content.personal.phone,
-    content.personal.email,
-    content.personal.website,
-    content.personal.city,
-  ].filter(Boolean);
+  const headline = content.personal.headline?.trim() ?? "";
+  const commit = (key: PersonalKey, value: string) => onEditPersonal?.(key, value);
 
-  const activities = content.activities ?? [];
-  const certificates = content.certificates ?? [];
-  const awards = content.awards ?? [];
-  const mid = Math.ceil(content.skills.length / 2);
-  const skillsCol1 = content.skills.slice(0, mid);
-  const skillsCol2 = content.skills.slice(mid);
+  const field = (
+    key: PersonalKey,
+    display: string,
+    placeholder: string,
+    className: string,
+    multiline?: boolean,
+    block?: boolean,
+  ) =>
+    editable && onEditPersonal ? (
+      <CvEditableField
+        block={block ?? multiline}
+        multiline={multiline}
+        value={content.personal[key] ?? ""}
+        placeholder={placeholder}
+        className={className}
+        onCommit={(v) => commit(key, v)}
+      />
+    ) : (
+      <>{display}</>
+    );
+
+  const contactLine = editable
+    ? [
+        field("phone", content.personal.phone ?? "", "SĐT", "inline min-w-[2rem]"),
+        field("email", content.personal.email ?? "", "Email", "inline min-w-[2rem]"),
+        field("website", content.personal.website ?? "", "Link", "inline min-w-[2rem]"),
+        field("city", content.personal.city ?? "", "Thành phố", "inline min-w-[2rem]"),
+      ].reduce<ReactNode[]>((acc, node, i) => {
+        if (i > 0) acc.push("   ·   ");
+        acc.push(node);
+        return acc;
+      }, [])
+    : [
+        content.personal.phone,
+        content.personal.email,
+        content.personal.website,
+        content.personal.city,
+      ]
+        .filter(Boolean)
+        .join("   ·   ");
 
   return (
-    <div className="mx-auto aspect-[210/297] w-full max-w-[520px] overflow-hidden rounded-lg border border-slate-200 bg-white p-6 shadow-lg">
+    <div className="aspect-[210/297] w-full overflow-hidden rounded-lg border border-slate-200 bg-white p-6 shadow-lg">
       <div className="text-[11px] leading-snug text-slate-800">
-        <h2 className="text-lg font-bold text-slate-900">{name}</h2>
-        {headline && (
+        <h2 className="text-lg font-bold text-slate-900">
+          {field("fullName", name, "Họ và tên", "min-w-[4rem]", false, true)}
+        </h2>
+        {(editable || headline) && (
           <p className="mt-0.5 text-[11px] font-medium text-slate-600">
-            {headline}
+            {field("headline", headline, "Vị trí mong muốn", "min-w-[4rem]", false, true)}
           </p>
         )}
-        {contact.length > 0 && (
-          <p className="mt-2 text-[9px] text-slate-500">
-            {contact.join("   ·   ")}
-          </p>
+        {(editable || (typeof contactLine === "string" && contactLine)) && (
+          <p className="mt-2 text-[9px] text-slate-500">{contactLine}</p>
         )}
 
-        {content.personal.summary?.trim() && (
+        {(editable || content.personal.summary?.trim()) && (
           <Section title="Mục tiêu nghề nghiệp">
             <p className="whitespace-pre-wrap text-[10px] text-justify text-slate-700">
-              {content.personal.summary}
+              {field(
+                "summary",
+                content.personal.summary ?? "",
+                "Mục tiêu / giới thiệu…",
+                "min-h-[2rem] min-w-[4rem]",
+                true,
+                true,
+              )}
             </p>
           </Section>
         )}
 
-        {content.education.length > 0 && (
-          <Section title="Học vấn">
-            <ul className="space-y-2">
-              {content.education.map((ed, i) => (
-                <li key={i}>
-                  <RowHeader
-                    left={ed.school || "Trường"}
-                    right={[ed.from, ed.to].filter(Boolean).join(" - ")}
-                  />
-                  {ed.major && (
-                    <p className="text-[10px] font-medium text-slate-800">
-                      {ed.major}
-                    </p>
-                  )}
-                  {ed.description && (
-                    <p className="text-[10px] text-slate-600">{ed.description}</p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </Section>
-        )}
-
-        {content.experience.length > 0 && (
-          <Section title="Kinh nghiệm làm việc">
-            <ul className="space-y-3">
-              {content.experience.map((ex, i) => (
-                <li key={i}>
-                  <RowHeader
-                    left={ex.company || "Công ty"}
-                    right={[ex.from, ex.to].filter(Boolean).join(" - ")}
-                  />
-                  {ex.title && (
-                    <p className="text-[10px] font-medium text-slate-800">
-                      {ex.title}
-                    </p>
-                  )}
-                  {ex.description && <BulletText text={ex.description} />}
-                </li>
-              ))}
-            </ul>
-          </Section>
-        )}
-
-        {content.skills.length > 0 && (
-          <Section title="Kỹ năng">
-            <div className="grid grid-cols-2 gap-x-4 text-[10px] text-slate-700">
-              <ul className="space-y-0.5">
-                {skillsCol1.map((s) => (
-                  <li key={s}>{s}</li>
-                ))}
-              </ul>
-              <ul className="space-y-0.5">
-                {skillsCol2.map((s) => (
-                  <li key={s}>{s}</li>
-                ))}
-              </ul>
-            </div>
-          </Section>
-        )}
-
-        {activities.length > 0 && (
-          <Section title="Hoạt động">
-            <ul className="space-y-2">
-              {activities.map((act, i) => (
-                <li key={i}>
-                  <RowHeader
-                    left={act.organization || "Tổ chức"}
-                    right={[act.from, act.to].filter(Boolean).join(" - ")}
-                  />
-                  {act.role && (
-                    <p className="text-[10px] font-medium">{act.role}</p>
-                  )}
-                  {act.description && <BulletText text={act.description} />}
-                </li>
-              ))}
-            </ul>
-          </Section>
-        )}
-
-        {certificates.length > 0 && (
-          <Section title="Chứng chỉ">
-            <ul className="space-y-1">
-              {certificates.map((c, i) => (
-                <li key={i}>
-                  <RowHeader left={c.name || "Chứng chỉ"} right={c.year} />
-                </li>
-              ))}
-            </ul>
-          </Section>
-        )}
-
-        {awards.length > 0 && (
-          <Section title="Danh hiệu và giải thưởng">
-            <ul className="space-y-1">
-              {awards.map((a, i) => (
-                <li key={i}>
-                  <RowHeader left={a.name || "Danh hiệu"} right={a.year} />
-                </li>
-              ))}
-            </ul>
-          </Section>
-        )}
+        <CvTopcvOrderedSections content={content} />
 
         {content.personal.references?.trim() && (
           <Section title="Người giới thiệu">
@@ -222,20 +136,6 @@ export function CvTopCvPreview({
           </Section>
         )}
 
-        {content.projects.length > 0 && (
-          <Section title="Dự án">
-            <ul className="space-y-2">
-              {content.projects.map((p, i) => (
-                <li key={i}>
-                  <p className="font-semibold text-slate-900">{p.name}</p>
-                  {p.description && (
-                    <p className="text-[10px] text-slate-600">{p.description}</p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </Section>
-        )}
       </div>
     </div>
   );

@@ -1,5 +1,7 @@
 "use client";
 
+import type { CvSectionKey } from "@/lib/cv/section-order";
+import { resolveSectionOrder } from "@/lib/cv/section-order";
 import type { CvContent } from "@/lib/cv/types";
 import { emptyCvContent } from "@/lib/cv/types";
 
@@ -81,20 +83,50 @@ export function CvFullBuilder({
         />
       </section>
 
-      <SectionList
-        title="Kỹ năng (mỗi dòng một kỹ năng)"
-        rows={content.skills}
-        onRows={(skills) => onChange({ ...content, skills })}
-        placeholder="VD: TypeScript"
-      />
-
-      <ExpSection content={content} onChange={onChange} />
-      <EduSection content={content} onChange={onChange} />
-      <ActivitySection content={content} onChange={onChange} />
-      <CertAwardSection content={content} onChange={onChange} />
-      <ProjectSection content={content} onChange={onChange} />
+      {resolveSectionOrder(content).map((key) => (
+        <BuilderSectionBlock
+          key={key}
+          sectionKey={key}
+          content={content}
+          onChange={onChange}
+        />
+      ))}
     </div>
   );
+}
+
+function BuilderSectionBlock({
+  sectionKey,
+  content,
+  onChange,
+}: {
+  sectionKey: CvSectionKey;
+  content: CvContent;
+  onChange: (c: CvContent) => void;
+}) {
+  switch (sectionKey) {
+    case "skills":
+      return (
+        <SectionList
+          title="Kỹ năng (mỗi dòng một kỹ năng)"
+          rows={content.skills}
+          onRows={(skills) => onChange({ ...content, skills })}
+          placeholder="VD: TypeScript"
+        />
+      );
+    case "experience":
+      return <ExpSection content={content} onChange={onChange} />;
+    case "education":
+      return <EduSection content={content} onChange={onChange} />;
+    case "activities":
+      return <ActivitySection content={content} onChange={onChange} />;
+    case "certificates":
+      return <CertAwardSection content={content} onChange={onChange} />;
+    case "projects":
+      return <ProjectSection content={content} onChange={onChange} />;
+    default:
+      return null;
+  }
 }
 
 function ActivitySection({
