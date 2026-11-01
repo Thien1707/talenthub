@@ -7,6 +7,7 @@ import {
 import { AssetStatus, AssetType, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CloudinaryService } from './cloudinary.service';
+import { assertValidCvUploadBuffer } from './cv-file-magic.util';
 
 const IMAGE_MIMES = new Set([
   'image/jpeg',
@@ -50,6 +51,10 @@ export class MediaService {
     }
     if (isDoc && !DOC_MIMES.has(file.mimetype) && !IMAGE_MIMES.has(file.mimetype)) {
       throw new BadRequestException('Định dạng file không được hỗ trợ');
+    }
+    if (assetType === AssetType.CV) {
+      const { mimeType } = assertValidCvUploadBuffer(file.buffer);
+      file.mimetype = mimeType;
     }
 
     const maxBytes =

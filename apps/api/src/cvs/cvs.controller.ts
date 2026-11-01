@@ -58,20 +58,22 @@ export class CvsController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.STUDENT)
-  @ApiOperation({ summary: 'Upload CV PDF (Cloudinary private)' })
+  @ApiOperation({
+    summary: 'Upload CV từ máy (PDF, DOC, DOCX — Cloudinary private)',
+  })
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
       limits: { fileSize: 10 * 1024 * 1024 },
     }),
   )
-  uploadPdf(
+  uploadCv(
     @CurrentUser() user: { userId: string },
     @UploadedFile() file: Express.Multer.File,
     @Query('cvName') cvName?: string,
     @Query('cvId') cvId?: string,
   ) {
-    return this.cvsService.uploadPdfFile(BigInt(user.userId), file, {
+    return this.cvsService.uploadCvFile(BigInt(user.userId), file, {
       cvName,
       cvId: cvId ? BigInt(cvId) : undefined,
     });

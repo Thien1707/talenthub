@@ -20,6 +20,7 @@ import { CvContent, emptyCvContent } from './cv-content.schema';
 import { CreateCvDto } from './dto/create-cv.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
 import { resolvePdfUnicodeFontPath } from './pdf-font.util';
+import { assertValidCvUploadBuffer } from '../media/cv-file-magic.util';
 import { extractPlainTextFromPdf } from './pdf-text.util';
 
 @Injectable()
@@ -101,6 +102,11 @@ export class CvsService {
         });
       }
       if (dto.contentJson) {
+        if (cv.currentVersion?.sourceType === CvSourceType.UPLOAD) {
+          throw new BadRequestException(
+            'CV dạng upload — chỉ đổi tên hoặc tải file mới, không chỉnh builder',
+          );
+        }
         const last = await tx.cvVersion.findFirst({
           where: { cvId },
           orderBy: { versionNumber: 'desc' },
@@ -189,20 +195,23 @@ export class CvsService {
     return cv;
   }
 
-  async uploadPdfFile(
+  async uploadCvFile(
     userId: bigint,
     file: Express.Multer.File,
     options?: { cvName?: string; cvId?: bigint },
   ) {
     await this.ensureStudent(userId);
     if (!file?.buffer?.length) {
-      throw new BadRequestException('Thiếu file PDF');
-    }
-    if (file.mimetype !== 'application/pdf') {
-      throw new BadRequestException('Chỉ chấp nhận file PDF');
+      throw new BadRequestException('Thiếu file CV');
     }
 
-    const plainText = await extractPlainTextFromPdf(file.buffer);
+    const { kind, mimeType } = assertValidCvUploadBuffer(file.buffer);
+    file.mimetype = mimeType;
+
+    let plainText: string | null = null;
+    if (kind === 'pdf') {
+      plainText = await extractPlainTextFromPdf(file.buffer);
+    }
 
     const asset = await this.media.upload(
       userId,
@@ -211,10 +220,9 @@ export class CvsService {
       file,
     );
 
-    const cvName =
-      options?.cvName?.trim() ||
-      file.originalname?.replace(/\.pdf$/i, '') ||
-      'CV upload';
+    const baseName =
+      file.originalname?.replace(/\.(pdf|docx?|PDF|DOCX?)$/i, '') ?? 'CV upload';
+    const cvName = options?.cvName?.trim() || baseName || 'CV upload';
 
     return this.prisma.$transaction(async (tx) => {
       let cvId = options?.cvId;

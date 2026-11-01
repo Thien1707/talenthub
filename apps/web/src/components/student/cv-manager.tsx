@@ -12,7 +12,15 @@ import {
   emptyBuilderContent,
 } from "@/components/student/cv-full-builder";
 import { CvPreview } from "@/components/student/cv-preview";
+import { openOwnedCvFile } from "@/components/student/cv-computer-upload";
 import { api, getStoredAccessToken } from "@/lib/api/client";
+import {
+  CV_UPLOAD_ACCEPT,
+  cvFileFormatLabel,
+  formatCvFileSize,
+  uploadCvFromComputer,
+  validateCvFileClient,
+} from "@/lib/cv/upload-cv-file";
 import { normalizeCvContentJson } from "@/lib/cv/normalize-content";
 import type { CvTemplateItem } from "@/components/student/cv-template-gallery";
 import { resolveSectionOrder } from "@/lib/cv/section-order";
@@ -149,40 +157,29 @@ export function CvManager({
   const versionId = cv?.currentVersion?.cvVersionId;
   const isUpload = cv?.currentVersion?.sourceType === "UPLOAD";
 
-  const uploadPdf = useMutation({
-    mutationFn: async (file: File) => {
-      const form = new FormData();
-      form.append("file", file);
-      const base =
-        process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
-      const token = getStoredAccessToken();
-      const q = new URLSearchParams({ cvName });
-      q.set("cvId", cvId);
-      const res = await fetch(`${base}/cvs/me/upload?${q.toString()}`, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        credentials: "include",
-        body: form,
-      });
-      if (!res.ok) throw new Error("upload failed");
-      return res.json();
-    },
+  const uploadFile = useMutation({
+    mutationFn: (file: File) =>
+      uploadCvFromComputer(file, { cvName, cvId }),
     onSuccess: () => {
-      toast.success("Đã upload CV PDF (trích text cho AI)");
+      toast.success("Đã cập nhật file CV");
       void qc.invalidateQueries({ queryKey: ["cvs", cvId] });
       void qc.invalidateQueries({ queryKey: ["cvs", "me"] });
     },
-    onError: () =>
-      toast.error("Upload thất bại — kiểm tra CLOUDINARY_* trên API"),
+    onError: (err: unknown) => {
+      const msg =
+        err &&
+        typeof err === "object" &&
+        "response" in err &&
+        (err as { response?: { data?: { message?: string } } }).response?.data
+          ?.message;
+      toast.error(typeof msg === "string" ? msg : "Upload thất bại");
+    },
   });
 
   const openUploadedCv = async () => {
     const assetId = cv?.currentVersion?.fileAsset?.assetId;
     if (!assetId) return;
-    const { data } = await api.get<{ signedUrl: string }>(
-      `/media/${assetId}/signed-url`,
-    );
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    await openOwnedCvFile(assetId);
   };
 
   const downloadPdf = async () => {
@@ -263,20 +260,35 @@ export function CvManager({
       >
         Tải PDF
       </button>
-      <label className="button button-secondary !cursor-pointer !rounded-lg !border-emerald-700 !px-3 !py-1.5 text-sm !text-emerald-800 hover:!bg-emerald-50 dark:!text-emerald-200">
-        <Upload className="h-4 w-4" />
-        {uploadPdf.isPending ? "…" : "PDF"}
-        <input
-          type="file"
-          accept="application/pdf"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) uploadPdf.mutate(f);
-            e.target.value = "";
-          }}
-        />
-      </label>
+      {isUpload && (
+        <button
+          type="button"
+          onClick={() => void openUploadedCv()}
+          className="button button-secondary !rounded-lg !px-3 !py-1.5 text-sm"
+        >
+          Mở file
+        </button>
+      )}
+      {isUpload && (
+        <label className="button button-secondary !cursor-pointer !rounded-lg !border-emerald-700 !px-3 !py-1.5 text-sm !text-emerald-800 hover:!bg-emerald-50 dark:!text-emerald-200">
+          <Upload className="h-4 w-4" />
+          {uploadFile.isPending ? "…" : "Thay file"}
+          <input
+            type="file"
+            accept={CV_UPLOAD_ACCEPT}
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) {
+                const err = validateCvFileClient(f);
+                if (err) toast.error(err);
+                else uploadFile.mutate(f);
+              }
+              e.target.value = "";
+            }}
+          />
+        </label>
+      )}
     </>
   );
 
@@ -290,9 +302,11 @@ export function CvManager({
 
       {isUpload && (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
-          Phiên bản hiện tại là file PDF
+          CV tải lên ·{" "}
+          {cvFileFormatLabel(cv.currentVersion?.fileAsset?.mimeType)} ·{" "}
+          {formatCvFileSize(cv.currentVersion?.fileAsset?.fileSize ?? undefined)}
           {cv.currentVersion?.fileAsset?.originalFilename
-            ? `: ${cv.currentVersion.fileAsset.originalFilename}`
+            ? ` · ${cv.currentVersion.fileAsset.originalFilename}`
             : ""}
           .{" "}
           <button

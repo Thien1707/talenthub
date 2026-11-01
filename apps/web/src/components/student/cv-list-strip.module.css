@@ -49,6 +49,57 @@
   line-height: 1.55;
 }
 
+.sectionTitle {
+  margin: var(--space-8) 0 var(--space-4);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.sectionEmpty {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.fileName {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  word-break: break-all;
+}
+
+.uploadActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.uploadActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--violet-700);
+  background: var(--violet-50);
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.uploadActionBtn:hover {
+  background: var(--violet-100);
+  color: var(--ink);
+}
+
 .inlineAction {
   padding: 0;
   border: 0;

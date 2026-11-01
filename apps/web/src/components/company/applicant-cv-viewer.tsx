@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { api, getStoredAccessToken } from "@/lib/api/client";
 import { CvPreview } from "@/components/student/cv-preview";
 import { resolveCvLayout, type CvContent } from "@/lib/cv/types";
+import { cvFileFormatLabel } from "@/lib/cv/upload-cv-file";
 
 type CvView = {
   cvName: string;
@@ -16,7 +17,11 @@ type CvView = {
   personal?: CvContent["personal"];
   plainTextContent?: string | null;
   coverLetter?: string | null;
-  fileAsset?: { assetId: string; originalFilename?: string | null } | null;
+  fileAsset?: {
+    assetId: string;
+    originalFilename?: string | null;
+    mimeType?: string | null;
+  } | null;
 };
 
 export function ApplicantCvViewer({
@@ -103,7 +108,9 @@ export function ApplicantCvViewer({
               <div className="mt-4 space-y-4 text-sm text-slate-800">
                 <p>
                   <span className="font-medium">{data.cvName}</span> ·{" "}
-                  {data.sourceType === "UPLOAD" ? "PDF upload" : "Builder"}
+                  {data.sourceType === "UPLOAD"
+                    ? `CV tải lên (${cvFileFormatLabel(data.fileAsset?.mimeType)})`
+                    : "CV TalentHub"}
                 </p>
                 {data.coverLetter && (
                   <div>
@@ -119,7 +126,10 @@ export function ApplicantCvViewer({
                     onClick={() => void openPdf()}
                     className="rounded-lg bg-emerald-700 px-3 py-2 text-white hover:bg-emerald-800"
                   >
-                    Mở PDF ({data.fileAsset.originalFilename ?? "file"})
+                    {data.fileAsset.mimeType?.includes("pdf")
+                      ? "Xem / tải PDF"
+                      : "Tải file gốc"}{" "}
+                    ({data.fileAsset.originalFilename ?? "CV"})
                   </button>
                 )}
                 {data.sourceType === "BUILDER" && data.contentJson && (

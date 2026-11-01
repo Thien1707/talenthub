@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileText, Loader2, Plus, Trash2 } from "lucide-react";
+import { Download, Eye, FileText, Loader2, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -11,8 +11,16 @@ import {
   CvTemplateGallery,
   type CvTemplateItem,
 } from "@/components/student/cv-template-gallery";
+import {
+  CvComputerUpload,
+  openOwnedCvFile,
+} from "@/components/student/cv-computer-upload";
 import { api } from "@/lib/api/client";
 import { resolveCvLayout } from "@/lib/cv/types";
+import {
+  cvFileFormatLabel,
+  formatCvFileSize,
+} from "@/lib/cv/upload-cv-file";
 import { formatCvEditedRelative } from "@/lib/format-relative";
 import styles from "./cv-list-strip.module.css";
 
@@ -20,8 +28,17 @@ type CvItem = {
   cvId: string;
   cvName: string;
   updatedAt: string;
+  createdAt?: string;
   template?: { templateName?: string; templateConfig?: unknown } | null;
-  currentVersion?: { sourceType?: string };
+  currentVersion?: {
+    sourceType?: string;
+    fileAsset?: {
+      assetId?: string;
+      mimeType?: string | null;
+      fileSize?: string | number | null;
+      originalFilename?: string | null;
+    } | null;
+  };
 };
 
 function CvPolaroidThumb({
@@ -176,6 +193,97 @@ export function CvListPanel({
     setTemplateId("");
   };
 
+  const builderCvs =
+    cvs?.filter((c) => c.currentVersion?.sourceType !== "UPLOAD") ?? [];
+  const uploadCvs =
+    cvs?.filter((c) => c.currentVersion?.sourceType === "UPLOAD") ?? [];
+
+  const renderCvGrid = (items: CvItem[], mode: "builder" | "upload") => (
+    <ul className={styles.grid} aria-label="Danh sách CV">
+      {mode === "builder" && (
+        <li className={styles.card}>
+          <button
+            type="button"
+            className={styles.createCard}
+            onClick={openCreate}
+          >
+            <span className={styles.createThumb} aria-hidden>
+              <Plus size={36} strokeWidth={2} />
+            </span>
+            <span className={styles.createLabel}>CV mới</span>
+            <span className={styles.createMeta}>chọn mẫu &amp; chỉnh sửa</span>
+          </button>
+        </li>
+      )}
+      {items.map((cv) => {
+        const asset = cv.currentVersion?.fileAsset;
+        const isUpload = mode === "upload";
+        return (
+          <li key={cv.cvId} className={styles.card}>
+            {isUpload ? (
+              <div className={styles.link}>
+                <CvPolaroidThumb sourceType="UPLOAD" />
+                <span className={styles.title}>{cv.cvName}</span>
+                <span className={styles.meta}>
+                  {cvFileFormatLabel(asset?.mimeType)} ·{" "}
+                  {formatCvFileSize(asset?.fileSize ?? undefined)} · tải lên{" "}
+                  {formatCvEditedRelative(cv.updatedAt)}
+                </span>
+                {asset?.originalFilename && (
+                  <span className={styles.fileName}>{asset.originalFilename}</span>
+                )}
+                <div className={styles.uploadActions}>
+                  {asset?.assetId && (
+                    <>
+                      <button
+                        type="button"
+                        className={styles.uploadActionBtn}
+                        onClick={() => void openOwnedCvFile(asset.assetId!)}
+                      >
+                        <Eye size={14} aria-hidden /> Xem
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.uploadActionBtn}
+                        onClick={() => void openOwnedCvFile(asset.assetId!)}
+                      >
+                        <Download size={14} aria-hidden /> Tải
+                      </button>
+                    </>
+                  )}
+                  <Link href={editHref(cv.cvId)} className={styles.uploadActionBtn}>
+                    Đổi tên
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <Link href={editHref(cv.cvId)} className={styles.link}>
+                <CvPolaroidThumb
+                  templateConfig={cv.template?.templateConfig}
+                  sourceType={cv.currentVersion?.sourceType}
+                />
+                <span className={styles.title}>{cv.cvName}</span>
+                <span className={styles.meta}>
+                  chỉnh sửa {formatCvEditedRelative(cv.updatedAt)}
+                </span>
+              </Link>
+            )}
+            <button
+              type="button"
+              className={styles.delete}
+              aria-label={`Xóa ${cv.cvName}`}
+              title="Xóa"
+              disabled={remove.isPending}
+              onClick={() => setDeleteTarget(cv)}
+            >
+              <Trash2 size={15} aria-hidden />
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
   return (
     <>
       {jobId && (
@@ -195,17 +303,13 @@ export function CvListPanel({
             Tiếp tục chỗ bạn <PageIntroAccent>dừng lại</PageIntroAccent>
           </h2>
           <p className={styles.lead}>
-            Các bản CV được lưu trên tài khoản TalentHub.{" "}
-            <button
-              type="button"
-              className={styles.inlineAction}
-              onClick={openCreate}
-            >
-              Tạo thêm
-            </button>{" "}
-            hoặc mở bản cũ để chỉnh và ứng tuyển.
+            Tạo CV trên TalentHub hoặc{" "}
+            <strong>tải CV từ máy tính</strong> (PDF, DOC, DOCX) — chọn bản
+            phù hợp khi ứng tuyển từng tin.
           </p>
         </header>
+
+        <CvComputerUpload />
 
         {createOpen && (
           <div className={styles.createPanel}>
@@ -263,51 +367,27 @@ export function CvListPanel({
         )}
 
         {!isLoading && (
-          <ul className={styles.grid} aria-label="Danh sách CV">
-            <li className={styles.card}>
-              <button
-                type="button"
-                className={styles.createCard}
-                onClick={openCreate}
-              >
-                <span className={styles.createThumb} aria-hidden>
-                  <Plus size={36} strokeWidth={2} />
-                </span>
-                <span className={styles.createLabel}>CV mới</span>
-                <span className={styles.createMeta}>chọn mẫu &amp; chỉnh sửa</span>
-              </button>
-            </li>
-            {cvs?.map((cv) => (
-              <li key={cv.cvId} className={styles.card}>
-                <Link href={editHref(cv.cvId)} className={styles.link}>
-                  <CvPolaroidThumb
-                    templateConfig={cv.template?.templateConfig}
-                    sourceType={cv.currentVersion?.sourceType}
-                  />
-                  <span className={styles.title}>{cv.cvName}</span>
-                  <span className={styles.meta}>
-                    chỉnh sửa {formatCvEditedRelative(cv.updatedAt)}
-                  </span>
-                </Link>
-                <button
-                  type="button"
-                  className={styles.delete}
-                  aria-label={`Xóa ${cv.cvName}`}
-                  title="Xóa"
-                  disabled={remove.isPending}
-                  onClick={() => setDeleteTarget(cv)}
-                >
-                  <Trash2 size={15} aria-hidden />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+          <>
+            <h3 className={styles.sectionTitle}>CV tạo trên TalentHub</h3>
+            {builderCvs.length === 0 ? (
+              <p className={styles.sectionEmpty}>
+                Chưa có CV builder — bấm <strong>CV mới</strong> hoặc tạo từ
+                form phía trên.
+              </p>
+            ) : (
+              renderCvGrid(builderCvs, "builder")
+            )}
 
-        {!isLoading && cvs?.length === 0 && (
-          <p className={styles.empty}>
-            Chưa có CV nào — bấm polaroid <strong>CV mới</strong> để bắt đầu.
-          </p>
+            <h3 className={styles.sectionTitle}>CV tải lên từ máy tính</h3>
+            {uploadCvs.length === 0 ? (
+              <p className={styles.sectionEmpty}>
+                Chưa có file — dùng <strong>Tải CV từ máy tính</strong> phía
+                trên.
+              </p>
+            ) : (
+              renderCvGrid(uploadCvs, "upload")
+            )}
+          </>
         )}
       </section>
 
