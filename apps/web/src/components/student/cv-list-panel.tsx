@@ -93,6 +93,7 @@ export function CvListPanel({
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("CV mới");
   const [templateId, setTemplateId] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<CvItem | null>(null);
 
   const { data: cvs, isLoading } = useQuery({
     queryKey: ["cvs", "me"],
@@ -132,11 +133,22 @@ export function CvListPanel({
 
   const remove = useMutation({
     mutationFn: (cvId: string) => api.delete(`/cvs/me/${cvId}`),
-    onSuccess: () => {
-      toast.success("Đã xóa CV");
-      void qc.invalidateQueries({ queryKey: ["cvs", "me"] });
+    onMutate: async (cvId) => {
+      setDeleteTarget(null);
+      await qc.cancelQueries({ queryKey: ["cvs", "me"] });
+      const previous = qc.getQueryData<CvItem[]>(["cvs", "me"]);
+      qc.setQueryData<CvItem[]>(["cvs", "me"], (old) =>
+        old?.filter((c) => c.cvId !== cvId),
+      );
+      return { previous };
     },
-    onError: (err: unknown) => {
+    onSuccess: () => {
+      toast.success("Đã xóa CV khỏi danh sách cá nhân");
+    },
+    onError: (err: unknown, _cvId, context) => {
+      if (context?.previous) {
+        qc.setQueryData(["cvs", "me"], context.previous);
+      }
       const msg =
         err &&
         typeof err === "object" &&
@@ -144,6 +156,9 @@ export function CvListPanel({
         (err as { response?: { data?: { message?: string } } }).response?.data
           ?.message;
       toast.error(typeof msg === "string" ? msg : "Không xóa được");
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ["cvs", "me"] });
     },
   });
 
@@ -280,15 +295,7 @@ export function CvListPanel({
                   aria-label={`Xóa ${cv.cvName}`}
                   title="Xóa"
                   disabled={remove.isPending}
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Xóa "${cv.cvName}"? Không xóa được nếu đã ứng tuyển.`,
-                      )
-                    ) {
-                      remove.mutate(cv.cvId);
-                    }
-                  }}
+                  onClick={() => setDeleteTarget(cv)}
                 >
                   <Trash2 size={15} aria-hidden />
                 </button>
@@ -303,6 +310,54 @@ export function CvListPanel({
           </p>
         )}
       </section>
+
+      {deleteTarget ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal
+          aria-labelledby="cv-account-delete-title"
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+            <h3
+              id="cv-account-delete-title"
+              className="text-lg font-semibold text-slate-900"
+            >
+              Xóa CV này?
+            </h3>
+            <p className="mt-2 text-sm text-slate-600">
+              CV này sẽ bị xóa khỏi danh sách CV cá nhân của bạn. Những hồ sơ
+              ứng tuyển đã gửi trước đó vẫn được nhà tuyển dụng xem theo bản CV
+              bạn đã nộp.
+            </p>
+            <p className="mt-2 text-sm font-medium text-slate-800">
+              {deleteTarget.cvName}
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                className="button button-secondary"
+                disabled={remove.isPending}
+                onClick={() => setDeleteTarget(null)}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                disabled={remove.isPending}
+                onClick={() => remove.mutate(deleteTarget.cvId)}
+              >
+                {remove.isPending ? (
+                  <Loader2 className="inline h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  "Xóa CV"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

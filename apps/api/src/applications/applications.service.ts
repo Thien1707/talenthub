@@ -41,6 +41,11 @@ export class ApplicationsService {
     if (!cvVersion || cvVersion.cv.studentUserId !== studentUserId) {
       throw new ForbiddenException('CV không thuộc về bạn');
     }
+    if (cvVersion.cv.deletedAt) {
+      throw new BadRequestException(
+        'CV này đã bị xóa khỏi danh sách cá nhân — không thể dùng cho ứng tuyển mới. Chọn CV khác.',
+      );
+    }
 
     try {
       const created = await this.prisma.application.create({

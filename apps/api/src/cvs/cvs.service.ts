@@ -135,21 +135,19 @@ export class CvsService {
   async deleteCv(userId: bigint, cvId: bigint) {
     await this.ensureStudent(userId);
     await this.getOwnedCv(userId, cvId, false);
-    const used = await this.prisma.application.count({
-      where: {
-        cvVersion: { cvId },
-      },
+    const preservedApplications = await this.prisma.application.count({
+      where: { cvVersion: { cvId } },
     });
-    if (used > 0) {
-      throw new BadRequestException(
-        'CV đã được dùng ứng tuyển — không thể xóa. Tạo CV mới nếu cần.',
-      );
-    }
     await this.prisma.cv.update({
       where: { cvId },
       data: { deletedAt: new Date() },
     });
-    return { success: true, cvId: cvId.toString() };
+    return {
+      success: true,
+      cvId: cvId.toString(),
+      /** Số hồ sơ ứng tuyển vẫn giữ bản CvVersion đã nộp. */
+      preservedApplications,
+    };
   }
 
   async duplicateCv(userId: bigint, cvId: bigint) {
