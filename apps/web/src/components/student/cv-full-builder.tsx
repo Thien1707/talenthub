@@ -1,9 +1,16 @@
 "use client";
 
+import {
+  CvDeleteConfirmDialog,
+  CvEntryDeleteButton,
+  useCvEntryDelete,
+} from "@/components/student/cv-repeatable-delete";
+import { newCvEntryId } from "@/lib/cv/entry-id";
 import type { CvSectionKey } from "@/lib/cv/section-order";
 import { resolveSectionOrder } from "@/lib/cv/section-order";
 import type { CvContent } from "@/lib/cv/types";
 import { emptyCvContent } from "@/lib/cv/types";
+import { useState } from "react";
 
 export function emptyBuilderContent(): CvContent {
   return emptyCvContent();
@@ -106,14 +113,7 @@ function BuilderSectionBlock({
 }) {
   switch (sectionKey) {
     case "skills":
-      return (
-        <SectionList
-          title="Kỹ năng (mỗi dòng một kỹ năng)"
-          rows={content.skills}
-          onRows={(skills) => onChange({ ...content, skills })}
-          placeholder="VD: TypeScript"
-        />
-      );
+      return <SkillsSection content={content} onChange={onChange} />;
     case "experience":
       return <ExpSection content={content} onChange={onChange} />;
     case "education":
@@ -137,20 +137,29 @@ function ActivitySection({
   onChange: (c: CvContent) => void;
 }) {
   const activities = content.activities ?? [];
+  const setActivities = (next: NonNullable<CvContent["activities"]>) =>
+    onChange({ ...content, activities: next });
+
+  const del = useCvEntryDelete(activities, setActivities, [
+    "organization",
+    "role",
+    "from",
+    "to",
+    "description",
+  ]);
+
   const add = () =>
-    onChange({
-      ...content,
-      activities: [
-        ...activities,
-        {
-          organization: "",
-          role: "",
-          from: "",
-          to: "",
-          description: "",
-        },
-      ],
-    });
+    setActivities([
+      ...activities,
+      {
+        id: newCvEntryId(),
+        organization: "",
+        role: "",
+        from: "",
+        to: "",
+        description: "",
+      },
+    ]);
   return (
     <section className="cv-form-section">
       <div className="flex items-center justify-between">
@@ -159,8 +168,19 @@ function ActivitySection({
           + Thêm
         </button>
       </div>
+      <CvDeleteConfirmDialog
+        open={del.pendingOpen}
+        onCancel={del.cancelDelete}
+        onConfirm={del.confirmDelete}
+      />
       {activities.map((act, i) => (
-        <div key={i} className="cv-form-divider mt-3 grid gap-2 pt-3 sm:grid-cols-2">
+        <div
+          key={act.id ?? `act-${i}`}
+          className="cv-form-divider relative mt-3 grid gap-2 pt-3 sm:grid-cols-2"
+        >
+          <div className="absolute right-0 top-3 sm:col-span-2">
+            <CvEntryDeleteButton onClick={() => del.requestDelete(act)} />
+          </div>
           <input
             placeholder="Tổ chức / CLB"
             className="cv-form-input"
@@ -227,14 +247,33 @@ function CertAwardSection({
 }) {
   const certificates = content.certificates ?? [];
   const awards = content.awards ?? [];
+
+  const setCertificates = (next: NonNullable<CvContent["certificates"]>) =>
+    onChange({ ...content, certificates: next });
+  const setAwards = (next: NonNullable<CvContent["awards"]>) =>
+    onChange({ ...content, awards: next });
+
+  const delCert = useCvEntryDelete(certificates, setCertificates, ["name", "year"]);
+  const delAward = useCvEntryDelete(awards, setAwards, ["name", "year"]);
+
   return (
     <section className="cv-form-section">
       <h3 className="font-semibold text-[var(--ink)]">Chứng chỉ &amp; giải thưởng</h3>
       <p className="mt-1 cv-form-muted">Dùng cho mẫu TopCV.</p>
+      <CvDeleteConfirmDialog
+        open={delCert.pendingOpen}
+        onCancel={delCert.cancelDelete}
+        onConfirm={delCert.confirmDelete}
+      />
+      <CvDeleteConfirmDialog
+        open={delAward.pendingOpen}
+        onCancel={delAward.cancelDelete}
+        onConfirm={delAward.confirmDelete}
+      />
       <div className="mt-3">
         <p className="cv-form-subhead">Chứng chỉ</p>
         {certificates.map((c, i) => (
-          <div key={i} className="mt-2 flex gap-2">
+          <div key={c.id ?? `cert-${i}`} className="mt-2 flex items-start gap-2">
             <input
               placeholder="Tên chứng chỉ"
               className="flex-1 cv-form-input"
@@ -255,16 +294,17 @@ function CertAwardSection({
                 onChange({ ...content, certificates: next });
               }}
             />
+            <CvEntryDeleteButton onClick={() => delCert.requestDelete(c)} />
           </div>
         ))}
         <button
           type="button"
           className="mt-2 cv-form-link"
           onClick={() =>
-            onChange({
-              ...content,
-              certificates: [...certificates, { name: "", year: "" }],
-            })
+            setCertificates([
+              ...certificates,
+              { id: newCvEntryId(), name: "", year: "" },
+            ])
           }
         >
           + Chứng chỉ
@@ -273,7 +313,7 @@ function CertAwardSection({
       <div className="mt-4">
         <p className="cv-form-subhead">Danh hiệu / giải</p>
         {awards.map((a, i) => (
-          <div key={i} className="mt-2 flex gap-2">
+          <div key={a.id ?? `award-${i}`} className="mt-2 flex items-start gap-2">
             <input
               placeholder="Danh hiệu"
               className="flex-1 cv-form-input"
@@ -294,16 +334,14 @@ function CertAwardSection({
                 onChange({ ...content, awards: next });
               }}
             />
+            <CvEntryDeleteButton onClick={() => delAward.requestDelete(a)} />
           </div>
         ))}
         <button
           type="button"
           className="mt-2 cv-form-link"
           onClick={() =>
-            onChange({
-              ...content,
-              awards: [...awards, { name: "", year: "" }],
-            })
+            setAwards([...awards, { id: newCvEntryId(), name: "", year: "" }])
           }
         >
           + Danh hiệu
@@ -320,11 +358,20 @@ function ProjectSection({
   content: CvContent;
   onChange: (c: CvContent) => void;
 }) {
+  const setProjects = (projects: CvContent["projects"]) =>
+    onChange({ ...content, projects });
+
+  const del = useCvEntryDelete(content.projects, setProjects, [
+    "name",
+    "description",
+    "link",
+  ]);
+
   const add = () =>
-    onChange({
-      ...content,
-      projects: [...content.projects, { name: "", description: "", link: "" }],
-    });
+    setProjects([
+      ...content.projects,
+      { id: newCvEntryId(), name: "", description: "", link: "" },
+    ]);
   return (
     <section className="cv-form-section">
       <div className="flex items-center justify-between">
@@ -333,8 +380,19 @@ function ProjectSection({
           + Thêm
         </button>
       </div>
+      <CvDeleteConfirmDialog
+        open={del.pendingOpen}
+        onCancel={del.cancelDelete}
+        onConfirm={del.confirmDelete}
+      />
       {content.projects.map((p, i) => (
-        <div key={i} className="cv-form-divider mt-3 grid gap-2 pt-3">
+        <div
+          key={p.id ?? `proj-${i}`}
+          className="cv-form-divider relative mt-3 grid gap-2 pt-3"
+        >
+          <div className="flex justify-end">
+            <CvEntryDeleteButton onClick={() => del.requestDelete(p)} />
+          </div>
           <input
             placeholder="Tên dự án"
             className="cv-form-input"
@@ -372,35 +430,72 @@ function ProjectSection({
   );
 }
 
-function SectionList({
-  title,
-  rows,
-  onRows,
-  placeholder,
+function SkillsSection({
+  content,
+  onChange,
 }: {
-  title: string;
-  rows: string[];
-  onRows: (r: string[]) => void;
-  placeholder: string;
+  content: CvContent;
+  onChange: (c: CvContent) => void;
 }) {
-  const text = rows.join("\n");
+  const skills = content.skills;
+  const setSkills = (next: string[]) => onChange({ ...content, skills: next });
+  const [pendingIndex, setPendingIndex] = useState<number | null>(null);
+
+  const requestDelete = (index: number) => {
+    const value = skills[index]?.trim() ?? "";
+    if (!value) {
+      setSkills(skills.filter((_, i) => i !== index));
+      return;
+    }
+    setPendingIndex(index);
+  };
+
+  const confirmDelete = () => {
+    if (pendingIndex != null) {
+      setSkills(skills.filter((_, i) => i !== pendingIndex));
+    }
+    setPendingIndex(null);
+  };
+
   return (
     <section className="cv-form-section">
-      <h3 className="font-semibold text-[var(--ink)]">{title}</h3>
-      <textarea
-        rows={4}
-        className="mt-2 cv-form-input"
-        placeholder={placeholder}
-        value={text}
-        onChange={(e) =>
-          onRows(
-            e.target.value
-              .split("\n")
-              .map((s) => s.trim())
-              .filter(Boolean),
-          )
-        }
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-[var(--ink)]">Kỹ năng</h3>
+        <button
+          type="button"
+          className="cv-form-link"
+          onClick={() => setSkills([...skills, ""])}
+        >
+          + Thêm
+        </button>
+      </div>
+      <CvDeleteConfirmDialog
+        open={pendingIndex != null}
+        onCancel={() => setPendingIndex(null)}
+        onConfirm={confirmDelete}
       />
+      <ul className="mt-3 space-y-2">
+        {skills.map((skill, i) => (
+          <li key={`skill-${i}-${skill.slice(0, 12)}`} className="flex gap-2">
+            <input
+              className="flex-1 cv-form-input"
+              placeholder="VD: TypeScript"
+              value={skill}
+              onChange={(e) => {
+                const next = [...skills];
+                next[i] = e.target.value;
+                setSkills(next);
+              }}
+            />
+            <CvEntryDeleteButton onClick={() => requestDelete(i)} />
+          </li>
+        ))}
+      </ul>
+      {skills.length === 0 ? (
+        <p className="mt-2 text-sm text-slate-500">
+          Chưa có kỹ năng — bấm + Thêm hoặc nhập từng dòng.
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -412,14 +507,29 @@ function ExpSection({
   content: CvContent;
   onChange: (c: CvContent) => void;
 }) {
+  const setExperience = (experience: CvContent["experience"]) =>
+    onChange({ ...content, experience });
+
+  const del = useCvEntryDelete(content.experience, setExperience, [
+    "company",
+    "title",
+    "from",
+    "to",
+    "description",
+  ]);
+
   const add = () =>
-    onChange({
-      ...content,
-      experience: [
-        ...content.experience,
-        { company: "", title: "", from: "", to: "", description: "" },
-      ],
-    });
+    setExperience([
+      ...content.experience,
+      {
+        id: newCvEntryId(),
+        company: "",
+        title: "",
+        from: "",
+        to: "",
+        description: "",
+      },
+    ]);
   return (
     <section className="cv-form-section">
       <div className="flex items-center justify-between">
@@ -428,8 +538,19 @@ function ExpSection({
           + Thêm
         </button>
       </div>
+      <CvDeleteConfirmDialog
+        open={del.pendingOpen}
+        onCancel={del.cancelDelete}
+        onConfirm={del.confirmDelete}
+      />
       {content.experience.map((ex, i) => (
-        <div key={i} className="cv-form-divider mt-3 grid gap-2 pt-3 sm:grid-cols-2">
+        <div
+          key={ex.id ?? `exp-${i}`}
+          className="cv-form-divider relative mt-3 grid gap-2 pt-3 sm:grid-cols-2"
+        >
+          <div className="absolute right-0 top-3 sm:col-span-2">
+            <CvEntryDeleteButton onClick={() => del.requestDelete(ex)} />
+          </div>
           <input
             placeholder="Công ty"
             className="cv-form-input"
@@ -494,14 +615,29 @@ function EduSection({
   content: CvContent;
   onChange: (c: CvContent) => void;
 }) {
+  const setEducation = (education: CvContent["education"]) =>
+    onChange({ ...content, education });
+
+  const del = useCvEntryDelete(content.education, setEducation, [
+    "school",
+    "major",
+    "from",
+    "to",
+    "description",
+  ]);
+
   const add = () =>
-    onChange({
-      ...content,
-      education: [
-        ...content.education,
-        { school: "", major: "", from: "", to: "", description: "" },
-      ],
-    });
+    setEducation([
+      ...content.education,
+      {
+        id: newCvEntryId(),
+        school: "",
+        major: "",
+        from: "",
+        to: "",
+        description: "",
+      },
+    ]);
   return (
     <section className="cv-form-section">
       <div className="flex items-center justify-between">
@@ -510,8 +646,19 @@ function EduSection({
           + Thêm
         </button>
       </div>
+      <CvDeleteConfirmDialog
+        open={del.pendingOpen}
+        onCancel={del.cancelDelete}
+        onConfirm={del.confirmDelete}
+      />
       {content.education.map((ed, i) => (
-        <div key={i} className="cv-form-divider mt-3 grid gap-2 pt-3 sm:grid-cols-2">
+        <div
+          key={ed.id ?? `edu-${i}`}
+          className="cv-form-divider relative mt-3 grid gap-2 pt-3 sm:grid-cols-2"
+        >
+          <div className="absolute right-0 top-3 sm:col-span-2">
+            <CvEntryDeleteButton onClick={() => del.requestDelete(ed)} />
+          </div>
           <input
             placeholder="Trường"
             className="cv-form-input"

@@ -16,6 +16,7 @@ import { api, getStoredAccessToken } from "@/lib/api/client";
 import { normalizeCvContentJson } from "@/lib/cv/normalize-content";
 import type { CvTemplateItem } from "@/components/student/cv-template-gallery";
 import { resolveSectionOrder } from "@/lib/cv/section-order";
+import { sanitizeCvContentForSave } from "@/lib/cv/entry-id";
 import { patchPersonal } from "@/lib/cv/edit-personal";
 import { templateAccentColor } from "@/lib/cv/template-config";
 import { resolveCvLayout, type CvContent } from "@/lib/cv/types";
@@ -125,7 +126,9 @@ export function CvManager({
     }) =>
       api.patch(`/cvs/me/${cvId}`, {
         cvName: payload?.cvName ?? cvName,
-        contentJson: payload?.contentJson ?? content,
+        contentJson: sanitizeCvContentForSave(
+          payload?.contentJson ?? content,
+        ),
       }),
     onSuccess: (_data, variables) => {
       if (!variables?.quiet) {

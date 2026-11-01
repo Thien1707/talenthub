@@ -16,6 +16,7 @@ export type CvContent = {
     photoUrl?: string;
   };
   education: Array<{
+    id?: string;
     school?: string;
     major?: string;
     from?: string;
@@ -23,6 +24,7 @@ export type CvContent = {
     description?: string;
   }>;
   experience: Array<{
+    id?: string;
     company?: string;
     title?: string;
     from?: string;
@@ -31,19 +33,21 @@ export type CvContent = {
   }>;
   skills: string[];
   projects: Array<{
+    id?: string;
     name?: string;
     description?: string;
     link?: string;
   }>;
   activities?: Array<{
+    id?: string;
     organization?: string;
     role?: string;
     from?: string;
     to?: string;
     description?: string;
   }>;
-  certificates?: Array<{ name?: string; year?: string }>;
-  awards?: Array<{ name?: string; year?: string }>;
+  certificates?: Array<{ id?: string; name?: string; year?: string }>;
+  awards?: Array<{ id?: string; name?: string; year?: string }>;
   /** Tùy chỉnh giao diện (tham khảo CVAurum — lưu cùng contentJson). */
   design?: {
     accentColor?: string;

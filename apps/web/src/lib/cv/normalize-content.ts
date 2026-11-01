@@ -1,3 +1,4 @@
+import { ensureContentEntryIds } from "@/lib/cv/entry-id";
 import { emptyCvContent, type CvContent } from "@/lib/cv/types";
 
 /** API có thể lưu `{ format: 'cvaurum', document }` — chuyển về CvContent cho builder web. */
@@ -13,7 +14,7 @@ export function normalizeCvContentJson(raw: unknown): CvContent {
   }
 
   if ("personal" in obj && typeof obj.personal === "object") {
-    return mergeWithDefaults(obj as CvContent);
+    return ensureContentEntryIds(mergeWithDefaults(obj as CvContent));
   }
 
   return emptyCvContent();
@@ -113,7 +114,7 @@ function cvaurumDocumentToContent(doc: CvAurumDocument): CvContent {
     year: a.date ?? "",
   }));
 
-  return base;
+  return ensureContentEntryIds(base);
 }
 
 export function mergeWithDefaults(partial: CvContent): CvContent {
