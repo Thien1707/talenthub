@@ -46,7 +46,6 @@ export async function uploadCvFromComputer(
   if (options?.cvId) params.set("cvId", options.cvId);
   const qs = params.toString();
   const { data } = await api.post(`/cvs/me/upload${qs ? `?${qs}` : ""}`, form, {
-    headers: { "Content-Type": "multipart/form-data" },
     onUploadProgress: (e) => {
       if (e.total && options?.onProgress) {
         options.onProgress(Math.round((e.loaded / e.total) * 100));

@@ -19,8 +19,7 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterCompanyDto } from './dto/register-company.dto';
 import { RegisterStudentDto } from './dto/register-student.dto';
-
-const REFRESH_COOKIE = 'talenthub_refresh';
+import { REFRESH_COOKIE, refreshCookieOptions } from './refresh-cookie.util';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -125,7 +124,7 @@ export class AuthController {
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const token = req.cookies?.[REFRESH_COOKIE] as string | undefined;
     await this.authService.logout(token);
-    res.clearCookie(REFRESH_COOKIE, { path: '/api/v1/auth' });
+    res.clearCookie(REFRESH_COOKIE, refreshCookieOptions());
     return { success: true };
   }
 
@@ -138,13 +137,6 @@ export class AuthController {
   }
 
   private setRefreshCookie(res: Response, refreshToken: string) {
-    const isProd = process.env.NODE_ENV === 'production';
-    res.cookie(REFRESH_COOKIE, refreshToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'strict' : 'lax',
-      path: '/api/v1/auth',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie(REFRESH_COOKIE, refreshToken, refreshCookieOptions());
   }
 }

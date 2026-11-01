@@ -12,6 +12,15 @@ import {
   validateCvFileClient,
 } from "@/lib/cv/upload-cv-file";
 
+function isUnauthorized(err: unknown): boolean {
+  return (
+    !!err &&
+    typeof err === "object" &&
+    "response" in err &&
+    (err as { response?: { status?: number } }).response?.status === 401
+  );
+}
+
 function extractApiMessage(err: unknown): string | undefined {
   if (
     err &&
@@ -57,6 +66,12 @@ export function CvComputerUpload({
     },
     onError: (err: unknown) => {
       setProgress(0);
+      if (isUnauthorized(err)) {
+        toast.error(
+          "Phiên đăng nhập hết hạn. Vui lòng đăng xuất, đăng nhập lại rồi tải CV.",
+        );
+        return;
+      }
       toast.error(extractApiMessage(err) ?? "Tải CV thất bại");
     },
   });
