@@ -6,7 +6,7 @@ import styles from "./cv-editor-layout.module.css";
 
 type EditorTab = "content" | "design" | "ai";
 
-const tabs: { id: EditorTab; label: string; icon: typeof FileText }[] = [
+const allTabs: { id: EditorTab; label: string; icon: typeof FileText }[] = [
   { id: "content", label: "Nội dung", icon: FileText },
   { id: "design", label: "Thiết kế", icon: LayoutTemplate },
   { id: "ai", label: "AI", icon: Sparkles },
@@ -19,6 +19,8 @@ export function CvEditorLayout({
   aiPanel,
   previewPanel,
   showContentEditor,
+  editorTabs,
+  initialTab = "content",
 }: {
   toolbar: ReactNode;
   contentPanel: ReactNode;
@@ -26,8 +28,17 @@ export function CvEditorLayout({
   aiPanel: ReactNode;
   previewPanel: ReactNode;
   showContentEditor: boolean;
+  /** Mặc định: cả 3 tab. CV upload: chỉ `ai`. */
+  editorTabs?: EditorTab[];
+  initialTab?: EditorTab;
 }) {
-  const [tab, setTab] = useState<EditorTab>("content");
+  const tabs = allTabs.filter((t) =>
+    editorTabs ? editorTabs.includes(t.id) : true,
+  );
+  const defaultTab = tabs.some((t) => t.id === initialTab)
+    ? initialTab
+    : (tabs[0]?.id ?? "content");
+  const [tab, setTab] = useState<EditorTab>(defaultTab);
   const [panelOpen, setPanelOpen] = useState(true);
 
   return (

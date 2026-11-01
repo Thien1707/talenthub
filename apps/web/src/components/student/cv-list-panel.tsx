@@ -252,7 +252,7 @@ export function CvListPanel({
                     </>
                   )}
                   <Link href={editHref(cv.cvId)} className={styles.uploadActionBtn}>
-                    Đổi tên
+                    Xem &amp; AI
                   </Link>
                 </div>
               </div>

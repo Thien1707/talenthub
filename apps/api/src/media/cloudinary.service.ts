@@ -59,6 +59,7 @@ export class CloudinaryService {
     resourceType: string,
     deliveryType: 'upload' | 'authenticated' = 'upload',
     expiresSec = 3600,
+    format?: string,
   ) {
     this.ensureReady();
     const expiresAt = Math.floor(Date.now() / 1000) + expiresSec;
@@ -68,6 +69,7 @@ export class CloudinaryService {
       secure: true,
       sign_url: true,
       expires_at: expiresAt,
+      ...(format ? { format } : {}),
     });
   }
 }

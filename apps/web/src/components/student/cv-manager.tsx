@@ -12,6 +12,7 @@ import {
   emptyBuilderContent,
 } from "@/components/student/cv-full-builder";
 import { CvPreview } from "@/components/student/cv-preview";
+import { CvUploadPreview } from "@/components/student/cv-upload-preview";
 import { openOwnedCvFile } from "@/components/student/cv-computer-upload";
 import { api, getStoredAccessToken } from "@/lib/api/client";
 import {
@@ -42,6 +43,7 @@ type CvDetail = {
     cvVersionId?: string;
     sourceType?: string;
     contentJson?: unknown;
+    plainTextContent?: string | null;
     fileAsset?: {
       assetId?: string;
       originalFilename?: string | null;
@@ -326,7 +328,9 @@ export function CvManager({
       )}
 
       <CvEditorLayout
-        showContentEditor={!isUpload}
+        showContentEditor
+        editorTabs={isUpload ? ["ai"] : undefined}
+        initialTab={isUpload ? "ai" : "content"}
         toolbar={toolbar}
         contentPanel={<CvFullBuilder content={content} onChange={setContent} />}
         designPanel={
@@ -355,28 +359,40 @@ export function CvManager({
             jobTitle={jobTitle}
             content={content}
             onApplyContent={applyContentFromAi}
+            isUploadCv={isUpload}
           />
         }
         previewPanel={
-          <CvPreview
-            layout={layout}
-            content={content}
-            cvName={cvName}
-            accentColor={accent}
-            scale={previewScale}
-            showLabel={!isUpload}
-            editable={!isUpload && editOnCv}
-            onEditPersonal={(key, value) => {
-              setContent((c) => {
-                const next = patchPersonal(c, key, value);
-                if (key === "photoUrl" && !isUpload) {
-                  updateCv.mutate({ contentJson: next, quiet: true });
-                }
-                return next;
-              });
-              if (key === "fullName" && value.trim()) setCvName(value.trim());
-            }}
-          />
+          isUpload ? (
+            <CvUploadPreview
+              assetId={cv.currentVersion?.fileAsset?.assetId}
+              mimeType={cv.currentVersion?.fileAsset?.mimeType}
+              fileName={
+                cv.currentVersion?.fileAsset?.originalFilename ?? cvName
+              }
+              plainTextPreview={cv.currentVersion?.plainTextContent}
+            />
+          ) : (
+            <CvPreview
+              layout={layout}
+              content={content}
+              cvName={cvName}
+              accentColor={accent}
+              scale={previewScale}
+              showLabel
+              editable={editOnCv}
+              onEditPersonal={(key, value) => {
+                setContent((c) => {
+                  const next = patchPersonal(c, key, value);
+                  if (key === "photoUrl") {
+                    updateCv.mutate({ contentJson: next, quiet: true });
+                  }
+                  return next;
+                });
+                if (key === "fullName" && value.trim()) setCvName(value.trim());
+              }}
+            />
+          )
         }
       />
     </div>

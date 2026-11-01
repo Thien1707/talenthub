@@ -75,6 +75,7 @@ export function CvAiPanel({
   jobTitle,
   content,
   onApplyContent,
+  isUploadCv = false,
 }: {
   cvId: string;
   cvVersionId?: string;
@@ -82,9 +83,13 @@ export function CvAiPanel({
   jobTitle?: string;
   content: CvContent;
   onApplyContent: (next: CvContent) => void;
+  /** CV tải lên: chỉ phân tích (plain text / PDF), không chat chỉnh builder. */
+  isUploadCv?: boolean;
 }) {
   const qc = useQueryClient();
-  const [mode, setMode] = useState<"chat" | "analyze">("chat");
+  const [mode, setMode] = useState<"chat" | "analyze">(
+    isUploadCv ? "analyze" : "chat",
+  );
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
     loadChatMessages(cvId),
   );
@@ -223,30 +228,36 @@ export function CvAiPanel({
 
   return (
     <div className="flex h-full min-h-[320px] flex-col gap-3">
-      <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
-        <button
-          type="button"
-          onClick={() => setMode("chat")}
-          className={`flex-1 rounded-md px-2 py-1.5 text-sm font-medium ${
-            mode === "chat"
-              ? "bg-white text-violet-900 shadow-sm"
-              : "text-slate-600"
-          }`}
-        >
-          Trò chuyện
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("analyze")}
-          className={`flex-1 rounded-md px-2 py-1.5 text-sm font-medium ${
-            mode === "analyze"
-              ? "bg-white text-violet-900 shadow-sm"
-              : "text-slate-600"
-          }`}
-        >
-          Phân tích
-        </button>
-      </div>
+      {!isUploadCv ? (
+        <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
+          <button
+            type="button"
+            onClick={() => setMode("chat")}
+            className={`flex-1 rounded-md px-2 py-1.5 text-sm font-medium ${
+              mode === "chat"
+                ? "bg-white text-violet-900 shadow-sm"
+                : "text-slate-600"
+            }`}
+          >
+            Trò chuyện
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("analyze")}
+            className={`flex-1 rounded-md px-2 py-1.5 text-sm font-medium ${
+              mode === "analyze"
+                ? "bg-white text-violet-900 shadow-sm"
+                : "text-slate-600"
+            }`}
+          >
+            Phân tích
+          </button>
+        </div>
+      ) : (
+        <p className="text-sm font-medium text-violet-900">
+          Phân tích AI cho CV tải lên (PDF/DOC)
+        </p>
+      )}
 
       {mode === "chat" ? (
         <>
@@ -332,7 +343,9 @@ export function CvAiPanel({
           ) : (
             <>
               <p className="mt-1 text-sm text-slate-600">
-                Gợi ý cải thiện — chỉ tham khảo.
+                {isUploadCv
+                  ? "AI đọc nội dung đã trích từ file CV của bạn — gợi ý cải thiện trước khi ứng tuyển."
+                  : "Gợi ý cải thiện — chỉ tham khảo."}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button

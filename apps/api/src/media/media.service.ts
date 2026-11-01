@@ -125,10 +125,16 @@ export class MediaService {
 
     const deliveryType =
       asset.cloudinaryType === 'authenticated' ? 'authenticated' : 'upload';
+    const format =
+      asset.mimeType?.includes('pdf') && asset.resourceType === 'raw'
+        ? 'pdf'
+        : undefined;
     const url = this.cloudinary.getSignedUrl(
       asset.publicId,
       asset.resourceType,
       deliveryType,
+      3600,
+      format,
     );
     return { assetId: asset.assetId.toString(), signedUrl: url, expiresIn: 3600 };
   }
