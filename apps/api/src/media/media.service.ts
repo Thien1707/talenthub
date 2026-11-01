@@ -123,20 +123,43 @@ export class MediaService {
       throw new ForbiddenException('Không có quyền truy cập tệp');
     }
 
+    const url = this.buildSignedAssetUrl(asset, 3600);
+    return { assetId: asset.assetId.toString(), signedUrl: url, expiresIn: 3600 };
+  }
+
+  /** Tải bytes từ Cloudinary (server-side — tránh CORS / URL sai cho iframe). */
+  async fetchAssetBuffer(asset: {
+    publicId: string;
+    resourceType: string;
+    cloudinaryType: string | null;
+  }): Promise<Buffer> {
+    const url = this.buildSignedAssetUrl(asset, 3600);
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new NotFoundException(
+        'Không tải được file từ kho lưu trữ — thử upload lại CV',
+      );
+    }
+    return Buffer.from(await res.arrayBuffer());
+  }
+
+  private buildSignedAssetUrl(
+    asset: {
+      publicId: string;
+      resourceType: string;
+      cloudinaryType: string | null;
+    },
+    expiresSec: number,
+  ): string {
     const deliveryType =
       asset.cloudinaryType === 'authenticated' ? 'authenticated' : 'upload';
-    const format =
-      asset.mimeType?.includes('pdf') && asset.resourceType === 'raw'
-        ? 'pdf'
-        : undefined;
-    const url = this.cloudinary.getSignedUrl(
+    const resourceType = (asset.resourceType || 'raw').toLowerCase();
+    return this.cloudinary.getSignedUrl(
       asset.publicId,
-      asset.resourceType,
+      resourceType,
       deliveryType,
-      3600,
-      format,
+      expiresSec,
     );
-    return { assetId: asset.assetId.toString(), signedUrl: url, expiresIn: 3600 };
   }
 
   private async canAccessAsset(

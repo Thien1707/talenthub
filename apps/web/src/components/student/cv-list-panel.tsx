@@ -11,10 +11,8 @@ import {
   CvTemplateGallery,
   type CvTemplateItem,
 } from "@/components/student/cv-template-gallery";
-import {
-  CvComputerUpload,
-  openOwnedCvFile,
-} from "@/components/student/cv-computer-upload";
+import { CvComputerUpload } from "@/components/student/cv-computer-upload";
+import { downloadCvAsset } from "@/lib/cv/download-cv-asset";
 import { api } from "@/lib/api/client";
 import { resolveCvLayout } from "@/lib/cv/types";
 import {
@@ -187,6 +185,14 @@ export function CvListPanel({
     return `/sinh-vien/cv/${cvId}${qs ? `?${qs}` : ""}`;
   };
 
+  const viewHref = (cvId: string) => {
+    const q = new URLSearchParams();
+    if (jobId) q.set("jobId", jobId);
+    if (jobTitle) q.set("jobTitle", jobTitle);
+    const qs = q.toString();
+    return `/sinh-vien/cv/${cvId}/xem${qs ? `?${qs}` : ""}`;
+  };
+
   const openCreate = () => {
     setCreateOpen(true);
     setNewName("CV mới");
@@ -235,24 +241,30 @@ export function CvListPanel({
                 <div className={styles.uploadActions}>
                   {asset?.assetId && (
                     <>
-                      <button
-                        type="button"
+                      <Link
+                        href={viewHref(cv.cvId)}
                         className={styles.uploadActionBtn}
-                        onClick={() => void openOwnedCvFile(asset.assetId!)}
                       >
                         <Eye size={14} aria-hidden /> Xem
-                      </button>
+                      </Link>
                       <button
                         type="button"
                         className={styles.uploadActionBtn}
-                        onClick={() => void openOwnedCvFile(asset.assetId!)}
+                        onClick={() => {
+                          void downloadCvAsset(
+                            asset.assetId!,
+                            asset.originalFilename ?? `${cv.cvName}.pdf`,
+                          ).catch(() =>
+                            toast.error("Không tải được file — thử lại sau"),
+                          );
+                        }}
                       >
                         <Download size={14} aria-hidden /> Tải
                       </button>
                     </>
                   )}
                   <Link href={editHref(cv.cvId)} className={styles.uploadActionBtn}>
-                    Xem &amp; AI
+                    Phân tích AI
                   </Link>
                 </div>
               </div>

@@ -4,10 +4,12 @@ import {
   Param,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
@@ -62,6 +64,35 @@ export class MediaController {
       BigInt(user.userId),
       BigInt(assetId),
     );
+  }
+
+  @Get(':assetId/preview')
+  @ApiOperation({
+    summary: 'Xem / tải file qua API (PDF inline — dùng cho iframe CV upload)',
+  })
+  async preview(
+    @CurrentUser() user: { userId: string },
+    @Param('assetId') assetId: string,
+    @Res() res: Response,
+  ) {
+    const asset = await this.mediaService.getAsset(
+      BigInt(user.userId),
+      BigInt(assetId),
+    );
+    const buffer = await this.mediaService.fetchAssetBuffer(asset);
+    const mime = asset.mimeType ?? 'application/octet-stream';
+    const filename =
+      asset.originalFilename?.replace(/[^\w.\-() ]+/g, '_') ?? 'cv-file';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Length', buffer.length);
+    res.setHeader(
+      'Content-Disposition',
+      mime.includes('pdf')
+        ? `inline; filename="${filename}"`
+        : `attachment; filename="${filename}"`,
+    );
+    res.setHeader('Cache-Control', 'private, max-age=120');
+    res.end(buffer);
   }
 
   @Get(':assetId')
