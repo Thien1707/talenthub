@@ -8,7 +8,7 @@ export function PageIntro({ title, description, actions }: PageIntroProps) {
   return (
     <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
           {title}
         </h1>
         {description && (

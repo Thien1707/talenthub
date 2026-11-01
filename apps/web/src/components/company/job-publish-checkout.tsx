@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { ArrowUpRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -13,6 +13,8 @@ import {
   computePromotionTotals,
   type PromoCode,
 } from "@/lib/posting-quote";
+import { JobPublishReceipt } from "@/components/company/job-publish-receipt";
+import receiptStyles from "@/components/company/job-publish-receipt.module.css";
 
 type Quote = {
   job: { jobId: string; title: string; jobType: string };
@@ -115,7 +117,7 @@ export function JobPublishCheckout({ jobId }: { jobId: string }) {
   });
 
   if (isLoading && !quote) {
-    return <p className="text-sm text-slate-500">Đang tải báo giá…</p>;
+    return <p className="text-sm text-[var(--color-text-muted)]">Đang tải báo giá…</p>;
   }
   if (isError || !quote || !pricing) {
     return (
@@ -125,21 +127,53 @@ export function JobPublishCheckout({ jobId }: { jobId: string }) {
     );
   }
 
+  const receiptDate = new Date().toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  const receiptLines = [
+    {
+      label: "Phí đăng tin",
+      value:
+        quote.baseFeeVnd === 0 ? "Miễn phí" : formatVND(quote.baseFeeVnd),
+    },
+    ...selected.flatMap((code) => {
+      const p = quote.availablePromotions.find((x) => x.code === code);
+      if (!p) return [];
+      return [{ label: p.displayName, value: formatVND(p.priceVnd) }];
+    }),
+  ];
+
+  const receiptBalanceLines = [
+    {
+      label: "Số dư ví",
+      value: formatVND(pricing.walletBalance),
+      muted: true,
+    },
+    {
+      label: "Còn lại sau thanh toán",
+      value: formatVND(Math.max(0, pricing.balanceAfter)),
+      muted: true,
+    },
+  ];
+
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div className="space-y-6">
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold">Tóm tắt tin tuyển dụng</h2>
-          <p className="mt-2 font-medium text-slate-900">{quote.job.title}</p>
-          <p className="text-sm text-slate-600">{quote.companyName}</p>
-          <p className="mt-2 text-xs text-slate-500">
+        <section className="th-card">
+          <h2 className="text-lg font-semibold text-[var(--ink)]">Tóm tắt tin tuyển dụng</h2>
+          <p className="mt-2 font-medium text-[var(--ink)]">{quote.job.title}</p>
+          <p className="text-sm text-[var(--color-text-muted)]">{quote.companyName}</p>
+          <p className="mt-2 text-xs text-[var(--color-text-muted)]">
             Lượt miễn phí: {quote.freePostUsed}/{quote.freePostLimit}
             {quote.qualifiesForFreeBase ? " — tin này được miễn phí đăng (tin thường)" : ""}
           </p>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold">Gói quảng bá (tùy chọn)</h2>
+        <section className="th-card">
+          <h2 className="text-lg font-semibold text-[var(--ink)]">Gói quảng bá (tùy chọn)</h2>
           <ul className="mt-4 space-y-3">
             {quote.availablePromotions.map((p) => {
               const isOn = selected.includes(p.code);
@@ -150,28 +184,28 @@ export function JobPublishCheckout({ jobId }: { jobId: string }) {
                     role="checkbox"
                     aria-checked={isOn}
                     onClick={() => toggle(p.code)}
-                    className={`flex w-full cursor-pointer gap-3 rounded-xl border p-4 text-left transition-colors hover:border-blue-300 ${
+                    className={`flex w-full cursor-pointer gap-3 rounded-xl border p-4 text-left transition-colors hover:border-violet-400 ${
                       isOn
-                        ? "border-blue-500 bg-blue-50/50 ring-1 ring-blue-200"
-                        : "border-slate-200"
+                        ? "border-violet-500 bg-violet-50/80 ring-1 ring-violet-200 dark:border-violet-400 dark:bg-violet-100/40 dark:ring-violet-500/40"
+                        : "border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_60%,transparent)]"
                     }`}
                   >
                     <span
                       className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
                         isOn
-                          ? "border-blue-600 bg-blue-600 text-white"
-                          : "border-slate-300 bg-white"
+                          ? "border-violet-600 bg-violet-600 text-white"
+                          : "border-[var(--color-border-strong)] bg-[var(--color-surface)]"
                       }`}
                       aria-hidden
                     >
                       {isOn ? "✓" : ""}
                     </span>
                     <div className="flex-1">
-                      <p className="font-medium text-slate-900">{p.displayName}</p>
+                      <p className="font-medium text-[var(--ink)]">{p.displayName}</p>
                       {p.description ? (
-                        <p className="mt-1 text-sm text-slate-600">{p.description}</p>
+                        <p className="mt-1 text-sm text-[var(--color-text-muted)]">{p.description}</p>
                       ) : null}
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="mt-1 text-xs text-[var(--color-text-muted)]">
                         {p.durationDays} ngày · {formatVND(p.priceVnd)}
                       </p>
                     </div>
@@ -183,67 +217,53 @@ export function JobPublishCheckout({ jobId }: { jobId: string }) {
         </section>
       </div>
 
-      <aside className="h-fit space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-24">
-        <h2 className="text-lg font-semibold">Thanh toán đăng tin</h2>
-        <table className="mt-3 w-full text-sm">
-          <tbody>
-            <tr>
-              <td className="py-1 text-slate-600">Phí đăng tin</td>
-              <td className="py-1 text-right font-medium">
-                {quote.baseFeeVnd === 0 ? "Miễn phí" : formatVND(quote.baseFeeVnd)}
-              </td>
-            </tr>
-            {selected.map((code) => {
-              const p = quote.availablePromotions.find((x) => x.code === code);
-              if (!p) return null;
-              return (
-                <tr key={code}>
-                  <td className="py-1 text-slate-600">{p.displayName}</td>
-                  <td className="py-1 text-right">{formatVND(p.priceVnd)}</td>
-                </tr>
-              );
-            })}
-            <tr className="border-t">
-              <td className="pt-3 font-semibold">Tổng</td>
-              <td className="pt-3 text-right text-lg font-bold text-blue-700">
-                {formatVND(pricing.totalVnd)}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
-          <p>
-            Số dư ví: <strong>{formatVND(pricing.walletBalance)}</strong>
-          </p>
-          <p className="mt-1 text-slate-600">
-            Còn lại sau thanh toán:{" "}
-            <strong>{formatVND(Math.max(0, pricing.balanceAfter))}</strong>
-          </p>
-        </div>
-        {insufficient ? (
-          <p className="text-sm text-amber-800">
-            Số dư không đủ.{" "}
-            <Link href="/cong-ty/vi-tien" className="text-link font-medium">
-              Nạp ví
-            </Link>
-          </p>
-        ) : null}
-        <div className="flex flex-col gap-2">
-          <Link
-            href="/cong-ty/tin-tuyen-dung/tao"
-            className="rounded-lg border border-slate-300 px-4 py-2 text-center text-sm font-medium hover:bg-slate-50"
-          >
-            Quay lại chỉnh sửa
-          </Link>
-          <button
-            type="button"
-            disabled={insufficient || publish.isPending}
-            onClick={() => setConfirmOpen(true)}
-            className="rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
-          >
-            Đăng tin
-          </button>
-        </div>
+      <aside className="h-fit rounded-2xl bg-[color-mix(in_srgb,var(--color-border)_55%,var(--color-surface))] p-4 shadow-sm lg:sticky lg:top-24">
+        <JobPublishReceipt
+          printSignature={`${pricing.totalVnd}|${selected.join(",")}|${pricing.walletBalance}`}
+          dateLabel={receiptDate}
+          lines={receiptLines}
+          afterTotalLines={receiptBalanceLines}
+          totalValue={formatVND(pricing.totalVnd)}
+          note={
+            insufficient ? (
+              <>
+                Số dư ví không đủ cho tổng thanh toán. Nạp thêm trước khi đăng tin.
+              </>
+            ) : (
+              <>Thanh toán trừ trực tiếp từ ví công ty sau khi xác nhận.</>
+            )
+          }
+          showTopUp={insufficient}
+          backHref="/cong-ty/tin-tuyen-dung/tao"
+          footer={
+            <>
+              {!insufficient ? (
+                <Link
+                  href="/cong-ty/tin-tuyen-dung/tao"
+                  className={receiptStyles.btnSecondary}
+                >
+                  Quay lại chỉnh sửa
+                  <ArrowUpRight className="h-3 w-3" aria-hidden />
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                disabled={insufficient || publish.isPending}
+                onClick={() => setConfirmOpen(true)}
+                className={receiptStyles.publishBtn}
+              >
+                {publish.isPending ? (
+                  <>
+                    <Loader2 className="mr-1 inline h-4 w-4 animate-spin" />
+                    Đang xử lý…
+                  </>
+                ) : (
+                  "Đăng tin"
+                )}
+              </button>
+            </>
+          }
+        />
       </aside>
 
       {confirmOpen ? (
@@ -252,9 +272,9 @@ export function JobPublishCheckout({ jobId }: { jobId: string }) {
           role="dialog"
           aria-modal
         >
-          <div className="max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-bold">Xác nhận đăng tin</h3>
-            <ul className="mt-3 space-y-1 text-sm text-slate-700">
+          <div className="th-card max-w-md shadow-xl">
+            <h3 className="text-lg font-bold text-[var(--ink)]">Xác nhận đăng tin</h3>
+            <ul className="mt-3 space-y-1 text-sm text-[var(--color-text-muted)]">
               <li>
                 <strong>Tin:</strong> {quote.job.title}
               </li>
@@ -273,7 +293,7 @@ export function JobPublishCheckout({ jobId }: { jobId: string }) {
             <div className="mt-6 flex gap-2">
               <button
                 type="button"
-                className="flex-1 rounded-lg border px-4 py-2 text-sm"
+                className="button button-secondary flex-1"
                 disabled={publish.isPending}
                 onClick={() => setConfirmOpen(false)}
               >
@@ -283,7 +303,7 @@ export function JobPublishCheckout({ jobId }: { jobId: string }) {
                 type="button"
                 disabled={publish.isPending}
                 onClick={() => publish.mutate()}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                className="button button-primary flex flex-1 items-center justify-center gap-2"
               >
                 {publish.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Xác nhận &amp; thanh toán

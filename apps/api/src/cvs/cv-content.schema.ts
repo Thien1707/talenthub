@@ -10,6 +10,7 @@ export type CvContent = {
     interests?: string;
     references?: string;
     extraNotes?: string;
+    photoUrl?: string;
   };
   education: Array<{
     school?: string;

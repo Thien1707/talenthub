@@ -300,11 +300,24 @@ export class CvsService {
     );
   }
 
-  private renderPdfBuffer(
+  private async renderPdfBuffer(
     cvName: string,
     content: CvContent,
     layout = resolveCvLayout(null),
   ): Promise<Buffer> {
+    let photoBuffer: Buffer | null = null;
+    const photoUrl = content.personal.photoUrl?.trim();
+    if (photoUrl) {
+      try {
+        const res = await fetch(photoUrl);
+        if (res.ok) {
+          photoBuffer = Buffer.from(await res.arrayBuffer());
+        }
+      } catch {
+        photoBuffer = null;
+      }
+    }
+
     const fontPath = resolvePdfUnicodeFontPath();
     const useTopCv = layout === 'topcv';
     return new Promise((resolve, reject) => {
@@ -318,7 +331,7 @@ export class CvsService {
       if (useTopCv) {
         renderTopCvPdf(doc, cvName, content, fontPath);
       } else {
-        renderModernCvPdf(doc, cvName, content, fontPath);
+        renderModernCvPdf(doc, cvName, content, fontPath, photoBuffer);
       }
       doc.end();
     });

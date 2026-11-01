@@ -43,12 +43,13 @@ export function SaveJobButton({ jobId }: { jobId: string }) {
       type="button"
       disabled={toggle.isPending}
       onClick={() => toggle.mutate()}
-      className="mt-4 flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-50"
+      className="button button-secondary w-full justify-center"
     >
       <Bookmark
-        className={`h-4 w-4 ${isSaved ? "fill-amber-500 text-amber-500" : ""}`}
+        className={`h-4 w-4 ${isSaved ? "fill-amber-500 text-amber-600" : ""}`}
+        aria-hidden
       />
-      {isSaved ? "Đã lưu" : "Lưu tin"}
+      {isSaved ? "Đã lưu tin" : "Lưu tin"}
     </button>
   );
 }

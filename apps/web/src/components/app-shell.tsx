@@ -11,6 +11,8 @@ type AppShellProps = {
   actions?: React.ReactNode;
   narrow?: boolean;
   hideFooter?: boolean;
+  /** Trang chủ kiểu Doory: hero full-width, không khung card. */
+  marketing?: boolean;
 };
 
 export function AppShell({
@@ -20,14 +22,19 @@ export function AppShell({
   actions,
   narrow,
   hideFooter,
+  marketing,
 }: AppShellProps) {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
+    <div className="th-dotted-page flex min-h-screen flex-col text-slate-900">
       <SiteHeader />
       <main
-        className={`mx-auto w-full flex-1 px-5 py-10 lg:px-8 ${
-          narrow ? "max-w-lg" : "max-w-7xl"
-        }`}
+        className={
+          marketing
+            ? "mx-auto w-full max-w-7xl flex-1 px-5 py-10 lg:px-8"
+            : `mx-auto w-full flex-1 px-5 py-10 lg:px-8 ${
+                narrow ? "max-w-lg" : "max-w-7xl"
+              }`
+        }
       >
         {title ? (
           <PageIntro title={title} description={description} actions={actions} />

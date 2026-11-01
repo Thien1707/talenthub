@@ -1,9 +1,7 @@
+import { CvManager } from "@/components/student/cv-manager";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { EmailVerificationBanner } from "@/components/settings/email-verification-banner";
 import { RequireAuth } from "@/components/require-auth";
-import { CvManager } from "@/components/student/cv-manager";
-import { StudentSubnav } from "@/components/ui/student-subnav";
 
 export default async function StudentCvEditPage({
   params,
@@ -24,9 +22,7 @@ export default async function StudentCvEditPage({
         </Link>
       }
     >
-      <RequireAuth roles={["STUDENT"]}>
-        <EmailVerificationBanner />
-        <StudentSubnav />
+      <RequireAuth>
         <CvManager cvId={cvId} jobId={sp.jobId} jobTitle={sp.jobTitle} />
       </RequireAuth>
     </AppShell>

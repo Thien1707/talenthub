@@ -11,7 +11,7 @@ export function ReportJobLink({ jobId }: { jobId: string }) {
   return (
     <Link
       href={`/bao-cao?jobId=${encodeURIComponent(jobId)}`}
-      className="mt-2 inline-block text-sm text-red-700 hover:underline"
+      className="text-sm font-bold text-red-700 hover:text-red-800 hover:underline"
     >
       Báo cáo tin vi phạm
     </Link>

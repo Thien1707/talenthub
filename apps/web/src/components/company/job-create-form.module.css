@@ -1,0 +1,156 @@
+.steps {
+  margin-top: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  list-style: none;
+  padding: 0;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #78716c;
+}
+
+.stepActive {
+  color: #1b5e40;
+}
+
+.stepNum {
+  display: grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 0.25rem;
+  border: 2px solid #d6d3d1;
+  font-size: 0.625rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.stepActive .stepNum {
+  border-color: #1b5e40;
+  background: #1b5e40;
+  color: #fff;
+}
+
+.backLink {
+  display: inline-flex;
+  margin-top: var(--space-6);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.backLink:hover {
+  color: #1b5e40;
+}
+
+.tabUpcoming {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+
+.formSection {
+  margin-top: 1.25rem;
+}
+
+.formSection:first-of-type {
+  margin-top: 0.5rem;
+}
+
+.fieldError {
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+.inputError {
+  border-bottom-color: #f87171 !important;
+}
+
+.checkRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #44403c;
+  cursor: pointer;
+}
+
+.checkRow input {
+  margin-top: 0.15rem;
+}
+
+.salaryGrid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+@media (min-width: 520px) {
+  .salaryGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.selectInput {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #d6d3d1;
+  background: transparent;
+  padding: 0.35rem 0 0.45rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #0a0a0a;
+  outline: none;
+}
+
+.selectInput:focus {
+  border-bottom-color: #1b5e40;
+}
+
+.submitBtn {
+  display: flex;
+  width: 100%;
+  margin-top: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 0.35rem;
+  background: #171717;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #fafafa;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: #262626;
+}
+
+.submitBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.previewLine {
+  margin-top: 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1b5e40;
+  line-height: 1.3;
+}

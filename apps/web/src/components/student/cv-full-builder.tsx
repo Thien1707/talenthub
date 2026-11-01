@@ -25,8 +25,8 @@ export function CvFullBuilder({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border bg-white p-4">
-        <h3 className="font-semibold text-slate-900">Thông tin cá nhân</h3>
+      <section className="cv-form-section">
+        <h3 className="font-semibold text-[var(--ink)]">Thông tin cá nhân</h3>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {(
             [
@@ -39,45 +39,45 @@ export function CvFullBuilder({
             ] as const
           ).map(([key, label]) => (
             <div key={key}>
-              <label className="text-xs text-slate-600">{label}</label>
+              <label className="cv-form-label">{label}</label>
               <input
-                className="w-full rounded border px-2 py-1.5 text-sm"
+                className="cv-form-input"
                 value={content.personal[key] ?? ""}
                 onChange={(e) => setPersonal(key, e.target.value)}
               />
             </div>
           ))}
         </div>
-        <label className="mt-2 block text-xs text-slate-600">
+        <label className="mt-2 block cv-form-label">
           Mục tiêu nghề nghiệp / Giới thiệu
         </label>
         <textarea
           rows={3}
-          className="w-full rounded border px-2 py-1.5 text-sm"
+          className="cv-form-input"
           value={content.personal.summary ?? ""}
           onChange={(e) => setPersonal("summary", e.target.value)}
         />
-        <label className="mt-2 block text-xs text-slate-600">
+        <label className="mt-2 block cv-form-label">
           Người giới thiệu
         </label>
         <input
-          className="w-full rounded border px-2 py-1.5 text-sm"
+          className="cv-form-input"
           placeholder="VD: Sẽ cung cấp khi có yêu cầu"
           value={content.personal.references ?? ""}
           onChange={(e) => setPersonal("references", e.target.value)}
         />
-        <label className="mt-2 block text-xs text-slate-600">Sở thích</label>
+        <label className="mt-2 block cv-form-label">Sở thích</label>
         <input
-          className="w-full rounded border px-2 py-1.5 text-sm"
+          className="cv-form-input"
           value={content.personal.interests ?? ""}
           onChange={(e) => setPersonal("interests", e.target.value)}
         />
-        <label className="mt-2 block text-xs text-slate-600">
+        <label className="mt-2 block cv-form-label">
           Thông tin thêm
         </label>
         <textarea
           rows={2}
-          className="w-full rounded border px-2 py-1.5 text-sm"
+          className="cv-form-input"
           value={content.personal.extraNotes ?? ""}
           onChange={(e) => setPersonal("extraNotes", e.target.value)}
         />
@@ -152,18 +152,18 @@ function ActivitySection({
       ],
     });
   return (
-    <section className="rounded-xl border bg-white p-4">
+    <section className="cv-form-section">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-slate-900">Hoạt động</h3>
-        <button type="button" className="text-sm text-blue-700" onClick={add}>
+        <h3 className="font-semibold text-[var(--ink)]">Hoạt động</h3>
+        <button type="button" className="cv-form-link" onClick={add}>
           + Thêm
         </button>
       </div>
       {activities.map((act, i) => (
-        <div key={i} className="mt-3 grid gap-2 border-t pt-3 sm:grid-cols-2">
+        <div key={i} className="cv-form-divider mt-3 grid gap-2 pt-3 sm:grid-cols-2">
           <input
             placeholder="Tổ chức / CLB"
-            className="rounded border px-2 py-1 text-sm"
+            className="cv-form-input"
             value={act.organization ?? ""}
             onChange={(e) => {
               const next = [...activities];
@@ -173,7 +173,7 @@ function ActivitySection({
           />
           <input
             placeholder="Vai trò"
-            className="rounded border px-2 py-1 text-sm"
+            className="cv-form-input"
             value={act.role ?? ""}
             onChange={(e) => {
               const next = [...activities];
@@ -183,7 +183,7 @@ function ActivitySection({
           />
           <input
             placeholder="Từ"
-            className="rounded border px-2 py-1 text-sm"
+            className="cv-form-input"
             value={act.from ?? ""}
             onChange={(e) => {
               const next = [...activities];
@@ -193,7 +193,7 @@ function ActivitySection({
           />
           <input
             placeholder="Đến"
-            className="rounded border px-2 py-1 text-sm"
+            className="cv-form-input"
             value={act.to ?? ""}
             onChange={(e) => {
               const next = [...activities];
@@ -203,7 +203,7 @@ function ActivitySection({
           />
           <textarea
             placeholder="Mô tả (mỗi dòng một ý)"
-            className="sm:col-span-2 rounded border px-2 py-1 text-sm"
+            className="sm:col-span-2 cv-form-input"
             rows={2}
             value={act.description ?? ""}
             onChange={(e) => {
@@ -228,16 +228,16 @@ function CertAwardSection({
   const certificates = content.certificates ?? [];
   const awards = content.awards ?? [];
   return (
-    <section className="rounded-xl border bg-white p-4">
-      <h3 className="font-semibold text-slate-900">Chứng chỉ &amp; giải thưởng</h3>
-      <p className="mt-1 text-xs text-slate-500">Dùng cho mẫu TopCV.</p>
+    <section className="cv-form-section">
+      <h3 className="font-semibold text-[var(--ink)]">Chứng chỉ &amp; giải thưởng</h3>
+      <p className="mt-1 cv-form-muted">Dùng cho mẫu TopCV.</p>
       <div className="mt-3">
-        <p className="text-sm font-medium text-slate-800">Chứng chỉ</p>
+        <p className="cv-form-subhead">Chứng chỉ</p>
         {certificates.map((c, i) => (
           <div key={i} className="mt-2 flex gap-2">
             <input
               placeholder="Tên chứng chỉ"
-              className="flex-1 rounded border px-2 py-1 text-sm"
+              className="flex-1 cv-form-input"
               value={c.name ?? ""}
               onChange={(e) => {
                 const next = [...certificates];
@@ -247,7 +247,7 @@ function CertAwardSection({
             />
             <input
               placeholder="Năm"
-              className="w-24 rounded border px-2 py-1 text-sm"
+              className="w-24 cv-form-input"
               value={c.year ?? ""}
               onChange={(e) => {
                 const next = [...certificates];
@@ -259,7 +259,7 @@ function CertAwardSection({
         ))}
         <button
           type="button"
-          className="mt-2 text-sm text-blue-700"
+          className="mt-2 cv-form-link"
           onClick={() =>
             onChange({
               ...content,
@@ -271,12 +271,12 @@ function CertAwardSection({
         </button>
       </div>
       <div className="mt-4">
-        <p className="text-sm font-medium text-slate-800">Danh hiệu / giải</p>
+        <p className="cv-form-subhead">Danh hiệu / giải</p>
         {awards.map((a, i) => (
           <div key={i} className="mt-2 flex gap-2">
             <input
               placeholder="Danh hiệu"
-              className="flex-1 rounded border px-2 py-1 text-sm"
+              className="flex-1 cv-form-input"
               value={a.name ?? ""}
               onChange={(e) => {
                 const next = [...awards];
@@ -286,7 +286,7 @@ function CertAwardSection({
             />
             <input
               placeholder="Năm"
-              className="w-24 rounded border px-2 py-1 text-sm"
+              className="w-24 cv-form-input"
               value={a.year ?? ""}
               onChange={(e) => {
                 const next = [...awards];
@@ -298,7 +298,7 @@ function CertAwardSection({
         ))}
         <button
           type="button"
-          className="mt-2 text-sm text-blue-700"
+          className="mt-2 cv-form-link"
           onClick={() =>
             onChange({
               ...content,
@@ -326,18 +326,18 @@ function ProjectSection({
       projects: [...content.projects, { name: "", description: "", link: "" }],
     });
   return (
-    <section className="rounded-xl border bg-white p-4">
+    <section className="cv-form-section">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-slate-900">Dự án</h3>
-        <button type="button" className="text-sm text-blue-700" onClick={add}>
+        <h3 className="font-semibold text-[var(--ink)]">Dự án</h3>
+        <button type="button" className="cv-form-link" onClick={add}>
           + Thêm
         </button>
       </div>
       {content.projects.map((p, i) => (
-        <div key={i} className="mt-3 grid gap-2 border-t pt-3">
+        <div key={i} className="cv-form-divider mt-3 grid gap-2 pt-3">
           <input
             placeholder="Tên dự án"
-            className="rounded border px-2 py-1 text-sm"
+            className="cv-form-input"
             value={p.name ?? ""}
             onChange={(e) => {
               const projects = [...content.projects];
@@ -347,7 +347,7 @@ function ProjectSection({
           />
           <textarea
             placeholder="Mô tả"
-            className="rounded border px-2 py-1 text-sm"
+            className="cv-form-input"
             rows={2}
             value={p.description ?? ""}
             onChange={(e) => {
@@ -358,7 +358,7 @@ function ProjectSection({
           />
           <input
             placeholder="Link (tùy chọn)"
-            className="rounded border px-2 py-1 text-sm"
+            className="cv-form-input"
             value={p.link ?? ""}
             onChange={(e) => {
               const projects = [...content.projects];
@@ -385,11 +385,11 @@ function SectionList({
 }) {
   const text = rows.join("\n");
   return (
-    <section className="rounded-xl border bg-white p-4">
-      <h3 className="font-semibold text-slate-900">{title}</h3>
+    <section className="cv-form-section">
+      <h3 className="font-semibold text-[var(--ink)]">{title}</h3>
       <textarea
         rows={4}
-        className="mt-2 w-full rounded border px-2 py-1.5 text-sm"
+        className="mt-2 cv-form-input"
         placeholder={placeholder}
         value={text}
         onChange={(e) =>
@@ -421,18 +421,18 @@ function ExpSection({
       ],
     });
   return (
-    <section className="rounded-xl border bg-white p-4">
+    <section className="cv-form-section">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-slate-900">Kinh nghiệm</h3>
-        <button type="button" className="text-sm text-blue-700" onClick={add}>
+        <h3 className="font-semibold text-[var(--ink)]">Kinh nghiệm</h3>
+        <button type="button" className="cv-form-link" onClick={add}>
           + Thêm
         </button>
       </div>
       {content.experience.map((ex, i) => (
-        <div key={i} className="mt-3 grid gap-2 border-t pt-3 sm:grid-cols-2">
+        <div key={i} className="cv-form-divider mt-3 grid gap-2 pt-3 sm:grid-cols-2">
           <input
             placeholder="Công ty"
-            className="rounded border px-2 py-1 text-sm"
+            className="cv-form-input"
             value={ex.company ?? ""}
             onChange={(e) => {
               const experience = [...content.experience];
@@ -442,7 +442,7 @@ function ExpSection({
           />
           <input
             placeholder="Vị trí"
-            className="rounded border px-2 py-1 text-sm"
+            className="cv-form-input"
             value={ex.title ?? ""}
             onChange={(e) => {
               const experience = [...content.experience];
@@ -452,7 +452,7 @@ function ExpSection({
           />
           <input
             placeholder="Từ (VD: 2022)"
-            className="rounded border px-2 py-1 text-sm"
+            className="cv-form-input"
             value={ex.from ?? ""}
             onChange={(e) => {
               const experience = [...content.experience];
@@ -462,7 +462,7 @@ function ExpSection({
           />
           <input
             placeholder="Đến (VD: Nay)"
-            className="rounded border px-2 py-1 text-sm"
+            className="cv-form-input"
             value={ex.to ?? ""}
             onChange={(e) => {
               const experience = [...content.experience];
@@ -472,7 +472,7 @@ function ExpSection({
           />
           <textarea
             placeholder="Mô tả (mỗi dòng một ý)"
-            className="sm:col-span-2 rounded border px-2 py-1 text-sm"
+            className="sm:col-span-2 cv-form-input"
             rows={2}
             value={ex.description ?? ""}
             onChange={(e) => {
@@ -503,18 +503,18 @@ function EduSection({
       ],
     });
   return (
-    <section className="rounded-xl border bg-white p-4">
+    <section className="cv-form-section">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-slate-900">Học vấn</h3>
-        <button type="button" className="text-sm text-blue-700" onClick={add}>
+        <h3 className="font-semibold text-[var(--ink)]">Học vấn</h3>
+        <button type="button" className="cv-form-link" onClick={add}>
           + Thêm
         </button>
       </div>
       {content.education.map((ed, i) => (
-        <div key={i} className="mt-3 grid gap-2 border-t pt-3 sm:grid-cols-2">
+        <div key={i} className="cv-form-divider mt-3 grid gap-2 pt-3 sm:grid-cols-2">
           <input
             placeholder="Trường"
-            className="rounded border px-2 py-1 text-sm"
+            className="cv-form-input"
             value={ed.school ?? ""}
             onChange={(e) => {
               const education = [...content.education];
@@ -524,7 +524,7 @@ function EduSection({
           />
           <input
             placeholder="Chuyên ngành"
-            className="rounded border px-2 py-1 text-sm"
+            className="cv-form-input"
             value={ed.major ?? ""}
             onChange={(e) => {
               const education = [...content.education];
@@ -534,7 +534,7 @@ function EduSection({
           />
           <input
             placeholder="Từ"
-            className="rounded border px-2 py-1 text-sm"
+            className="cv-form-input"
             value={ed.from ?? ""}
             onChange={(e) => {
               const education = [...content.education];
@@ -544,7 +544,7 @@ function EduSection({
           />
           <input
             placeholder="Đến"
-            className="rounded border px-2 py-1 text-sm"
+            className="cv-form-input"
             value={ed.to ?? ""}
             onChange={(e) => {
               const education = [...content.education];
@@ -554,7 +554,7 @@ function EduSection({
           />
           <input
             placeholder="Ghi chú (tùy chọn)"
-            className="sm:col-span-2 rounded border px-2 py-1 text-sm"
+            className="sm:col-span-2 cv-form-input"
             value={ed.description ?? ""}
             onChange={(e) => {
               const education = [...content.education];

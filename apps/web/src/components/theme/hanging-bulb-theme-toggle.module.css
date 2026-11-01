@@ -1,0 +1,132 @@
+.wrap {
+  position: fixed;
+  top: 0;
+  right: 0.65rem;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  overflow: visible;
+}
+
+@media (min-width: 640px) {
+  .wrap {
+    right: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .wrap {
+    right: 1.25rem;
+  }
+}
+
+.btn {
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  line-height: 0;
+  transform-origin: top center;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.wrapPull .btn {
+  transform: translateY(4px);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent-lilac);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+
+.svg {
+  display: block;
+  width: 2.35rem;
+  height: auto;
+  overflow: visible;
+}
+
+/* Chiều cao tổng SVG lớn hơn — giữ bóng ~cùng kích thước, dây dài hơn */
+@media (min-width: 640px) {
+  .svg {
+    width: 2.5rem;
+  }
+}
+
+.cordLine {
+  stroke: #3f3f46;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+:global(html.dark) .cordLine {
+  stroke: #a1a1aa;
+}
+
+.glass {
+  fill: #fafafa;
+  stroke: #27272a;
+  stroke-width: 2;
+  transition:
+    fill 0.35s ease,
+    filter 0.35s ease;
+}
+
+:global(html.dark) .glass {
+  fill: #27272a;
+  stroke: #a1a1aa;
+}
+
+.glassOn {
+  fill: #fef9c3;
+  filter: drop-shadow(0 0 12px rgb(250 204 21 / 0.85))
+    drop-shadow(0 0 28px rgb(250 204 21 / 0.45));
+}
+
+:global(html:not(.dark)) .glassOn {
+  fill: #fefce8;
+}
+
+.socket {
+  fill: #52525b;
+}
+
+.socketLines {
+  stroke: #3f3f46;
+  stroke-width: 1;
+}
+
+.filament {
+  fill: none;
+  stroke: #52525b;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  transition: stroke 0.35s ease;
+}
+
+.filamentOn {
+  stroke: #ca8a04;
+}
+
+.glow {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.glowOn {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+}

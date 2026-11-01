@@ -6,6 +6,7 @@ import { ApplyJobPanel } from "@/components/jobs/apply-job-panel";
 import { SaveJobButton } from "@/components/jobs/save-job-button";
 import { ReportJobLink } from "@/components/reports/report-job-link";
 import { formatSalaryRange } from "@/lib/format-money";
+import styles from "./job-detail.module.css";
 
 async function fetchJob(slug: string) {
   const base =
@@ -48,45 +49,52 @@ export default async function JobDetailPage({
         </Link>
       }
     >
-      <article className="th-card mx-auto max-w-3xl space-y-8">
-        <p className="text-sm font-semibold text-blue-700">
-          Mức lương: {formatSalaryRange(job.salaryMin, job.salaryMax)}
-        </p>
-        <section>
-          <h2 className="text-lg font-bold text-slate-900">Mô tả công việc</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
-            {job.description}
+      <CompanyJobApplicantsHint
+        jobId={String(job.jobId)}
+        jobTitle={job.title}
+      />
+
+      <div className={styles.layout}>
+        <article className={styles.main}>
+          <p className={styles.salary}>
+            Mức lương: {formatSalaryRange(job.salaryMin, job.salaryMax)}
           </p>
-        </section>
-        <section>
-          <h2 className="text-lg font-bold text-slate-900">Yêu cầu</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
-            {job.requirements}
-          </p>
-        </section>
-        {job.benefits && (
-          <section>
-            <h2 className="text-lg font-bold text-slate-900">Quyền lợi</h2>
-            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
-              {job.benefits}
-            </p>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Mô tả công việc</h2>
+            <p className={styles.sectionBody}>{job.description}</p>
           </section>
-        )}
-        <div className="flex flex-wrap gap-3 border-t border-slate-100 pt-6">
-          <CompanyJobApplicantsHint
-            jobId={String(job.jobId)}
-            jobTitle={job.title}
-          />
-          <ApplyJobPanel jobId={String(job.jobId)} jobTitle={job.title} />
-          <SaveJobButton jobId={String(job.jobId)} />
-          <ReportJobLink jobId={String(job.jobId)} />
-          {job.company && (
-            <Link href={`/cong-ty/${job.company.companyId}`} className="text-link">
-              Xem công ty
-            </Link>
-          )}
-        </div>
-      </article>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Yêu cầu</h2>
+            <p className={styles.sectionBody}>{job.requirements}</p>
+          </section>
+
+          {job.benefits ? (
+            <section className={styles.section}>
+              <h2 className={styles.sectionTitle}>Quyền lợi</h2>
+              <p className={styles.sectionBody}>{job.benefits}</p>
+            </section>
+          ) : null}
+        </article>
+
+        <aside className={styles.sidebar}>
+          <div className={styles.sideCard}>
+            <ApplyJobPanel jobId={String(job.jobId)} jobTitle={job.title} />
+            <div className={styles.sideActions}>
+              <SaveJobButton jobId={String(job.jobId)} />
+              <div className={styles.sideLinks}>
+                <ReportJobLink jobId={String(job.jobId)} />
+                {job.company ? (
+                  <Link href={`/cong-ty/${job.company.companyId}`} className="text-link">
+                    Xem công ty
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
     </AppShell>
   );
 }

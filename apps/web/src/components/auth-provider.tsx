@@ -86,9 +86,8 @@ export function useAuth() {
 export function dashboardPath(role: AuthUser["role"]) {
   switch (role) {
     case "STUDENT":
-      return "/sinh-vien/ho-so";
     case "COMPANY":
-      return "/cong-ty/tin-tuyen-dung";
+      return "/";
     case "STAFF":
       return "/staff/tin-cho-duyet";
     case "SUPER_ADMIN":

@@ -37,7 +37,7 @@ function UserAvatar({
   if (!fullName) {
     return (
       <span
-        className={`grid ${dim} place-items-center rounded-full bg-slate-100 text-slate-600 ring-2 ring-white`}
+        className={`grid ${dim} place-items-center rounded-full bg-violet-100 text-slate-600 ring-2 ring-white`}
       >
         <User className="h-4 w-4" aria-hidden />
       </span>
@@ -45,7 +45,7 @@ function UserAvatar({
   }
   return (
     <span
-      className={`grid ${dim} place-items-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 font-bold text-white ring-2 ring-white shadow-sm`}
+      className={`grid ${dim} place-items-center rounded-full bg-gradient-to-br from-slate-900 to-violet-700 font-bold text-white ring-2 ring-white shadow-[2px_2px_0_var(--color-cta-shadow)]`}
       aria-hidden
     >
       {initials(fullName)}
@@ -65,7 +65,7 @@ function MenuItem({ href, icon, label, onClick, variant = "default" }: MenuItemP
   const className = `flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium transition-colors ${
     variant === "danger"
       ? "text-red-600 hover:bg-red-50"
-      : "text-slate-700 hover:bg-slate-50 hover:text-blue-700"
+      : "text-slate-700 hover:bg-violet-50 hover:text-slate-900"
   }`;
   if (href) {
     return (
@@ -222,7 +222,7 @@ export function UserAccountMenu() {
         aria-controls={`${menuId}-menu`}
         aria-label={label}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 rounded-full p-0.5 outline-none transition hover:bg-slate-100 focus-visible:ring-4 focus-visible:ring-blue-100"
+        className="flex items-center gap-1.5 rounded-full p-0.5 outline-none transition hover:bg-violet-100/70 focus-visible:ring-4 focus-visible:ring-violet-200"
       >
         <UserAvatar fullName={user?.fullName} />
         {user && (
@@ -239,7 +239,7 @@ export function UserAccountMenu() {
         id={`${menuId}-menu`}
         role="menu"
         aria-labelledby={`${menuId}-trigger`}
-        className={`absolute right-0 z-[60] mt-2 w-72 origin-top-right overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/60 transition-all duration-200 ease-out ${
+        className={`absolute right-0 z-[60] mt-2 w-72 origin-top-right overflow-hidden rounded-[var(--th-radius-xl)] border border-slate-200/90 bg-white/98 shadow-[0_20px_50px_-20px_rgb(90_60_150_/_0.45)] transition-all duration-200 ease-out ${
           open
             ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
             : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0"

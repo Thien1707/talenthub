@@ -1,0 +1,43 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.aiLink {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--violet-700);
+  text-decoration: none;
+}
+
+.aiLink:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.muted {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.muted a {
+  font-weight: 700;
+  color: var(--violet-700);
+}

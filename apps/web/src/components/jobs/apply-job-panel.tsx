@@ -7,6 +7,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth-provider";
 import { api } from "@/lib/api/client";
+import styles from "./apply-job-panel.module.css";
 
 export function ApplyJobPanel({
   jobId,
@@ -33,8 +34,7 @@ export function ApplyJobPanel({
     },
   });
 
-  const selected =
-    cvs?.find((c) => c.cvId === cvId) ?? cvs?.[0];
+  const selected = cvs?.find((c) => c.cvId === cvId) ?? cvs?.[0];
   const versionId = selected?.currentVersion?.cvVersionId;
 
   const apply = useMutation({
@@ -45,52 +45,54 @@ export function ApplyJobPanel({
   });
 
   if (loading) return null;
+
   if (!user) {
     return (
-      <Link
-        href="/dang-nhap"
-        className="inline-block rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-800"
-      >
-        Đăng nhập để ứng tuyển
-      </Link>
+      <div className={styles.root}>
+        <h3 className={styles.title}>Ứng tuyển</h3>
+        <p className={styles.muted}>Đăng nhập để nộp hồ sơ cho vị trí này.</p>
+        <Link href="/dang-nhap" className="button button-primary w-full justify-center">
+          Đăng nhập
+        </Link>
+      </div>
     );
   }
+
   if (user.role !== "STUDENT") {
     return (
-      <p className="text-sm text-slate-600">
-        Chỉ tài khoản sinh viên mới ứng tuyển được.
-      </p>
+      <div className={styles.root}>
+        <h3 className={styles.title}>Ứng tuyển</h3>
+        <p className={styles.muted}>Chỉ tài khoản sinh viên mới ứng tuyển được.</p>
+      </div>
     );
   }
 
   if (!cvs?.length) {
     return (
-      <div className="mt-8 rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="font-semibold text-slate-900">Ứng tuyển</h3>
-        <p className="mt-2 text-sm text-slate-600">
-          <Link href="/sinh-vien/cv" className="text-blue-700 hover:underline">
-            Tạo CV
-          </Link>{" "}
-          trước khi ứng tuyển.
+      <div className={styles.root}>
+        <h3 className={styles.title}>Ứng tuyển</h3>
+        <p className={styles.muted}>
+          <Link href="/sinh-vien/cv">Tạo CV</Link> trước khi ứng tuyển.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="mt-8 rounded-xl border border-slate-200 bg-white p-4">
-      <h3 className="font-semibold text-slate-900">Ứng tuyển</h3>
+    <div className={styles.root}>
+      <h3 className={styles.title}>Ứng tuyển</h3>
       <Link
         href={`/sinh-vien/cv?jobId=${encodeURIComponent(jobId)}&jobTitle=${encodeURIComponent(jobTitle)}`}
-        className="mt-1 inline-block text-sm text-violet-700 hover:underline"
+        className={styles.aiLink}
       >
         Phân tích AI độ phù hợp trước khi nộp
       </Link>
-      <label className="mt-3 block text-sm font-medium text-slate-800">
+      <label className={styles.label} htmlFor={`cv-${jobId}`}>
         Chọn CV
       </label>
       <select
-        className="mt-1 w-full rounded-lg border px-3 py-2 text-slate-900"
+        id={`cv-${jobId}`}
+        className="input-field"
         value={cvId || cvs[0]!.cvId}
         onChange={(e) => setCvId(e.target.value)}
       >
@@ -105,7 +107,7 @@ export function ApplyJobPanel({
         type="button"
         disabled={!versionId || apply.isPending}
         onClick={() => versionId && apply.mutate(versionId)}
-        className="mt-3 flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm text-white hover:bg-blue-800 disabled:opacity-60"
+        className="button button-primary mt-1 w-full justify-center"
       >
         {apply.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
         Nộp hồ sơ

@@ -1,28 +1,85 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, FileText, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { FileText, Loader2, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { PageIntroAccent } from "@/components/marketing/page-intro";
 import {
   CvTemplateGallery,
   type CvTemplateItem,
 } from "@/components/student/cv-template-gallery";
 import { api } from "@/lib/api/client";
+import { resolveCvLayout } from "@/lib/cv/types";
+import { formatCvEditedRelative } from "@/lib/format-relative";
+import styles from "./cv-list-strip.module.css";
 
 type CvItem = {
   cvId: string;
   cvName: string;
   updatedAt: string;
-  template?: { templateName?: string } | null;
-  currentVersion?: {
-    cvVersionId?: string;
-    sourceType?: string;
-    versionNumber?: number;
-  };
+  template?: { templateName?: string; templateConfig?: unknown } | null;
+  currentVersion?: { sourceType?: string };
 };
+
+function CvPolaroidThumb({
+  templateConfig,
+  sourceType,
+}: {
+  templateConfig?: unknown;
+  sourceType?: string;
+}) {
+  if (sourceType === "UPLOAD") {
+    return (
+      <div className={`${styles.thumb} ${styles.thumbUpload}`}>
+        <FileText size={40} strokeWidth={1.25} aria-hidden />
+      </div>
+    );
+  }
+
+  const layout = resolveCvLayout(templateConfig);
+  const accent =
+    templateConfig &&
+    typeof templateConfig === "object" &&
+    ("accentColor" in templateConfig || "primaryColor" in templateConfig)
+      ? String(
+          (templateConfig as { accentColor?: string; primaryColor?: string })
+            .accentColor ??
+            (templateConfig as { primaryColor?: string }).primaryColor ??
+            "#334155",
+        )
+      : "#334155";
+
+  if (layout === "topcv") {
+    return (
+      <div className={styles.thumb}>
+        <div className="flex h-full flex-col gap-1.5 p-3">
+          <div className="h-2.5 w-2/3 rounded bg-slate-300/90" />
+          <div className="h-1.5 w-full rounded bg-slate-200" />
+          <div className="mt-auto h-1.5 w-4/5 rounded bg-slate-200" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.thumb}>
+      <div className="flex h-full gap-1.5 p-3">
+        <div
+          className="w-[32%] rounded-sm"
+          style={{ backgroundColor: accent }}
+        />
+        <div className="flex flex-1 flex-col gap-1.5">
+          <div className="h-2 w-full rounded bg-slate-200" />
+          <div className="h-1.5 w-4/5 rounded bg-slate-200" />
+          <div className="mt-auto h-1.5 w-3/4 rounded bg-slate-200" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function CvListPanel({
   jobId,
@@ -73,23 +130,6 @@ export function CvListPanel({
     onError: () => toast.error("Tạo CV thất bại"),
   });
 
-  const duplicate = useMutation({
-    mutationFn: (cvId: string) => api.post(`/cvs/me/${cvId}/duplicate`),
-    onSuccess: () => {
-      toast.success("Đã nhân bản CV");
-      void qc.invalidateQueries({ queryKey: ["cvs", "me"] });
-    },
-    onError: (err: unknown) => {
-      const msg =
-        err &&
-        typeof err === "object" &&
-        "response" in err &&
-        (err as { response?: { data?: { message?: string } } }).response?.data
-          ?.message;
-      toast.error(typeof msg === "string" ? msg : "Không nhân bản được");
-    },
-  });
-
   const remove = useMutation({
     mutationFn: (cvId: string) => api.delete(`/cvs/me/${cvId}`),
     onSuccess: () => {
@@ -115,165 +155,154 @@ export function CvListPanel({
     return `/sinh-vien/cv/${cvId}${qs ? `?${qs}` : ""}`;
   };
 
+  const openCreate = () => {
+    setCreateOpen(true);
+    setNewName("CV mới");
+    setTemplateId("");
+  };
+
   return (
-    <div className="space-y-6">
+    <>
       {jobId && (
-        <p className="rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-950">
-          Bạn đang chọn CV để phân tích / ứng tuyển tin{" "}
-          <strong>{jobTitle ?? jobId}</strong>. Bấm <strong>Chỉnh sửa</strong>{" "}
-          trên CV cần dùng.
+        <p className={styles.banner}>
+          Bạn đang chọn CV cho tin <strong>{jobTitle ?? jobId}</strong>. Mở CV
+          cần dùng rồi quay lại tin tuyển dụng.
         </p>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-slate-600">
-          {cvs?.length ?? 0} CV · tạo nhiều bản, chỉnh sửa, xóa khi chưa ứng
-          tuyển.
-        </p>
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
-        >
-          <Plus className="h-4 w-4" />
-          Tạo CV mới
-        </button>
-      </div>
+      <section
+        className={styles.panel}
+        aria-labelledby="cv-list-strip-title"
+      >
+        <header className={styles.header}>
+          <p className={styles.eyebrow}>CV của bạn</p>
+          <h2 id="cv-list-strip-title" className={styles.heading}>
+            Tiếp tục chỗ bạn <PageIntroAccent>dừng lại</PageIntroAccent>
+          </h2>
+          <p className={styles.lead}>
+            Các bản CV được lưu trên tài khoản TalentHub.{" "}
+            <button
+              type="button"
+              className={styles.inlineAction}
+              onClick={openCreate}
+            >
+              Tạo thêm
+            </button>{" "}
+            hoặc mở bản cũ để chỉnh và ứng tuyển.
+          </p>
+        </header>
 
-      {createOpen && (
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <h2 className="font-semibold text-slate-900">CV mới</h2>
-          <label className="mt-3 block text-sm text-slate-700">Tên CV</label>
-          <input
-            className="mt-1 w-full max-w-md rounded-lg border px-3 py-2"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-          />
-          {templates && templates.length > 0 && (
-            <div className="mt-4">
-              <p className="text-sm font-medium text-slate-800">Chọn mẫu</p>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Bỏ chọn không có — API sẽ dùng mẫu mặc định.
-              </p>
-              <div className="mt-2 max-w-2xl">
-                <CvTemplateGallery
-                  templates={templates}
-                  selectedId={templateId || undefined}
-                  onSelect={(id) =>
-                    setTemplateId((prev) => (prev === id ? "" : id))
-                  }
-                  compact
-                />
+        {createOpen && (
+          <div className={styles.createPanel}>
+            <h3 className={styles.createPanelTitle}>CV mới</h3>
+            <label className="mt-4 block text-sm font-bold text-slate-800">
+              Tên CV
+            </label>
+            <input
+              className="input-field mt-2 max-w-md"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+            />
+            {templates && templates.length > 0 && (
+              <div className="mt-6">
+                <p className="text-sm font-bold text-slate-900">Chọn mẫu</p>
+                <div className="mt-3">
+                  <CvTemplateGallery
+                    templates={templates}
+                    selectedId={templateId || undefined}
+                    onSelect={(id) =>
+                      setTemplateId((prev) => (prev === id ? "" : id))
+                    }
+                  />
+                </div>
               </div>
-            </div>
-          )}
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              disabled={createCv.isPending}
-              onClick={() => createCv.mutate()}
-              className="rounded-lg bg-blue-700 px-4 py-2 text-white disabled:opacity-60"
-            >
-              {createCv.isPending && (
-                <Loader2 className="mr-1 inline h-4 w-4 animate-spin" />
-              )}
-              Tạo &amp; chỉnh sửa
-            </button>
-            <button
-              type="button"
-              className="rounded-lg border px-4 py-2"
-              onClick={() => setCreateOpen(false)}
-            >
-              Hủy
-            </button>
-          </div>
-        </div>
-      )}
-
-      {isLoading && (
-        <p className="text-slate-600">
-          <Loader2 className="inline h-4 w-4 animate-spin" /> Đang tải…
-        </p>
-      )}
-
-      {!isLoading && cvs?.length === 0 && (
-        <div className="rounded-xl border border-dashed bg-white p-10 text-center">
-          <FileText className="mx-auto h-10 w-10 text-slate-400" />
-          <p className="mt-3 text-slate-700">Chưa có CV nào.</p>
-          <button
-            type="button"
-            onClick={() => setCreateOpen(true)}
-            className="mt-4 text-blue-700 hover:underline"
-          >
-            Tạo CV đầu tiên
-          </button>
-        </div>
-      )}
-
-      <ul className="divide-y rounded-xl border bg-white">
-        {cvs?.map((cv) => (
-          <li
-            key={cv.cvId}
-            className="flex flex-wrap items-center justify-between gap-3 px-4 py-4"
-          >
-            <div>
-              <p className="font-medium text-slate-900">{cv.cvName}</p>
-              <p className="text-xs text-slate-500">
-                {cv.template?.templateName
-                  ? `Mẫu ${cv.template.templateName} · `
-                  : ""}
-                {cv.currentVersion?.sourceType === "UPLOAD"
-                  ? "PDF upload"
-                  : "Builder"}{" "}
-                · v{cv.currentVersion?.versionNumber ?? 1}
-                {cv.currentVersion?.cvVersionId && (
-                  <> · ID phiên bản {cv.currentVersion.cvVersionId}</>
-                )}
-                {" · "}
-                Cập nhật{" "}
-                {new Date(cv.updatedAt).toLocaleDateString("vi-VN")}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href={editHref(cv.cvId)}
-                className="inline-flex items-center gap-1 rounded-lg border border-blue-700 px-3 py-1.5 text-sm text-blue-700 hover:bg-blue-50"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Chỉnh sửa
-              </Link>
-              {cv.currentVersion?.sourceType !== "UPLOAD" && (
-                <button
-                  type="button"
-                  disabled={duplicate.isPending}
-                  onClick={() => duplicate.mutate(cv.cvId)}
-                  className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                  Nhân bản
-                </button>
-              )}
+            )}
+            <div className={styles.createActions}>
               <button
                 type="button"
-                disabled={remove.isPending}
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      `Xóa "${cv.cvName}"? Không xóa được nếu đã ứng tuyển.`,
-                    )
-                  ) {
-                    remove.mutate(cv.cvId);
-                  }
-                }}
-                className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50"
+                disabled={createCv.isPending}
+                onClick={() => createCv.mutate()}
+                className="button"
               >
-                <Trash2 className="h-3.5 w-3.5" />
-                Xóa
+                {createCv.isPending && (
+                  <Loader2 className="mr-1 inline h-4 w-4 animate-spin" />
+                )}
+                Tạo &amp; chỉnh sửa
+              </button>
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => setCreateOpen(false)}
+              >
+                Hủy
               </button>
             </div>
-          </li>
-        ))}
-      </ul>
-    </div>
+          </div>
+        )}
+
+        {isLoading && (
+          <p className={styles.loading}>
+            <Loader2 className="mr-1 inline h-4 w-4 animate-spin" aria-hidden />
+            Đang tải CV…
+          </p>
+        )}
+
+        {!isLoading && (
+          <ul className={styles.grid} aria-label="Danh sách CV">
+            <li className={styles.card}>
+              <button
+                type="button"
+                className={styles.createCard}
+                onClick={openCreate}
+              >
+                <span className={styles.createThumb} aria-hidden>
+                  <Plus size={36} strokeWidth={2} />
+                </span>
+                <span className={styles.createLabel}>CV mới</span>
+                <span className={styles.createMeta}>chọn mẫu &amp; chỉnh sửa</span>
+              </button>
+            </li>
+            {cvs?.map((cv) => (
+              <li key={cv.cvId} className={styles.card}>
+                <Link href={editHref(cv.cvId)} className={styles.link}>
+                  <CvPolaroidThumb
+                    templateConfig={cv.template?.templateConfig}
+                    sourceType={cv.currentVersion?.sourceType}
+                  />
+                  <span className={styles.title}>{cv.cvName}</span>
+                  <span className={styles.meta}>
+                    chỉnh sửa {formatCvEditedRelative(cv.updatedAt)}
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  className={styles.delete}
+                  aria-label={`Xóa ${cv.cvName}`}
+                  title="Xóa"
+                  disabled={remove.isPending}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Xóa "${cv.cvName}"? Không xóa được nếu đã ứng tuyển.`,
+                      )
+                    ) {
+                      remove.mutate(cv.cvId);
+                    }
+                  }}
+                >
+                  <Trash2 size={15} aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {!isLoading && cvs?.length === 0 && (
+          <p className={styles.empty}>
+            Chưa có CV nào — bấm polaroid <strong>CV mới</strong> để bắt đầu.
+          </p>
+        )}
+      </section>
+    </>
   );
 }

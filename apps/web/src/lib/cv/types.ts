@@ -12,6 +12,8 @@ export type CvContent = {
     interests?: string;
     references?: string;
     extraNotes?: string;
+    /** Ảnh đại diện trên CV (URL Cloudinary). */
+    photoUrl?: string;
   };
   education: Array<{
     school?: string;

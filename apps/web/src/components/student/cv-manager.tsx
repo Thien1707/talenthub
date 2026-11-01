@@ -118,14 +118,30 @@ export function CvManager({
   });
 
   const updateCv = useMutation({
-    mutationFn: () =>
-      api.patch(`/cvs/me/${cvId}`, { cvName, contentJson: content }),
-    onSuccess: () => {
-      toast.success("Đã lưu phiên bản CV mới");
+    mutationFn: (payload?: {
+      contentJson?: CvContent;
+      cvName?: string;
+      quiet?: boolean;
+    }) =>
+      api.patch(`/cvs/me/${cvId}`, {
+        cvName: payload?.cvName ?? cvName,
+        contentJson: payload?.contentJson ?? content,
+      }),
+    onSuccess: (_data, variables) => {
+      if (!variables?.quiet) {
+        toast.success("Đã lưu phiên bản CV mới");
+      }
       void qc.invalidateQueries({ queryKey: ["cvs", cvId] });
       void qc.invalidateQueries({ queryKey: ["cvs", "me"] });
     },
   });
+
+  const applyContentFromAi = (next: CvContent) => {
+    setContent(next);
+    if (!isUpload) {
+      updateCv.mutate({ contentJson: next, quiet: true });
+    }
+  };
 
   const versionId = cv?.currentVersion?.cvVersionId;
   const isUpload = cv?.currentVersion?.sourceType === "UPLOAD";
@@ -193,7 +209,7 @@ export function CvManager({
   };
 
   if (isLoading) {
-    return <p className="text-slate-600">Đang tải CV…</p>;
+    return <p className="text-[var(--color-text-muted)]">Đang tải CV…</p>;
   }
   if (isError || !cv) {
     return <p className="text-red-600">Không tìm thấy CV.</p>;
@@ -207,7 +223,7 @@ export function CvManager({
   const toolbar = (
     <>
       <input
-        className="min-w-[140px] flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-900"
+        className="input-field min-w-[140px] flex-1 !py-1.5"
         value={cvName}
         onChange={(e) => setCvName(e.target.value)}
         aria-label="Tên CV"
@@ -216,10 +232,10 @@ export function CvManager({
         <button
           type="button"
           onClick={() => setEditOnCv((v) => !v)}
-          className={`rounded-lg border px-3 py-1.5 text-sm ${
+          className={`button text-sm !rounded-lg !px-3 !py-1.5 ${
             editOnCv
-              ? "border-blue-600 bg-blue-50 text-blue-900"
-              : "border-slate-300 bg-white text-slate-800"
+              ? "border-violet-500 bg-violet-100/80 text-violet-900 dark:bg-violet-900/40 dark:text-violet-100"
+              : "button-secondary"
           }`}
         >
           {editOnCv ? "Đang sửa trên CV" : "Chỉ xem CV"}
@@ -228,8 +244,8 @@ export function CvManager({
       <button
         type="button"
         disabled={updateCv.isPending || isUpload}
-        onClick={() => updateCv.mutate()}
-        className="rounded-lg bg-blue-700 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+        onClick={() => updateCv.mutate(undefined)}
+        className="button button-primary !rounded-lg !px-3 !py-1.5 text-sm"
       >
         {updateCv.isPending && (
           <Loader2 className="mr-1 inline h-4 w-4 animate-spin" />
@@ -240,11 +256,11 @@ export function CvManager({
         type="button"
         disabled={isUpload}
         onClick={() => void downloadPdf()}
-        className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 disabled:opacity-50"
+        className="button button-secondary !rounded-lg !px-3 !py-1.5 text-sm disabled:opacity-50"
       >
         Tải PDF
       </button>
-      <label className="flex cursor-pointer items-center gap-1 rounded-lg border border-emerald-700 px-3 py-1.5 text-sm text-emerald-900 hover:bg-emerald-50">
+      <label className="button button-secondary !cursor-pointer !rounded-lg !border-emerald-700 !px-3 !py-1.5 text-sm !text-emerald-800 hover:!bg-emerald-50 dark:!text-emerald-200">
         <Upload className="h-4 w-4" />
         {uploadPdf.isPending ? "…" : "PDF"}
         <input
@@ -311,11 +327,12 @@ export function CvManager({
         }
         aiPanel={
           <CvAiPanel
+            cvId={cvId}
             cvVersionId={versionId}
             jobId={jobId}
             jobTitle={jobTitle}
             content={content}
-            onApplyContent={setContent}
+            onApplyContent={applyContentFromAi}
           />
         }
         previewPanel={
@@ -328,7 +345,13 @@ export function CvManager({
             showLabel={!isUpload}
             editable={!isUpload && editOnCv}
             onEditPersonal={(key, value) => {
-              setContent((c) => patchPersonal(c, key, value));
+              setContent((c) => {
+                const next = patchPersonal(c, key, value);
+                if (key === "photoUrl" && !isUpload) {
+                  updateCv.mutate({ contentJson: next, quiet: true });
+                }
+                return next;
+              });
               if (key === "fullName" && value.trim()) setCvName(value.trim());
             }}
           />

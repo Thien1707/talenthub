@@ -17,7 +17,7 @@ export function StaffSubnav() {
   const pathname = usePathname();
   return (
     <nav
-      className="mb-8 flex flex-wrap gap-1 rounded-2xl border border-slate-200 bg-slate-100/80 p-1.5"
+      className="subnav-shell"
       aria-label="Staff"
     >
       {links.map(({ href, label }) => {

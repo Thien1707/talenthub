@@ -436,14 +436,14 @@ export function ChatWorkspace({
 
   return (
     <div className="flex min-h-[480px] flex-col gap-4 md:flex-row">
-      <aside className="w-full shrink-0 rounded-xl border bg-white md:w-72">
+      <aside className="w-full shrink-0 rounded-[var(--th-radius-xl)] border border-slate-200/90 bg-white/95 shadow-sm md:w-72">
         <div className="flex items-center justify-between border-b px-3 py-2">
           <p className="text-sm font-semibold text-slate-800">Hội thoại</p>
           <button
             type="button"
             title="Chat trực tiếp"
             onClick={() => setDirectOpen(true)}
-            className="rounded p-1 text-blue-700 hover:bg-blue-50"
+            className="rounded-full p-1.5 text-violet-700 hover:bg-violet-50"
           >
             <MessageCirclePlus className="h-5 w-5" />
           </button>
@@ -547,7 +547,7 @@ export function ChatWorkspace({
         </div>
       )}
 
-      <section className="flex flex-1 flex-col rounded-xl border bg-white">
+      <section className="flex flex-1 flex-col rounded-[var(--th-radius-xl)] border border-slate-200/90 bg-white/95 shadow-sm">
         <div className="border-b px-4 py-2">
           <p className="font-medium text-slate-900">
             {active ? conversationTitle(active, userId) : "Chọn hội thoại"}
@@ -584,7 +584,7 @@ export function ChatWorkspace({
               <div
                 key={m.messageId}
                 className={`group max-w-[85%] rounded-lg px-3 py-2 text-sm ${
-                  mine ? "ml-auto bg-blue-700 text-white" : "bg-slate-100 text-slate-900"
+                  mine ? "ml-auto bg-violet-700 text-white" : "bg-violet-50 text-slate-900"
                 } ${recalled ? "opacity-90" : ""}`}
               >
                 {!mine && (
@@ -720,7 +720,7 @@ export function ChatWorkspace({
             <button
               type="submit"
               disabled={send.isPending}
-              className="flex items-center gap-1 rounded-lg bg-blue-700 px-3 py-2 text-white disabled:opacity-60"
+              className="button button-primary shrink-0 rounded-full px-4 disabled:opacity-60"
             >
               {send.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

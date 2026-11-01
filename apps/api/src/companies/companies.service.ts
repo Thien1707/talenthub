@@ -58,7 +58,7 @@ export class CompaniesService {
         address: true,
         city: true,
         verificationStatus: true,
-        logoAssetId: true,
+        logoAsset: { select: { secureUrl: true } },
       },
     });
     if (!profile) {

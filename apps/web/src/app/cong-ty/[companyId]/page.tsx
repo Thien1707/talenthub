@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import {
+  CompanyPublicProfile,
+  type PublicCompanyProfile,
+} from "@/components/company/company-public-profile";
 
-async function fetchCompany(companyId: string) {
+async function fetchCompany(companyId: string): Promise<PublicCompanyProfile | null> {
   const base =
     process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
   const res = await fetch(`${base}/companies/${companyId}/public`, {
@@ -9,13 +13,7 @@ async function fetchCompany(companyId: string) {
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error("Failed");
-  return res.json() as Promise<{
-    companyName: string;
-    description?: string | null;
-    city?: string | null;
-    website?: string | null;
-    industry?: string | null;
-  }>;
+  return res.json() as Promise<PublicCompanyProfile>;
 }
 
 export default async function CompanyPublicPage({
@@ -28,27 +26,8 @@ export default async function CompanyPublicPage({
   if (!company) notFound();
 
   return (
-    <AppShell
-      title={company.companyName}
-      description={[company.industry, company.city].filter(Boolean).join(" · ")}
-    >
-      <article className="th-card mx-auto max-w-3xl">
-        {company.website && (
-          <a
-            href={company.website}
-            target="_blank"
-            rel="noreferrer"
-            className="text-link"
-          >
-            Website công ty
-          </a>
-        )}
-        {company.description && (
-          <p className="mt-6 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
-            {company.description}
-          </p>
-        )}
-      </article>
+    <AppShell>
+      <CompanyPublicProfile company={company} />
     </AppShell>
   );
 }

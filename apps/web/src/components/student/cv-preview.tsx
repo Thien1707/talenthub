@@ -59,9 +59,9 @@ export function CvPreview({
       style={{ width: pageWidth, maxWidth: "100%" }}
     >
       {showLabel && (
-        <p className="mb-2 text-center text-xs font-medium text-slate-600">
+        <p className="mb-2 text-center text-xs font-medium text-[var(--color-text-muted)]">
           {editable
-            ? "Bấm vào chữ trên CV để sửa · nhớ Lưu"
+            ? "Bấm vào chữ trên CV để sửa · bấm icon camera để tải ảnh"
             : `Xem trước A4 · ${layoutLabels[layout] ?? layoutLabels.modern}`}
         </p>
       )}

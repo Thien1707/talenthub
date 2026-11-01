@@ -28,8 +28,25 @@ const WELCOME: ChatMessage = {
   id: "welcome",
   role: "assistant",
   content:
-    "Xin chào! Mình là trợ lý soạn CV. Bạn kể kinh nghiệm, học vấn, kỹ năng — mình sẽ điền lên CV bên phải. Sửa trực tiếp trên CV vẫn được; nhớ bấm Lưu khi xong.",
+    "Xin chào! Mình là trợ lý soạn CV. Bạn kể kinh nghiệm, học vấn, kỹ năng — mình sẽ điền lên CV bên phải. Sửa trực tiếp trên CV vẫn được.",
 };
+
+function chatStorageKey(cvId: string) {
+  return `talenthub:cv-ai-chat:${cvId}`;
+}
+
+function loadChatMessages(cvId: string): ChatMessage[] {
+  if (typeof sessionStorage === "undefined") return [WELCOME];
+  try {
+    const raw = sessionStorage.getItem(chatStorageKey(cvId));
+    if (!raw) return [WELCOME];
+    const parsed = JSON.parse(raw) as ChatMessage[];
+    if (!Array.isArray(parsed) || parsed.length === 0) return [WELCOME];
+    return parsed;
+  } catch {
+    return [WELCOME];
+  }
+}
 
 const SUGGESTIONS = [
   "Tạo CV intern lập trình viên, mới tốt nghiệp",
@@ -44,13 +61,22 @@ function scoreLabel(score: AnalysisRow["score"]) {
   return Number.isNaN(n) ? String(score) : `${n.toFixed(0)}/100`;
 }
 
+/** Ẩn chi tiết kỹ thuật (Gemini, env…) khỏi UI người dùng. */
+function userFacingAiMessage(serverMsg: unknown, fallback: string): string {
+  if (typeof serverMsg !== "string" || !serverMsg.trim()) return fallback;
+  if (/gemini|GEMINI_API|GEMINI_MODEL/i.test(serverMsg)) return fallback;
+  return serverMsg;
+}
+
 export function CvAiPanel({
+  cvId,
   cvVersionId,
   jobId,
   jobTitle,
   content,
   onApplyContent,
 }: {
+  cvId: string;
   cvVersionId?: string;
   jobId?: string;
   jobTitle?: string;
@@ -59,9 +85,20 @@ export function CvAiPanel({
 }) {
   const qc = useQueryClient();
   const [mode, setMode] = useState<"chat" | "analyze">("chat");
-  const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    loadChatMessages(cvId),
+  );
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMessages(loadChatMessages(cvId));
+  }, [cvId]);
+
+  useEffect(() => {
+    if (typeof sessionStorage === "undefined") return;
+    sessionStorage.setItem(chatStorageKey(cvId), JSON.stringify(messages));
+  }, [cvId, messages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -119,7 +156,7 @@ export function CvAiPanel({
       ]);
       if (data.content) {
         onApplyContent(mergeWithDefaults(data.content));
-        toast.success("Đã cập nhật CV — xem preview và bấm Lưu");
+        toast.success("Đã cập nhật và lưu CV");
       }
       setInput("");
     },
@@ -136,11 +173,12 @@ export function CvAiPanel({
         "code" in err &&
         (err as { code?: string }).code === "ECONNABORTED";
       toast.error(
-        timeout
-          ? "Gemini quá lâu — thử câu ngắn hơn hoặc kiểm tra API key"
-          : typeof msg === "string"
-            ? msg
-            : "Chat AI thất bại — kiểm tra GEMINI_API_KEY / GEMINI_MODEL trên API",
+        userFacingAiMessage(
+          msg,
+          timeout
+            ? "Phản hồi quá lâu — thử câu ngắn hơn hoặc gửi lại."
+            : "Không gửi được tin nhắn. Thử lại sau.",
+        ),
       );
     },
   });
@@ -157,8 +195,7 @@ export function CvAiPanel({
       );
       void qc.invalidateQueries({ queryKey: ["ai", "analyses", "me"] });
     },
-    onError: () =>
-      toast.error("Phân tích thất bại — kiểm tra GEMINI_API_KEY"),
+    onError: () => toast.error("Phân tích thất bại. Thử lại sau."),
   });
 
   const jobMatch = useMutation({
@@ -173,7 +210,7 @@ export function CvAiPanel({
       );
       void qc.invalidateQueries({ queryKey: ["ai", "analyses", "me"] });
     },
-    onError: () => toast.error("Phân tích JOB_MATCH thất bại"),
+    onError: () => toast.error("Phân tích độ phù hợp thất bại. Thử lại sau."),
   });
 
   const send = () => {
@@ -233,7 +270,7 @@ export function CvAiPanel({
             {chat.isPending && (
               <p className="flex items-center gap-2 text-sm text-slate-500">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Đang hỏi Gemini (thường 5–20 giây)…
+                Đang soạn gợi ý…
               </p>
             )}
             <div ref={bottomRef} />
@@ -286,7 +323,7 @@ export function CvAiPanel({
         <div className="rounded-xl border border-violet-200 bg-violet-50/50 p-4">
           <h2 className="flex items-center gap-2 font-semibold text-slate-900">
             <Sparkles className="h-5 w-5 text-violet-600" />
-            Phân tích CV (Gemini)
+            Phân tích CV
           </h2>
           {!cvVersionId ? (
             <p className="mt-2 text-sm text-slate-600">

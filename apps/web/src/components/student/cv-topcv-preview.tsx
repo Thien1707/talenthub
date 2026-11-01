@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { CvEditableField } from "@/components/student/cv-editable-field";
+import { CvPersonalPhoto } from "@/components/student/cv-personal-photo";
 import { CvTopcvOrderedSections } from "@/components/student/cv-preview-sections";
 import type { PersonalKey } from "@/lib/cv/edit-personal";
 import type { CvContent } from "@/lib/cv/types";
@@ -83,6 +84,18 @@ export function CvTopCvPreview({
   return (
     <div className="aspect-[210/297] w-full overflow-hidden rounded-lg border border-slate-200 bg-white p-6 shadow-lg">
       <div className="text-[11px] leading-snug text-slate-800">
+        {(editable || content.personal.photoUrl) && (
+          <div className="mb-2 flex justify-center">
+            <CvPersonalPhoto
+              name={name}
+              photoUrl={content.personal.photoUrl}
+              editable={editable}
+              accentColor="#00b14f"
+              variant="inline"
+              onPhotoUrl={(url) => commit("photoUrl", url)}
+            />
+          </div>
+        )}
         <h2 className="text-lg font-bold text-slate-900">
           {field("fullName", name, "Họ và tên", "min-w-[4rem]", false, true)}
         </h2>

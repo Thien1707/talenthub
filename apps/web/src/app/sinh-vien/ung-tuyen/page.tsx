@@ -4,9 +4,11 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { ApplicationsHowItWorks } from "@/components/marketing/how-it-works-steps";
 import { RequireAuth } from "@/components/require-auth";
-import { StudentSubnav } from "@/components/ui/student-subnav";
+import { PageIntro } from "@/components/ui/page-intro";
 import { api } from "@/lib/api/client";
+import styles from "./applications-page.module.css";
 
 export default function MyApplicationsPage() {
   const openChat = useMutation({
@@ -35,14 +37,17 @@ export default function MyApplicationsPage() {
   });
 
   return (
-    <AppShell
-      title="Hồ sơ đã ứng tuyển"
-      description="Theo dõi trạng thái và nhắn tin với nhà tuyển dụng."
-    >
+    <AppShell>
       <RequireAuth roles={["STUDENT"]}>
-        <StudentSubnav />
+        <ApplicationsHowItWorks />
+
+        <PageIntro
+          title="Hồ sơ đã ứng tuyển"
+          description="Theo dõi trạng thái và nhắn tin với nhà tuyển dụng."
+        />
+
         {isLoading && <p className="text-sm text-slate-500">Đang tải…</p>}
-        <ul className="grid gap-4">
+        <ul className={styles.list}>
           {data?.map((app) => (
             <li key={app.applicationId} className="th-card">
               <Link
@@ -65,8 +70,9 @@ export default function MyApplicationsPage() {
             </li>
           ))}
           {!isLoading && data?.length === 0 && (
-            <li className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-slate-500">
-              Bạn chưa ứng tuyển tin nào.
+            <li className={styles.empty}>
+              Bạn chưa ứng tuyển tin nào. Chọn việc làm phù hợp và nộp hồ sơ từ
+              trang chi tiết tin.
             </li>
           )}
         </ul>

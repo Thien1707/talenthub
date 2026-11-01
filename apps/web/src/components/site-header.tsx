@@ -14,7 +14,9 @@ function navClass(active: boolean) {
 }
 
 function mobileNavClass(active: boolean) {
-  return active ? "mobile-nav-link bg-blue-50 text-blue-700" : "mobile-nav-link";
+  return active
+    ? "mobile-nav-link bg-violet-100/90 text-slate-900"
+    : "mobile-nav-link";
 }
 
 export function SiteHeader() {
@@ -42,8 +44,8 @@ export function SiteHeader() {
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
-      <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center justify-between gap-4 px-5 lg:px-8">
+    <header className="th-site-header">
+      <div className="mx-auto flex h-[4.25rem] max-w-7xl items-center justify-between gap-4 px-5 lg:px-8">
         <TalentHubLogo />
 
         <nav
@@ -81,6 +83,14 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {!loading && !user && (
+            <Link
+              href="/dang-nhap"
+              className="font-hand hidden text-2xl font-bold leading-none text-slate-800 hover:text-violet-700 sm:inline"
+            >
+              Đăng nhập
+            </Link>
+          )}
           {!loading && user && (
             <>
               <Link
@@ -109,7 +119,7 @@ export function SiteHeader() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-slate-100 bg-white px-5 py-4 lg:hidden">
+        <div className="border-t border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_92%,transparent)] px-5 py-4 backdrop-blur-md lg:hidden">
           <nav className="grid gap-1" aria-label="Điều hướng di động">
             <Link
               href="/viec-lam"
@@ -182,6 +192,24 @@ export function SiteHeader() {
                     Duyệt tin
                   </Link>
                 )}
+              </>
+            )}
+            {!loading && !user && (
+              <>
+                <Link
+                  href="/dang-nhap"
+                  className={mobileNavClass(isActive("/dang-nhap"))}
+                  onClick={closeMobile}
+                >
+                  Đăng nhập
+                </Link>
+                <Link
+                  href="/dang-ky"
+                  className={mobileNavClass(isActive("/dang-ky"))}
+                  onClick={closeMobile}
+                >
+                  Đăng ký
+                </Link>
               </>
             )}
           </nav>

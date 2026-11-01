@@ -2,6 +2,7 @@
 
 import { CvEditableField } from "@/components/student/cv-editable-field";
 import { CvModernMainSections } from "@/components/student/cv-preview-sections";
+import { CvPersonalPhoto } from "@/components/student/cv-personal-photo";
 import type { PersonalKey } from "@/lib/cv/edit-personal";
 import type { CvContent } from "@/lib/cv/types";
 
@@ -53,12 +54,13 @@ export function CvModernPreview({
           className="flex w-[34%] shrink-0 flex-col px-4 py-6 text-white"
           style={{ backgroundColor: accent }}
         >
-          <div
-            className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border-2 border-white/40 text-2xl font-light text-white"
-            style={{ backgroundColor: `${accent}cc` }}
-          >
-            {name.charAt(0).toUpperCase() || "?"}
-          </div>
+          <CvPersonalPhoto
+            name={name}
+            photoUrl={content.personal.photoUrl}
+            editable={editable}
+            accentColor={accent}
+            onPhotoUrl={(url) => commit("photoUrl", url)}
+          />
           <h2 className="text-center text-sm font-bold uppercase tracking-wide">
             {textField(
               "fullName",
@@ -88,12 +90,12 @@ export function CvModernPreview({
                 {textField("email", content.personal.email ?? "", "Email", "min-w-[3rem]", false, true)}
               </p>
             )}
-            {(editable || content.personal.phone) && (
+            {(editable || content.personal.phone?.trim()) && (
               <p>
                 {textField("phone", content.personal.phone ?? "", "SĐT", "min-w-[3rem]", false, true)}
               </p>
             )}
-            {(editable || content.personal.city) && (
+            {(editable || content.personal.city?.trim()) && (
               <p>
                 {textField("city", content.personal.city ?? "", "Thành phố", "min-w-[3rem]", false, true)}
               </p>

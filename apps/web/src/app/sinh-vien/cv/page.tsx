@@ -1,8 +1,6 @@
 import { AppShell } from "@/components/app-shell";
-import { EmailVerificationBanner } from "@/components/settings/email-verification-banner";
 import { RequireAuth } from "@/components/require-auth";
 import { CvListPanel } from "@/components/student/cv-list-panel";
-import { StudentSubnav } from "@/components/ui/student-subnav";
 
 export default async function StudentCvListPage({
   searchParams,
@@ -11,13 +9,8 @@ export default async function StudentCvListPage({
 }) {
   const sp = await searchParams;
   return (
-    <AppShell
-      title="Quản lý CV"
-      description="Tạo, sửa, nhân bản và xóa CV trước khi ứng tuyển."
-    >
+    <AppShell>
       <RequireAuth roles={["STUDENT"]}>
-        <EmailVerificationBanner />
-        <StudentSubnav />
         <CvListPanel jobId={sp.jobId} jobTitle={sp.jobTitle} />
       </RequireAuth>
     </AppShell>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, Search } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
+import styles from "./home-hero-actions.module.css";
 
 export function HomeHeroActions() {
   const { user, loading } = useAuth();
@@ -21,12 +22,12 @@ export function HomeHeroActions() {
     !loading && user?.role === "STUDENT" ? "/viec-lam" : "/viec-lam";
 
   return (
-    <div className="mt-8 flex flex-wrap gap-3">
-      <Link href={findJobsHref} className="button button-primary px-6 py-3">
+    <div className={styles.actions}>
+      <Link href={findJobsHref} className="button button-primary button-hero">
         <Search className="h-4 w-4" />
         Tìm việc ngay
       </Link>
-      <Link href={postJobHref} className="button button-secondary px-6 py-3">
+      <Link href={postJobHref} className="button button-secondary button-hero">
         {postJobLabel}
         <ArrowRight className="h-4 w-4" />
       </Link>

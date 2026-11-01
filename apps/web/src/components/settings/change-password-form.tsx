@@ -51,23 +51,28 @@ export function ChangePasswordForm() {
         ] as const
       ).map(([name, label]) => (
         <div key={name}>
-          <label className="mb-1 block text-sm font-medium text-slate-800">
+          <label
+            className="mb-1 block text-sm font-extrabold text-[var(--ink)]"
+            htmlFor={`pwd-${name}`}
+          >
             {label}
           </label>
           <input
+            id={`pwd-${name}`}
             type="password"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900"
+            className="input-field"
+            autoComplete={name === "currentPassword" ? "current-password" : "new-password"}
             {...register(name)}
           />
           {errors[name] && (
-            <p className="mt-1 text-sm text-red-600">{errors[name]?.message}</p>
+            <p className="mt-1 text-sm font-semibold text-red-600">{errors[name]?.message}</p>
           )}
         </div>
       ))}
       <button
         type="submit"
         disabled={isSubmitting}
-        className="flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-800 disabled:opacity-60"
+        className="button button-primary flex items-center gap-2"
       >
         {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
         Cập nhật mật khẩu

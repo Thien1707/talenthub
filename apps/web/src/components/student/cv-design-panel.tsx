@@ -52,8 +52,8 @@ export function CvDesignPanel({
   return (
     <div className="space-y-6 p-1">
       <div>
-        <h3 className="text-sm font-semibold text-slate-900">Thư viện mẫu</h3>
-        <p className="mt-1 text-xs text-slate-500">
+        <h3 className="text-sm font-semibold text-[var(--ink)]">Thư viện mẫu</h3>
+        <p className="cv-form-muted">
           {templateName ? (
             <>
               Đang dùng <strong>{templateName}</strong> — {layoutLabels[layout]}
@@ -76,8 +76,8 @@ export function CvDesignPanel({
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-slate-900">Thứ tự mục</h3>
-        <p className="mt-1 text-xs text-slate-500">
+        <h3 className="text-sm font-semibold text-[var(--ink)]">Thứ tự mục</h3>
+        <p className="cv-form-muted">
           Kéo thả để sắp xếp — áp dụng cho tab Nội dung và xem trước. Nhớ bấm Lưu.
         </p>
         <div className="mt-3">
@@ -91,7 +91,7 @@ export function CvDesignPanel({
 
       {layout !== "topcv" && (
         <div>
-          <h3 className="text-sm font-semibold text-slate-900">Màu sidebar</h3>
+          <h3 className="text-sm font-semibold text-[var(--ink)]">Màu sidebar</h3>
           <div className="mt-2 flex flex-wrap gap-2">
             {ACCENT_PRESETS.map((p) => (
               <button
@@ -108,18 +108,18 @@ export function CvDesignPanel({
               />
             ))}
           </div>
-          <label className="mt-3 block text-xs text-slate-600">Mã màu tùy chọn</label>
+          <label className="cv-form-label mt-3">Mã màu tùy chọn</label>
           <input
             type="color"
             value={accentColor}
             onChange={(e) => onAccentChange(e.target.value)}
-            className="mt-1 h-10 w-full cursor-pointer rounded border bg-white"
+            className="cv-form-input mt-1 h-10 cursor-pointer p-1"
           />
         </div>
       )}
 
       <div>
-        <h3 className="text-sm font-semibold text-slate-900">Thu phóng xem trước</h3>
+        <h3 className="text-sm font-semibold text-[var(--ink)]">Thu phóng xem trước</h3>
         <input
           type="range"
           min={80}
@@ -128,7 +128,7 @@ export function CvDesignPanel({
           onChange={(e) => onPreviewScaleChange(Number(e.target.value))}
           className="mt-2 w-full"
         />
-        <p className="text-xs text-slate-500">
+        <p className="cv-form-muted">
           {previewScale}% — kéo để xem trang A4 vừa màn hình.
         </p>
       </div>

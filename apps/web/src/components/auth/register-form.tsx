@@ -15,6 +15,7 @@ import {
   type RegisterCompanyForm,
   type RegisterStudentForm,
 } from "@/lib/auth/schemas";
+import formStyles from "./auth-forms.module.css";
 
 export function RegisterForm() {
   const searchParams = useSearchParams();
@@ -37,10 +38,10 @@ export function RegisterForm() {
   const onSubmit = handleSubmit(async (values) => {
     try {
       const path = isCompany ? "/auth/register/company" : "/auth/register/student";
-      const { data } = await api.post<{ accessToken: string; user: { role: "STUDENT" | "COMPANY" } }>(
-        path,
-        values,
-      );
+      const { data } = await api.post<{
+        accessToken: string;
+        user: { role: "STUDENT" | "COMPANY" };
+      }>(path, values);
       setAccessToken(data.accessToken);
       toast.success("Đăng ký thành công");
       router.push(dashboardPath(data.user.role));
@@ -50,82 +51,91 @@ export function RegisterForm() {
   });
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div className="flex gap-2 rounded-lg bg-slate-100 p-1">
+    <form onSubmit={onSubmit} className={formStyles.form} aria-label="Đăng ký">
+      <div className={formStyles.roleSwitch} role="group" aria-label="Loại tài khoản">
         <Link
           href="/dang-ky"
-          className={`flex-1 rounded-md py-2 text-center text-sm ${!isCompany ? "bg-white shadow" : ""}`}
+          className={`${formStyles.roleLink} ${!isCompany ? formStyles.roleLinkActive : ""}`}
         >
           Sinh viên
         </Link>
         <Link
           href="/dang-ky?role=company"
-          className={`flex-1 rounded-md py-2 text-center text-sm ${isCompany ? "bg-white shadow" : ""}`}
+          className={`${formStyles.roleLink} ${isCompany ? formStyles.roleLinkActive : ""}`}
         >
           Công ty
         </Link>
       </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium text-slate-800">
+
+      <div className={formStyles.field}>
+        <label className={formStyles.label} htmlFor="register-fullName">
           Họ tên
         </label>
-        <input
-          className="input-field"
-          {...register("fullName")}
-        />
+        <input id="register-fullName" className="input-field" {...register("fullName")} />
         {errors.fullName && (
-          <p className="mt-1 text-sm text-red-600">{errors.fullName.message}</p>
+          <p className={formStyles.error}>{errors.fullName.message}</p>
         )}
       </div>
+
       {isCompany && (
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-800">
+        <div className={formStyles.field}>
+          <label className={formStyles.label} htmlFor="register-companyName">
             Tên công ty
           </label>
           <input
+            id="register-companyName"
             className="input-field"
             {...register("companyName" as keyof RegisterCompanyForm)}
           />
           {"companyName" in errors && errors.companyName && (
-            <p className="mt-1 text-sm text-red-600">
+            <p className={formStyles.error}>
               {(errors.companyName as { message?: string }).message}
             </p>
           )}
         </div>
       )}
-      <div>
-        <label className="mb-1 block text-sm font-medium text-slate-800">
+
+      <div className={formStyles.field}>
+        <label className={formStyles.label} htmlFor="register-email">
           Email
         </label>
         <input
+          id="register-email"
           type="email"
+          autoComplete="email"
           className="input-field"
           {...register("email")}
         />
         {errors.email && (
-          <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+          <p className={formStyles.error}>{errors.email.message}</p>
         )}
       </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium text-slate-800">
+
+      <div className={formStyles.field}>
+        <label className={formStyles.label} htmlFor="register-password">
           Mật khẩu
         </label>
         <input
+          id="register-password"
           type="password"
+          autoComplete="new-password"
           className="input-field"
           {...register("password")}
         />
         {errors.password && (
-          <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+          <p className={formStyles.error}>{errors.password.message}</p>
         )}
       </div>
+
       <button
         type="submit"
         disabled={isSubmitting}
-        className="button button-primary w-full py-3"
+        className={`button button-primary ${formStyles.submit}`}
       >
-        {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-        Tạo tài khoản
+        {isSubmitting && (
+          <Loader2 className="mr-1 inline h-4 w-4 animate-spin" aria-hidden />
+        )}
+        Tạo tài khoản miễn phí
       </button>
     </form>
   );

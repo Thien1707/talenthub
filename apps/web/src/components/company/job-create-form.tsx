@@ -2,17 +2,20 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { MoneyInput } from "@/components/ui/money-input";
 import { api } from "@/lib/api/client";
 import { extractApiErrorMessage } from "@/lib/extract-api-error";
 import { formatVND, parseVndAmount } from "@/lib/format-money";
-import { MoneyInput } from "@/components/ui/money-input";
+import shell from "./company-jobs-panel.module.css";
+import profilePaper from "./company-profile-form.module.css";
+import styles from "./job-create-form.module.css";
 
 type Category = { categoryId: string; categoryName: string };
 
-/** Khớp backend MAX_VND_SALARY */
 const MAX_SALARY_VND = 999_999_999_999;
 
 type FieldErrors = Partial<
@@ -51,6 +54,10 @@ export function JobCreateForm() {
       return data;
     },
   });
+
+  const categoryName =
+    categories?.find((c) => c.categoryId === form.categoryId)?.categoryName ??
+    "";
 
   function validateClient(): FieldErrors {
     const err: FieldErrors = {};
@@ -132,184 +139,325 @@ export function JobCreateForm() {
     save.mutate();
   };
 
-  const inputClass = (field: keyof FieldErrors) =>
-    `w-full rounded-lg border px-3 py-2 ${
-      fieldErrors[field] ? "border-red-500 ring-1 ring-red-200" : "border-slate-300"
-    }`;
+  const lineInput = (field: keyof FieldErrors) =>
+    `${profilePaper.input} ${fieldErrors[field] ? styles.inputError : ""}`;
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="space-y-3">
-        <div>
-          <input
-            placeholder="Tiêu đề công việc *"
-            className={inputClass("title")}
-            value={form.title}
-            onChange={(e) => {
-              setForm({ ...form, title: e.target.value });
-              if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: undefined });
-            }}
-          />
-          {fieldErrors.title ? (
-            <p className="mt-1 text-xs text-red-600">{fieldErrors.title}</p>
-          ) : null}
-        </div>
-        <div>
-          <select
-            className={inputClass("categoryId")}
-            value={form.categoryId}
-            onChange={(e) => {
-              setForm({ ...form, categoryId: e.target.value });
-              if (fieldErrors.categoryId)
-                setFieldErrors({ ...fieldErrors, categoryId: undefined });
-            }}
+    <div className={shell.workspace}>
+      <div className={shell.layout}>
+        <aside className={shell.rail}>
+          <h1 className={shell.railTitle}>Soạn tin.</h1>
+          <p className={shell.railLead}>
+            Nhập thông tin tin — bước tiếp theo chọn quảng bá và thanh toán từ
+            ví.
+          </p>
+
+          <ol className={styles.steps}>
+            <li className={`${styles.step} ${styles.stepActive}`}>
+              <span className={styles.stepNum}>1</span>
+              <span>Soạn nội dung tin nháp</span>
+            </li>
+            <li className={styles.step}>
+              <span className={styles.stepNum}>2</span>
+              <span>Quảng bá &amp; thanh toán ví</span>
+            </li>
+            <li className={styles.step}>
+              <span className={styles.stepNum}>3</span>
+              <span>Gửi duyệt &amp; đăng tin</span>
+            </li>
+          </ol>
+
+          <Link
+            href="/cong-ty/tin-tuyen-dung"
+            className={styles.backLink}
           >
-            <option value="">Chọn danh mục *</option>
-            {categories?.map((c) => (
-              <option key={c.categoryId} value={c.categoryId}>
-                {c.categoryName}
-              </option>
-            ))}
-          </select>
-          {fieldErrors.categoryId ? (
-            <p className="mt-1 text-xs text-red-600">{fieldErrors.categoryId}</p>
-          ) : null}
-        </div>
-        <select
-          className="w-full rounded-lg border border-slate-300 px-3 py-2"
-          value={form.jobType}
-          onChange={(e) =>
-            setForm({ ...form, jobType: e.target.value as "NORMAL" | "VIP" })
-          }
-        >
-          <option value="NORMAL">Tin thường</option>
-          <option value="VIP">Tin VIP (luôn tính phí đăng)</option>
-        </select>
-        <div>
-          <input
-            placeholder="Địa điểm *"
-            className={inputClass("location")}
-            value={form.location}
-            onChange={(e) => {
-              setForm({ ...form, location: e.target.value });
-              if (fieldErrors.location)
-                setFieldErrors({ ...fieldErrors, location: undefined });
-            }}
-          />
-          {fieldErrors.location ? (
-            <p className="mt-1 text-xs text-red-600">{fieldErrors.location}</p>
-          ) : null}
-        </div>
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={form.salaryNegotiable}
-            onChange={(e) => {
-              const checked = e.target.checked;
-              setForm({
-                ...form,
-                salaryNegotiable: checked,
-                salaryMin: checked ? "" : form.salaryMin,
-                salaryMax: checked ? "" : form.salaryMax,
-              });
-              if (checked) {
-                setFieldErrors({
-                  ...fieldErrors,
-                  salaryMin: undefined,
-                  salaryMax: undefined,
-                });
-              }
-            }}
-          />
-          Lương thỏa thuận (không hiển thị khoảng lương cụ thể)
-        </label>
-        <p className="text-xs text-slate-500">
-          Hoặc nhập khoảng lương có dấu phẩy (vd. 15,000,000 – 25,000,000 VND/tháng).
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <MoneyInput
-              digits={form.salaryMin}
-              placeholder="Lương tối thiểu"
-              disabled={form.salaryNegotiable}
-              className={inputClass("salaryMin")}
-              onDigitsChange={(digits) => {
-                setForm({
-                  ...form,
-                  salaryMin: digits,
-                  salaryNegotiable: false,
-                });
-                if (fieldErrors.salaryMin)
-                  setFieldErrors({ ...fieldErrors, salaryMin: undefined });
-              }}
-            />
-            {fieldErrors.salaryMin ? (
-              <p className="mt-1 text-xs text-red-600">{fieldErrors.salaryMin}</p>
-            ) : null}
+            ← Quản lý tin tuyển dụng
+          </Link>
+        </aside>
+
+        <div className={shell.stack}>
+          <div className={shell.tabRow} aria-hidden>
+            <span className={`${shell.tab} ${shell.tabActive}`}>Soạn tin</span>
+            <span className={`${shell.tab} ${styles.tabUpcoming}`}>
+              Thanh toán
+            </span>
+            <span className={`${shell.tab} ${styles.tabUpcoming}`}>Duyệt</span>
           </div>
-          <div>
-            <MoneyInput
-              digits={form.salaryMax}
-              placeholder="Lương tối đa"
-              disabled={form.salaryNegotiable}
-              className={inputClass("salaryMax")}
-              onDigitsChange={(digits) => {
-                setForm({
-                  ...form,
-                  salaryMax: digits,
-                  salaryNegotiable: false,
-                });
-                if (fieldErrors.salaryMax)
-                  setFieldErrors({ ...fieldErrors, salaryMax: undefined });
-              }}
-            />
-            {fieldErrors.salaryMax ? (
-              <p className="mt-1 text-xs text-red-600">{fieldErrors.salaryMax}</p>
-            ) : null}
+
+          <div className={shell.folder}>
+            <div className={shell.paper}>
+              <div className={shell.paperHead}>
+                <h2 className={shell.paperTitle}>Tạo tin tuyển dụng</h2>
+                <p className={shell.paperSub}>
+                  Điền đủ các mục bắt buộc (*) — lưu nháp rồi chuyển sang bước
+                  thanh toán.
+                </p>
+                {form.title.trim() ? (
+                  <p className={styles.previewLine}>{form.title.trim()}</p>
+                ) : null}
+              </div>
+
+              <section className={styles.formSection} aria-labelledby="jc-main">
+                <h3 id="jc-main" className={profilePaper.sectionLabel}>
+                  Thông tin chính
+                </h3>
+                <div className={profilePaper.fieldGrid}>
+                  <div className={profilePaper.field}>
+                    <label className={profilePaper.fieldLabel} htmlFor="title">
+                      Tiêu đề công việc *
+                    </label>
+                    <input
+                      id="title"
+                      className={lineInput("title")}
+                      value={form.title}
+                      onChange={(e) => {
+                        setForm({ ...form, title: e.target.value });
+                        if (fieldErrors.title)
+                          setFieldErrors({ ...fieldErrors, title: undefined });
+                      }}
+                    />
+                    {fieldErrors.title ? (
+                      <p className={styles.fieldError}>{fieldErrors.title}</p>
+                    ) : null}
+                  </div>
+                  <div className={profilePaper.fieldGridTwo}>
+                    <div className={profilePaper.field}>
+                      <label
+                        className={profilePaper.fieldLabel}
+                        htmlFor="categoryId"
+                      >
+                        Danh mục *
+                      </label>
+                      <select
+                        id="categoryId"
+                        className={`${styles.selectInput} ${fieldErrors.categoryId ? styles.inputError : ""}`}
+                        value={form.categoryId}
+                        onChange={(e) => {
+                          setForm({ ...form, categoryId: e.target.value });
+                          if (fieldErrors.categoryId)
+                            setFieldErrors({
+                              ...fieldErrors,
+                              categoryId: undefined,
+                            });
+                        }}
+                      >
+                        <option value="">Chọn danh mục</option>
+                        {categories?.map((c) => (
+                          <option key={c.categoryId} value={c.categoryId}>
+                            {c.categoryName}
+                          </option>
+                        ))}
+                      </select>
+                      {fieldErrors.categoryId ? (
+                        <p className={styles.fieldError}>
+                          {fieldErrors.categoryId}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className={profilePaper.field}>
+                      <label className={profilePaper.fieldLabel} htmlFor="jobType">
+                        Loại tin
+                      </label>
+                      <select
+                        id="jobType"
+                        className={styles.selectInput}
+                        value={form.jobType}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            jobType: e.target.value as "NORMAL" | "VIP",
+                          })
+                        }
+                      >
+                        <option value="NORMAL">Tin thường</option>
+                        <option value="VIP">Tin VIP (luôn tính phí đăng)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className={profilePaper.field}>
+                    <label className={profilePaper.fieldLabel} htmlFor="location">
+                      Địa điểm làm việc *
+                    </label>
+                    <input
+                      id="location"
+                      className={lineInput("location")}
+                      value={form.location}
+                      onChange={(e) => {
+                        setForm({ ...form, location: e.target.value });
+                        if (fieldErrors.location)
+                          setFieldErrors({
+                            ...fieldErrors,
+                            location: undefined,
+                          });
+                      }}
+                    />
+                    {fieldErrors.location ? (
+                      <p className={styles.fieldError}>{fieldErrors.location}</p>
+                    ) : null}
+                  </div>
+                  {categoryName ? (
+                    <p className={profilePaper.hint}>Ngành: {categoryName}</p>
+                  ) : null}
+                </div>
+              </section>
+
+              <section className={styles.formSection} aria-labelledby="jc-salary">
+                <h3 id="jc-salary" className={profilePaper.sectionLabel}>
+                  Lương
+                </h3>
+                <label className={styles.checkRow}>
+                  <input
+                    type="checkbox"
+                    checked={form.salaryNegotiable}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setForm({
+                        ...form,
+                        salaryNegotiable: checked,
+                        salaryMin: checked ? "" : form.salaryMin,
+                        salaryMax: checked ? "" : form.salaryMax,
+                      });
+                      if (checked) {
+                        setFieldErrors({
+                          ...fieldErrors,
+                          salaryMin: undefined,
+                          salaryMax: undefined,
+                        });
+                      }
+                    }}
+                  />
+                  Lương thỏa thuận (không hiển thị khoảng cụ thể)
+                </label>
+                <p className={profilePaper.hint}>
+                  Hoặc nhập khoảng có dấu phẩy (vd. 15,000,000 – 25,000,000
+                  VND/tháng).
+                </p>
+                <div className={styles.salaryGrid}>
+                  <div className={profilePaper.field}>
+                    <label className={profilePaper.fieldLabel}>Lương tối thiểu</label>
+                    <MoneyInput
+                      digits={form.salaryMin}
+                      placeholder="0"
+                      disabled={form.salaryNegotiable}
+                      className={lineInput("salaryMin")}
+                      onDigitsChange={(digits) => {
+                        setForm({
+                          ...form,
+                          salaryMin: digits,
+                          salaryNegotiable: false,
+                        });
+                        if (fieldErrors.salaryMin)
+                          setFieldErrors({
+                            ...fieldErrors,
+                            salaryMin: undefined,
+                          });
+                      }}
+                    />
+                    {fieldErrors.salaryMin ? (
+                      <p className={styles.fieldError}>{fieldErrors.salaryMin}</p>
+                    ) : null}
+                  </div>
+                  <div className={profilePaper.field}>
+                    <label className={profilePaper.fieldLabel}>Lương tối đa</label>
+                    <MoneyInput
+                      digits={form.salaryMax}
+                      placeholder="0"
+                      disabled={form.salaryNegotiable}
+                      className={lineInput("salaryMax")}
+                      onDigitsChange={(digits) => {
+                        setForm({
+                          ...form,
+                          salaryMax: digits,
+                          salaryNegotiable: false,
+                        });
+                        if (fieldErrors.salaryMax)
+                          setFieldErrors({
+                            ...fieldErrors,
+                            salaryMax: undefined,
+                          });
+                      }}
+                    />
+                    {fieldErrors.salaryMax ? (
+                      <p className={styles.fieldError}>{fieldErrors.salaryMax}</p>
+                    ) : null}
+                  </div>
+                </div>
+              </section>
+
+              <section className={styles.formSection} aria-labelledby="jc-body">
+                <h3 id="jc-body" className={profilePaper.sectionLabel}>
+                  Nội dung tin
+                </h3>
+                <div className={profilePaper.fieldGrid}>
+                  <div className={profilePaper.field}>
+                    <label className={profilePaper.fieldLabel} htmlFor="description">
+                      Mô tả công việc *
+                    </label>
+                    <textarea
+                      id="description"
+                      rows={4}
+                      className={`${profilePaper.textarea} ${fieldErrors.description ? styles.inputError : ""}`}
+                      value={form.description}
+                      onChange={(e) => {
+                        setForm({ ...form, description: e.target.value });
+                        if (fieldErrors.description)
+                          setFieldErrors({
+                            ...fieldErrors,
+                            description: undefined,
+                          });
+                      }}
+                    />
+                    {fieldErrors.description ? (
+                      <p className={styles.fieldError}>
+                        {fieldErrors.description}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className={profilePaper.field}>
+                    <label
+                      className={profilePaper.fieldLabel}
+                      htmlFor="requirements"
+                    >
+                      Yêu cầu ứng viên *
+                    </label>
+                    <textarea
+                      id="requirements"
+                      rows={4}
+                      className={`${profilePaper.textarea} ${fieldErrors.requirements ? styles.inputError : ""}`}
+                      value={form.requirements}
+                      onChange={(e) => {
+                        setForm({ ...form, requirements: e.target.value });
+                        if (fieldErrors.requirements)
+                          setFieldErrors({
+                            ...fieldErrors,
+                            requirements: undefined,
+                          });
+                      }}
+                    />
+                    {fieldErrors.requirements ? (
+                      <p className={styles.fieldError}>
+                        {fieldErrors.requirements}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </section>
+
+              <button
+                type="button"
+                disabled={save.isPending}
+                onClick={handleContinue}
+                className={styles.submitBtn}
+              >
+                {save.isPending && (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                )}
+                Tiếp tục — thanh toán &amp; gửi duyệt
+              </button>
+            </div>
           </div>
         </div>
-        <div>
-          <textarea
-            placeholder="Mô tả công việc *"
-            rows={4}
-            className={inputClass("description")}
-            value={form.description}
-            onChange={(e) => {
-              setForm({ ...form, description: e.target.value });
-              if (fieldErrors.description)
-                setFieldErrors({ ...fieldErrors, description: undefined });
-            }}
-          />
-          {fieldErrors.description ? (
-            <p className="mt-1 text-xs text-red-600">{fieldErrors.description}</p>
-          ) : null}
-        </div>
-        <div>
-          <textarea
-            placeholder="Yêu cầu ứng viên *"
-            rows={4}
-            className={inputClass("requirements")}
-            value={form.requirements}
-            onChange={(e) => {
-              setForm({ ...form, requirements: e.target.value });
-              if (fieldErrors.requirements)
-                setFieldErrors({ ...fieldErrors, requirements: undefined });
-            }}
-          />
-          {fieldErrors.requirements ? (
-            <p className="mt-1 text-xs text-red-600">{fieldErrors.requirements}</p>
-          ) : null}
-        </div>
-        <button
-          type="button"
-          disabled={save.isPending}
-          onClick={handleContinue}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
-        >
-          {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          Tiếp tục — thanh toán &amp; gửi duyệt
-        </button>
       </div>
-    </section>
+    </div>
   );
 }
