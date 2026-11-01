@@ -42,7 +42,12 @@ type CvDetail = {
     cvVersionId?: string;
     sourceType?: string;
     contentJson?: unknown;
-    fileAsset?: { assetId?: string; originalFilename?: string | null };
+    fileAsset?: {
+      assetId?: string;
+      originalFilename?: string | null;
+      mimeType?: string | null;
+      fileSize?: string | number | null;
+    };
   };
 };
 
