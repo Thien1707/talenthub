@@ -49,12 +49,18 @@ export class MediaService {
     if (isImage && !IMAGE_MIMES.has(file.mimetype)) {
       throw new BadRequestException('Ảnh phải là JPEG, PNG, WebP hoặc GIF');
     }
-    if (isDoc && !DOC_MIMES.has(file.mimetype) && !IMAGE_MIMES.has(file.mimetype)) {
-      throw new BadRequestException('Định dạng file không được hỗ trợ');
-    }
     if (assetType === AssetType.CV) {
+      if (!file.buffer?.length) {
+        throw new BadRequestException('Thiếu nội dung file upload');
+      }
       const { mimeType } = assertValidCvUploadBuffer(file.buffer);
       file.mimetype = mimeType;
+    } else if (
+      isDoc &&
+      !DOC_MIMES.has(file.mimetype) &&
+      !IMAGE_MIMES.has(file.mimetype)
+    ) {
+      throw new BadRequestException('Định dạng file không được hỗ trợ');
     }
 
     const maxBytes =

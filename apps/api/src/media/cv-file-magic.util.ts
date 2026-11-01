@@ -2,33 +2,64 @@ import { BadRequestException } from '@nestjs/common';
 
 export type CvUploadKind = 'pdf' | 'doc' | 'docx';
 
+/** ISO 32000: reader tìm header %PDF- trong ~1024 byte đầu (nhiều exporter thêm padding). */
+const PDF_HEADER_SCAN = 4096;
+
 const PDF_MIME = 'application/pdf';
 const DOC_MIME = 'application/msword';
 const DOCX_MIME =
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
-export function detectCvUploadKind(buffer: Buffer): CvUploadKind | null {
-  if (buffer.length >= 5 && buffer.subarray(0, 5).toString('ascii') === '%PDF-') {
-    return 'pdf';
+function bufferIncludesPdfHeader(buffer: Buffer): boolean {
+  const scan = Math.min(buffer.length, PDF_HEADER_SCAN);
+  for (let i = 0; i <= scan - 5; i++) {
+    if (
+      buffer[i] === 0x25 &&
+      buffer[i + 1] === 0x50 &&
+      buffer[i + 2] === 0x44 &&
+      buffer[i + 3] === 0x46 &&
+      buffer[i + 4] === 0x2d
+    ) {
+      return true;
+    }
   }
-  if (
+  return false;
+}
+
+function isOleDoc(buffer: Buffer): boolean {
+  return (
     buffer.length >= 8 &&
     buffer[0] === 0xd0 &&
     buffer[1] === 0xcf &&
     buffer[2] === 0x11 &&
     buffer[3] === 0xe0
-  ) {
+  );
+}
+
+function isDocxZip(buffer: Buffer): boolean {
+  if (buffer.length < 4 || buffer[0] !== 0x50 || buffer[1] !== 0x4b) {
+    return false;
+  }
+  const head = buffer.subarray(0, Math.min(buffer.length, 8192)).toString('utf8');
+  return (
+    head.includes('word/') ||
+    head.includes('WordDocument') ||
+    head.includes('word/document.xml') ||
+    head.includes('[Content_Types].xml')
+  );
+}
+
+export function detectCvUploadKind(buffer: Buffer): CvUploadKind | null {
+  if (!buffer?.length) return null;
+
+  if (bufferIncludesPdfHeader(buffer)) {
+    return 'pdf';
+  }
+  if (isOleDoc(buffer)) {
     return 'doc';
   }
-  if (buffer.length >= 4 && buffer[0] === 0x50 && buffer[1] === 0x4b) {
-    const head = buffer.subarray(0, Math.min(buffer.length, 4096)).toString('utf8');
-    if (
-      head.includes('word/') ||
-      head.includes('WordDocument') ||
-      head.includes('word/document.xml')
-    ) {
-      return 'docx';
-    }
+  if (isDocxZip(buffer)) {
+    return 'docx';
   }
   return null;
 }
