@@ -9,15 +9,16 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { LocationFields } from "@/components/locations/location-fields";
 import { api } from "@/lib/api/client";
+import { extractApiErrorMessage } from "@/lib/extract-api-error";
 
 const schema = z.object({
-  city: z.string().optional(),
-  province: z.string().optional(),
-  ward: z.string().optional(),
-  schoolName: z.string().optional(),
-  major: z.string().optional(),
-  bio: z.string().optional(),
-  educationLevel: z.string().optional(),
+  city: z.string().nullish(),
+  province: z.string().nullish(),
+  ward: z.string().nullish(),
+  schoolName: z.string().nullish(),
+  major: z.string().nullish(),
+  bio: z.string().nullish(),
+  educationLevel: z.string().nullish(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -52,7 +53,8 @@ export function StudentProfileForm() {
       toast.success("Đã lưu hồ sơ");
       void qc.invalidateQueries({ queryKey: ["student", "profile"] });
     },
-    onError: () => toast.error("Lưu thất bại"),
+    onError: (error) =>
+      toast.error(extractApiErrorMessage(error, "Lưu hồ sơ thất bại")),
   });
 
   const province = watch("province") ?? "";

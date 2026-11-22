@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Gender, WorkScheduleType } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsDate,
   IsEnum,
@@ -115,11 +115,13 @@ export class UpdateStudentProfileDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(({ value }) => (value === '' ? null : value))
   @IsUrl()
-  linkedinUrl?: string;
+  linkedinUrl?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(({ value }) => (value === '' ? null : value))
   @IsUrl()
-  portfolioUrl?: string;
+  portfolioUrl?: string | null;
 }

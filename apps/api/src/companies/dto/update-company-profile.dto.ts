@@ -1,4 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsOptional, IsString, IsUrl } from 'class-validator';
 
 export class UpdateCompanyProfileDto {
@@ -24,8 +25,9 @@ export class UpdateCompanyProfileDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(({ value }) => (value === '' ? null : value))
   @IsUrl()
-  website?: string;
+  website?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()

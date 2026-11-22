@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api/client";
 import { uploadMedia } from "@/lib/api/upload";
+import { extractApiErrorMessage } from "@/lib/extract-api-error";
 import styles from "./company-profile-form.module.css";
 
 type CompanyProfile = {
@@ -85,7 +86,8 @@ export function CompanyProfileForm() {
       toast.success("Đã lưu hồ sơ công ty");
       void qc.invalidateQueries({ queryKey: ["company", "profile"] });
     },
-    onError: () => toast.error("Lưu thất bại"),
+    onError: (error) =>
+      toast.error(extractApiErrorMessage(error, "Lưu hồ sơ công ty thất bại")),
   });
 
   if (isLoading) {
