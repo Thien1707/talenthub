@@ -476,7 +476,7 @@ function SkillsSection({
       />
       <ul className="mt-3 space-y-2">
         {skills.map((skill, i) => (
-          <li key={`skill-${i}-${skill.slice(0, 12)}`} className="flex gap-2">
+          <li key={`skill-${i}`} className="flex gap-2">
             <input
               className="flex-1 cv-form-input"
               placeholder="VD: TypeScript"

@@ -100,21 +100,35 @@ export function CvModernPreview({
                 {textField("city", content.personal.city ?? "", "Thành phố", "min-w-[3rem]", false, true)}
               </p>
             )}
+            {(editable || content.personal.website?.trim()) && (
+              <p>
+                {textField(
+                  "website",
+                  content.personal.website ?? "",
+                  "Link portfolio",
+                  "min-w-[3rem]",
+                  false,
+                  true,
+                )}
+              </p>
+            )}
           </div>
-          {content.skills.length > 0 && (
+          {content.skills.some((skill) => skill.trim()) && (
             <div className="mt-5 space-y-2 border-t border-white/20 pt-4">
               <p className="text-[9px] font-semibold uppercase tracking-widest text-sky-200">
                 Kỹ năng
               </p>
               <ul className="flex flex-wrap gap-1">
-                {content.skills.map((s) => (
-                  <li
-                    key={s}
-                    className="rounded bg-white/15 px-1.5 py-0.5 text-[9px]"
-                  >
-                    {s}
-                  </li>
-                ))}
+                {content.skills.map((s, i) =>
+                  s.trim() ? (
+                    <li
+                      key={i}
+                      className="rounded bg-white/15 px-1.5 py-0.5 text-[9px]"
+                    >
+                      {s}
+                    </li>
+                  ) : null,
+                )}
               </ul>
             </div>
           )}
@@ -141,6 +155,27 @@ export function CvModernPreview({
             </section>
           )}
           <CvModernMainSections content={content} accent={accent} />
+          {(
+            [
+              ["Người giới thiệu", content.personal.references],
+              ["Sở thích", content.personal.interests],
+              ["Thông tin thêm", content.personal.extraNotes],
+            ] as const
+          ).map(([title, value]) =>
+            value?.trim() ? (
+              <section key={title} className="mb-5">
+                <h3
+                  className="border-b-2 pb-1 text-[10px] font-bold uppercase tracking-wider"
+                  style={{ borderColor: accent, color: accent }}
+                >
+                  {title}
+                </h3>
+                <p className="mt-2 whitespace-pre-wrap text-[10px] text-slate-700">
+                  {value}
+                </p>
+              </section>
+            ) : null,
+          )}
         </main>
       </div>
     </div>

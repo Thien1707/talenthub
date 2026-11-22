@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Upload } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CvAiPanel } from "@/components/student/cv-ai-panel";
 import { CvDesignPanel } from "@/components/student/cv-design-panel";
@@ -69,6 +69,7 @@ export function CvManager({
   const [content, setContent] = useState<CvContent>(emptyBuilderContent());
   const [previewScale, setPreviewScale] = useState(100);
   const [editOnCv, setEditOnCv] = useState(true);
+  const initializedCvVersion = useRef<string | null>(null);
 
   const { data: cv, isLoading, isError } = useQuery({
     queryKey: ["cvs", cvId],
@@ -88,6 +89,10 @@ export function CvManager({
 
   useEffect(() => {
     if (cv) {
+      const versionKey = `${cv.cvId}:${cv.currentVersion?.cvVersionId ?? "none"}`;
+      if (initializedCvVersion.current === versionKey) return;
+      initializedCvVersion.current = versionKey;
+
       setCvName(cv.cvName);
       if (cv.currentVersion?.contentJson) {
         setContent(normalizeCvContentJson(cv.currentVersion.contentJson));
@@ -151,6 +156,15 @@ export function CvManager({
       }
       void qc.invalidateQueries({ queryKey: ["cvs", cvId] });
       void qc.invalidateQueries({ queryKey: ["cvs", "me"] });
+    },
+    onError: (err: unknown) => {
+      const msg =
+        err &&
+        typeof err === "object" &&
+        "response" in err &&
+        (err as { response?: { data?: { message?: string } } }).response?.data
+          ?.message;
+      toast.error(typeof msg === "string" ? msg : "Không lưu được CV");
     },
   });
 

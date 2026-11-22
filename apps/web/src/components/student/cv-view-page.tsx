@@ -43,14 +43,13 @@ export function CvViewPage({
     },
   });
 
-  const aiHref = (() => {
+  const editorHref = (() => {
     const q = new URLSearchParams();
     if (jobId) q.set("jobId", jobId);
     if (jobTitle) q.set("jobTitle", jobTitle);
     const qs = q.toString();
     return `/sinh-vien/cv/${cvId}${qs ? `?${qs}` : ""}`;
   })();
-
   if (isLoading) {
     return (
       <p className="flex items-center gap-2 text-slate-600">
@@ -91,8 +90,8 @@ export function CvViewPage({
           <Link href="/sinh-vien/cv" className="button button-secondary">
             ← Danh sách CV
           </Link>
-          <Link href={aiHref} className="button">
-            Phân tích AI
+          <Link href={editorHref} className="button">
+            {isUpload ? "Phân tích AI" : "Chỉnh sửa CV"}
           </Link>
         </div>
       </div>

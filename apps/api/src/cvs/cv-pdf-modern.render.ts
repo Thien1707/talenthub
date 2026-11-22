@@ -12,7 +12,12 @@ const PAGE_H = 841.89;
 const MARGIN_BOTTOM = 50;
 
 function contactLines(content: CvContent) {
-  return [content.personal.email, content.personal.phone, content.personal.city]
+  return [
+    content.personal.email,
+    content.personal.phone,
+    content.personal.city,
+    content.personal.website,
+  ]
     .map((v) => (v ?? '').trim())
     .filter(Boolean);
 }
@@ -192,6 +197,23 @@ export function renderModernCvPdf(
             doc.text(ed.major.trim(), MAIN_X, my);
             my += 12;
           }
+          if (ed.from || ed.to) {
+            useFont(8);
+            doc.fillColor('#64748b');
+            doc.text([ed.from, ed.to].filter(Boolean).join(' – '), MAIN_X, my);
+            my += 12;
+          }
+          if (ed.description?.trim()) {
+            useFont(9);
+            doc.fillColor('#475569');
+            doc.text(ed.description.trim(), MAIN_X, my, {
+              width: PAGE_W - MAIN_X - 40,
+            });
+            my +=
+              doc.heightOfString(ed.description, {
+                width: PAGE_W - MAIN_X - 40,
+              }) + 6;
+          }
           my += 4;
         }
         return;
@@ -292,6 +314,21 @@ export function renderModernCvPdf(
 
   for (const key of resolveSectionOrder(content)) {
     renderSection(key);
+  }
+
+  const personalSections = [
+    ['Người giới thiệu', content.personal.references],
+    ['Sở thích', content.personal.interests],
+    ['Thông tin thêm', content.personal.extraNotes],
+  ] as const;
+  for (const [title, value] of personalSections) {
+    if (!value?.trim()) continue;
+    sectionTitle(title);
+    useFont(9);
+    doc.fillColor('#475569');
+    const text = value.trim();
+    doc.text(text, MAIN_X, my, { width: PAGE_W - MAIN_X - 40 });
+    my += doc.heightOfString(text, { width: PAGE_W - MAIN_X - 40 }) + 16;
   }
 }
 

@@ -105,6 +105,9 @@ function modernBlock(
                     {[ed.from, ed.to].filter(Boolean).join(" – ")}
                   </p>
                 )}
+                {ed.description && (
+                  <p className="text-[10px] text-slate-600">{ed.description}</p>
+                )}
               </li>
             ))}
           </ul>
@@ -187,8 +190,9 @@ function topcvBlock(key: CvSectionKey, content: CvContent): ReactNode | null {
   const activities = content.activities ?? [];
   const certificates = content.certificates ?? [];
   const awards = content.awards ?? [];
-  const skillsCol1 = content.skills.filter((_, i) => i % 2 === 0);
-  const skillsCol2 = content.skills.filter((_, i) => i % 2 === 1);
+  const skills = content.skills.map((skill) => skill.trim()).filter(Boolean);
+  const skillsCol1 = skills.filter((_, i) => i % 2 === 0);
+  const skillsCol2 = skills.filter((_, i) => i % 2 === 1);
 
   switch (key) {
     case "education":
@@ -242,18 +246,18 @@ function topcvBlock(key: CvSectionKey, content: CvContent): ReactNode | null {
         </TopcvSection>
       );
     case "skills":
-      if (!content.skills.length) return null;
+      if (!skills.length) return null;
       return (
         <TopcvSection key={key} title="Kỹ năng">
           <div className="grid grid-cols-2 gap-x-4 text-[10px] text-slate-700">
             <ul className="space-y-0.5">
-              {skillsCol1.map((s) => (
-                <li key={s}>{s}</li>
+              {skillsCol1.map((s, i) => (
+                <li key={i}>{s}</li>
               ))}
             </ul>
             <ul className="space-y-0.5">
-              {skillsCol2.map((s) => (
-                <li key={s}>{s}</li>
+              {skillsCol2.map((s, i) => (
+                <li key={i}>{s}</li>
               ))}
             </ul>
           </div>
