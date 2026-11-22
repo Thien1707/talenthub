@@ -381,14 +381,12 @@ export function CvListPanel({
         {!isLoading && (
           <>
             <h3 className={styles.sectionTitle}>CV tạo trên TalentHub</h3>
-            {builderCvs.length === 0 ? (
+            {builderCvs.length === 0 && (
               <p className={styles.sectionEmpty}>
-                Chưa có CV builder — bấm <strong>CV mới</strong> hoặc tạo từ
-                form phía trên.
+                Chưa có CV builder — chọn <strong>CV mới</strong> để bắt đầu.
               </p>
-            ) : (
-              renderCvGrid(builderCvs, "builder")
             )}
+            {renderCvGrid(builderCvs, "builder")}
 
             <h3 className={styles.sectionTitle}>CV tải lên từ máy tính</h3>
             {uploadCvs.length === 0 ? (
