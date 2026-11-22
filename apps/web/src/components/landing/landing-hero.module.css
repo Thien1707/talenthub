@@ -232,7 +232,7 @@
   margin-bottom: var(--space-5);
   border-radius: var(--radius-full);
   border: 1px solid rgb(196 181 253 / 0.8);
-  background: rgb(255 255 255 / 0.75);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
   padding: 0.5rem 0.875rem;
   font-size: 0.875rem;
   font-weight: 700;
@@ -296,6 +296,16 @@
   border: 1px solid color-mix(in srgb, var(--color-border) 90%, white);
   background: linear-gradient(120deg, #efeaff 0%, #f6f0ff 55%, #fdeef3 100%);
   padding: var(--space-12) var(--space-4) 3.5rem;
+}
+
+html.dark .lowerPanel {
+  border-color: var(--color-border);
+  background: linear-gradient(
+    120deg,
+    #211a31 0%,
+    #261d33 55%,
+    #30202d 100%
+  );
 }
 
 .glowLeft,

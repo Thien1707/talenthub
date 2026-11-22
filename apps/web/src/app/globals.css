@@ -276,7 +276,7 @@ textarea::placeholder {
 
 /* Dotted paper background (Doory-style) */
 .th-dotted-page {
-  background: #fff;
+  background: var(--background);
 }
 
 .th-site-header {
@@ -286,6 +286,10 @@ textarea::placeholder {
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
   background: rgb(255 255 255 / 95%);
   backdrop-filter: saturate(1.35) blur(14px);
+}
+
+html.dark .th-site-header {
+  background: color-mix(in srgb, var(--color-surface) 95%, transparent);
 }
 
 @layer components {
