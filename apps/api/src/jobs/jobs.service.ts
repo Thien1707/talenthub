@@ -142,16 +142,55 @@ export class JobsService {
         return !!found;
       });
     }
-    const { categoryId, ...rest } = dto;
-    return this.prisma.job.update({
-      where: { jobId },
-      data: {
-        ...rest,
-        categoryId: categoryId ? BigInt(categoryId) : undefined,
-        slug,
-      },
-      include: { category: true },
+    const { categoryId, schedules, ...rest } = dto;
+    if (
+      schedules?.some((schedule) => schedule.endTime <= schedule.startTime)
+    ) {
+      throw new BadRequestException(
+        'Giờ kết thúc của ca làm phải sau giờ bắt đầu',
+      );
+    }
+    return this.prisma.$transaction(async (tx) => {
+      await tx.job.update({
+        where: { jobId },
+        data: {
+          ...rest,
+          categoryId: categoryId ? BigInt(categoryId) : undefined,
+          slug,
+        },
+      });
+      if (schedules !== undefined) {
+        await tx.jobWorkSchedule.deleteMany({ where: { jobId } });
+        if (schedules.length > 0) {
+          await tx.jobWorkSchedule.createMany({
+            data: schedules.map((schedule) => ({ ...schedule, jobId })),
+          });
+        }
+      }
+      return tx.job.findUnique({
+        where: { jobId },
+        include: { category: true, schedules: true },
+      });
     });
+  }
+
+  async deleteDraft(userId: bigint, jobId: bigint) {
+    const company = await getCompanyProfileForUser(this.prisma, userId);
+    const job = await this.getJobOrThrow(jobId);
+    assertCompanyOwnsJob(company.companyId, job.companyId);
+    if (
+      job.status !== JobStatus.DRAFT &&
+      job.status !== JobStatus.REJECTED
+    ) {
+      throw new BadRequestException(
+        'Chỉ xóa được tin ở trạng thái nháp hoặc bị từ chối',
+      );
+    }
+    await this.prisma.job.update({
+      where: { jobId },
+      data: { deletedAt: new Date() },
+    });
+    return { success: true, jobId: jobId.toString() };
   }
 
   async submitForModeration(userId: bigint, jobId: bigint) {
@@ -248,7 +287,11 @@ export class JobsService {
     const company = await getCompanyProfileForUser(this.prisma, userId);
     const job = await this.prisma.job.findFirst({
       where: { jobId, companyId: company.companyId, deletedAt: null },
-      include: { category: true, statusHistory: { orderBy: { createdAt: 'desc' }, take: 10 } },
+      include: {
+        category: true,
+        schedules: true,
+        statusHistory: { orderBy: { createdAt: 'desc' }, take: 10 },
+      },
     });
     if (!job) throw new NotFoundException('Không tìm thấy tin');
     return job;

@@ -21,7 +21,7 @@ import {
 } from 'class-validator';
 import { MAX_VND_SALARY } from '../../common/constants/money.constants';
 
-class JobWorkScheduleDto {
+export class JobWorkScheduleDto {
   @ApiProperty({ enum: WorkDayOfWeek })
   @IsEnum(WorkDayOfWeek)
   dayOfWeek: WorkDayOfWeek;

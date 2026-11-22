@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -115,6 +116,18 @@ export class JobsController {
       BigInt(jobId),
       dto,
     );
+  }
+
+  @Delete('company/:jobId')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.COMPANY)
+  @ApiOperation({ summary: 'Xóa tin nháp hoặc bị từ chối' })
+  remove(
+    @CurrentUser() user: { userId: string },
+    @Param('jobId') jobId: string,
+  ) {
+    return this.jobsService.deleteDraft(BigInt(user.userId), BigInt(jobId));
   }
 
   @Get('company/:jobId/publish-quote')

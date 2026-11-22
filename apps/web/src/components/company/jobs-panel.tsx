@@ -19,6 +19,24 @@ type JobRow = {
   isPaid: boolean;
 };
 
+type JobDetails = {
+  jobId: string;
+  title: string;
+  description: string;
+  requirements: string;
+  location: string;
+  category?: { categoryName: string };
+  schedules: {
+    dayOfWeek: string;
+    startTime: string;
+    endTime: string;
+    shiftName: string | null;
+  }[];
+  salaryMin: string | number | null;
+  salaryMax: string | number | null;
+  rejectionReason: string | null;
+};
+
 type TabId = "all" | "draft" | "pending" | "live" | "other";
 
 const TABS: { id: TabId; label: string }[] = [
@@ -28,6 +46,16 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "live", label: "Đang tuyển" },
   { id: "other", label: "Khác" },
 ];
+
+const WEEKDAY_LABEL: Record<string, string> = {
+  MONDAY: "Thứ 2",
+  TUESDAY: "Thứ 3",
+  WEDNESDAY: "Thứ 4",
+  THURSDAY: "Thứ 5",
+  FRIDAY: "Thứ 6",
+  SATURDAY: "Thứ 7",
+  SUNDAY: "Chủ nhật",
+};
 
 function tabFilter(tab: TabId, status: string) {
   switch (tab) {
@@ -51,6 +79,7 @@ function countByTab(jobs: JobRow[], tab: TabId) {
 export function CompanyJobsPanel() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<TabId>("all");
+  const [viewingJobId, setViewingJobId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["jobs", "company"],
@@ -82,7 +111,18 @@ export function CompanyJobsPanel() {
     },
   });
 
-  const jobs = data ?? [];
+  const jobs = useMemo(() => data ?? [], [data]);
+
+  const viewedJob = useQuery({
+    queryKey: ["jobs", "company", viewingJobId],
+    queryFn: async () => {
+      const { data } = await api.get<JobDetails>(
+        `/jobs/company/mine/${viewingJobId}`,
+      );
+      return data;
+    },
+    enabled: Boolean(viewingJobId),
+  });
 
   const filtered = useMemo(
     () => jobs.filter((j) => tabFilter(tab, j.status)),
@@ -134,6 +174,16 @@ export function CompanyJobsPanel() {
       invalidateJobs();
     },
     onError: (err) => toast.error(apiMessage(err) ?? "Đóng tin thất bại"),
+  });
+
+  const deleteJob = useMutation({
+    mutationFn: (jobId: string) => api.delete(`/jobs/company/${jobId}`),
+    onSuccess: () => {
+      toast.success("Đã xóa tin nháp");
+      setViewingJobId(null);
+      invalidateJobs();
+    },
+    onError: (err) => toast.error(apiMessage(err) ?? "Xóa tin thất bại"),
   });
 
   const balance = parseVndAmount(wallet?.balanceVnd) ?? 0;
@@ -299,12 +349,43 @@ export function CompanyJobsPanel() {
                         )}
                         {(job.status === "DRAFT" ||
                           job.status === "REJECTED") && (
-                          <Link
-                            href={`/cong-ty/tin-tuyen-dung/${job.jobId}/dang-tin`}
-                            className={`${styles.actionLink} ${styles.actionPrimary}`}
-                          >
-                            Thanh toán &amp; gửi duyệt
-                          </Link>
+                          <>
+                            <button
+                              type="button"
+                              className={`${styles.actionBtn} ${styles.actionGhost}`}
+                              onClick={() => setViewingJobId(job.jobId)}
+                            >
+                              Xem
+                            </button>
+                            <Link
+                              href={`/cong-ty/tin-tuyen-dung/${job.jobId}/sua`}
+                              className={`${styles.actionLink} ${styles.actionGhost}`}
+                            >
+                              Chỉnh sửa
+                            </Link>
+                            <button
+                              type="button"
+                              className={`${styles.actionBtn} ${styles.actionDanger}`}
+                              disabled={deleteJob.isPending}
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    `Bạn có chắc muốn xóa tin "${job.title}"?`,
+                                  )
+                                ) {
+                                  deleteJob.mutate(job.jobId);
+                                }
+                              }}
+                            >
+                              Xóa
+                            </button>
+                            <Link
+                              href={`/cong-ty/tin-tuyen-dung/${job.jobId}/dang-tin`}
+                              className={`${styles.actionLink} ${styles.actionPrimary}`}
+                            >
+                              Thanh toán &amp; gửi duyệt
+                            </Link>
+                          </>
                         )}
                         {job.status === "APPROVED" && (
                           <>
@@ -358,6 +439,76 @@ export function CompanyJobsPanel() {
           </div>
         </div>
       </div>
+
+      {viewingJobId && (
+        <div className={styles.modalBackdrop}>
+          <section
+            className={styles.jobModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="job-modal-title"
+          >
+            <div className={styles.modalHeader}>
+              <h2 id="job-modal-title" className={styles.paperTitle}>
+                Chi tiết tin nháp
+              </h2>
+              <button
+                type="button"
+                className={`${styles.actionBtn} ${styles.actionGhost}`}
+                onClick={() => setViewingJobId(null)}
+              >
+                Đóng
+              </button>
+            </div>
+            {viewedJob.isPending ? (
+              <p className={styles.loading}>Đang tải nội dung tin…</p>
+            ) : viewedJob.isError ? (
+              <p className={styles.emptyPaper} role="alert">
+                Không tải được tin. Vui lòng thử lại.
+              </p>
+            ) : viewedJob.data ? (
+              <div className={styles.jobDetails}>
+                <h3>{viewedJob.data.title}</h3>
+                <p>
+                  {viewedJob.data.category?.categoryName ?? "Chưa có danh mục"}
+                  {" · "}
+                  {viewedJob.data.location}
+                </p>
+                <p>
+                  Mức lương:{" "}
+                  {viewedJob.data.salaryMin != null ||
+                  viewedJob.data.salaryMax != null
+                    ? `${formatVND(viewedJob.data.salaryMin)} - ${formatVND(viewedJob.data.salaryMax)}`
+                    : "Thỏa thuận"}
+                </p>
+                {viewedJob.data.rejectionReason ? (
+                  <p className={styles.rejectionReason}>
+                    Lý do từ chối: {viewedJob.data.rejectionReason}
+                  </p>
+                ) : null}
+                <h4>Mô tả công việc</h4>
+                <p className={styles.detailText}>{viewedJob.data.description}</p>
+                <h4>Yêu cầu ứng viên</h4>
+                <p className={styles.detailText}>{viewedJob.data.requirements}</p>
+                {viewedJob.data.schedules.length > 0 ? (
+                  <>
+                    <h4>Lịch làm việc</h4>
+                    <ul>
+                      {viewedJob.data.schedules.map((schedule, index) => (
+                        <li key={`${schedule.dayOfWeek}-${schedule.startTime}-${index}`}>
+                          {WEEKDAY_LABEL[schedule.dayOfWeek] ?? schedule.dayOfWeek}
+                          : {schedule.startTime}–{schedule.endTime}
+                          {schedule.shiftName ? ` (${schedule.shiftName})` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+          </section>
+        </div>
+      )}
 
       {data && (
         <div className={styles.applicantsWrap}>

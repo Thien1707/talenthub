@@ -426,6 +426,66 @@
   color: #991b1b;
 }
 
+.modalBackdrop {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(23 23 23 / 0.55);
+}
+
+.jobModal {
+  width: min(100%, 42rem);
+  max-height: min(85vh, 52rem);
+  overflow: auto;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--paper-card);
+  box-shadow: var(--shadow-card);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.jobDetails {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+
+.jobDetails h3 {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.jobDetails h4 {
+  margin-top: 0.5rem;
+  font-weight: 800;
+}
+
+.detailText {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.rejectionReason {
+  padding: 0.65rem;
+  border-radius: 0.35rem;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
 .emptyPaper {
   padding: 1.5rem 0.5rem;
   text-align: center;

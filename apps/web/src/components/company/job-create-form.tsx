@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LocationFields } from "@/components/locations/location-fields";
 import { MoneyInput } from "@/components/ui/money-input";
@@ -15,6 +15,27 @@ import profilePaper from "./company-profile-form.module.css";
 import styles from "./job-create-form.module.css";
 
 type Category = { categoryId: string; categoryName: string };
+type EditableJob = {
+  jobId: string;
+  title: string;
+  categoryId: string;
+  description: string;
+  requirements: string;
+  location: string;
+  province: string | null;
+  ward: string | null;
+  streetAddress: string | null;
+  workScheduleType: "FULL_TIME" | "PART_TIME" | null;
+  schedules: {
+    dayOfWeek: string;
+    startTime: string;
+    endTime: string;
+    shiftName: string | null;
+  }[];
+  salaryMin: string | number | null;
+  salaryMax: string | number | null;
+  jobType: "NORMAL" | "VIP";
+};
 type ScheduleRow = {
   id: number;
   shiftName: string;
@@ -50,7 +71,7 @@ type FieldErrors = Partial<
   >
 >;
 
-export function JobCreateForm() {
+export function JobCreateForm({ jobId }: { jobId?: string }) {
   const router = useRouter();
   const qc = useQueryClient();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -79,6 +100,67 @@ export function JobCreateForm() {
     },
   ]);
   const [nextScheduleId, setNextScheduleId] = useState(2);
+
+  const {
+    data: existingJob,
+    isPending: jobLoading,
+    isError: jobError,
+  } = useQuery({
+    queryKey: ["jobs", "company", jobId],
+    queryFn: async () => {
+      const { data } = await api.get<EditableJob>(
+        `/jobs/company/mine/${jobId}`,
+      );
+      return data;
+    },
+    enabled: Boolean(jobId),
+  });
+
+  useEffect(() => {
+    if (!existingJob) return;
+    setForm({
+      title: existingJob.title,
+      categoryId: existingJob.categoryId,
+      description: existingJob.description,
+      requirements: existingJob.requirements,
+      location: existingJob.location,
+      province: existingJob.province ?? "",
+      ward: existingJob.ward ?? "",
+      streetAddress: existingJob.streetAddress ?? "",
+      salaryMin:
+        parseVndAmount(existingJob.salaryMin) === null
+          ? ""
+          : String(parseVndAmount(existingJob.salaryMin)),
+      salaryMax:
+        parseVndAmount(existingJob.salaryMax) === null
+          ? ""
+          : String(parseVndAmount(existingJob.salaryMax)),
+      salaryNegotiable:
+        existingJob.salaryMin == null && existingJob.salaryMax == null,
+      jobType: existingJob.jobType,
+      workScheduleType: existingJob.workScheduleType ?? "FULL_TIME",
+    });
+
+    const groups = new Map<string, ScheduleRow>();
+    for (const schedule of existingJob.schedules) {
+      const key = `${schedule.shiftName ?? ""}|${schedule.startTime}|${schedule.endTime}`;
+      const row = groups.get(key);
+      if (row) {
+        row.days.push(schedule.dayOfWeek);
+      } else {
+        groups.set(key, {
+          id: groups.size + 1,
+          shiftName: schedule.shiftName ?? "",
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          days: [schedule.dayOfWeek],
+        });
+      }
+    }
+    const rows = [...groups.values()];
+    setScheduleRows(rows);
+    setNextScheduleId(rows.length + 1);
+  }, [existingJob]);
 
   const {
     data: categories,
@@ -168,7 +250,6 @@ export function JobCreateForm() {
           })),
         ),
         jobType: form.jobType,
-        salaryCurrency: "VND",
         salaryMin:
           !form.salaryNegotiable && form.salaryMin.trim()
             ? parseVndAmount(form.salaryMin) ?? undefined
@@ -178,10 +259,31 @@ export function JobCreateForm() {
             ? parseVndAmount(form.salaryMax) ?? undefined
             : undefined,
       };
-      const { data } = await api.post<{ jobId: string }>("/jobs/company", payload);
-      return data;
+      if (jobId) {
+        await api.patch(`/jobs/company/${jobId}`, {
+          ...payload,
+          salaryMin: form.salaryNegotiable
+            ? null
+            : parseVndAmount(form.salaryMin),
+          salaryMax: form.salaryNegotiable
+            ? null
+            : parseVndAmount(form.salaryMax),
+        });
+        return { jobId, editing: true };
+      }
+      const { data } = await api.post<{ jobId: string }>(
+        "/jobs/company",
+        payload,
+      );
+      return { ...data, editing: false };
     },
     onSuccess: (data) => {
+      if (data.editing) {
+        toast.success("Đã cập nhật tin nháp");
+        void qc.invalidateQueries({ queryKey: ["jobs", "company"] });
+        router.push("/cong-ty/tin-tuyen-dung");
+        return;
+      }
       const id = data?.jobId;
       if (!id) {
         toast.error("API không trả về mã tin — không thể chuyển sang thanh toán.");
@@ -210,11 +312,28 @@ export function JobCreateForm() {
   const lineInput = (field: keyof FieldErrors) =>
     `${profilePaper.input} ${fieldErrors[field] ? styles.inputError : ""}`;
 
+  if (jobId && jobLoading) {
+    return <p className={styles.loading}>Đang tải tin nháp…</p>;
+  }
+
+  if (jobId && (jobError || !existingJob)) {
+    return (
+      <div className={styles.workspace}>
+        <p role="alert" className={styles.fieldError}>
+          Không tải được tin nháp để chỉnh sửa.
+        </p>
+        <Link href="/cong-ty/tin-tuyen-dung" className={styles.backLink}>
+          ← Quản lý tin tuyển dụng
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.workspace}>
       <div className={styles.layout}>
         <aside className={styles.rail}>
-          <h1>Soạn tin.</h1>
+          <h1>{jobId ? "Chỉnh sửa tin." : "Soạn tin."}</h1>
           <p>
             Nhập thông tin tin — bước tiếp theo chọn quảng bá và thanh toán từ
             ví.
@@ -255,10 +374,13 @@ export function JobCreateForm() {
           <div className={styles.folder}>
             <div className={styles.paper}>
               <div className={styles.paperHead}>
-                <h2 className={styles.paperTitle}>Tạo tin tuyển dụng</h2>
+                <h2 className={styles.paperTitle}>
+                  {jobId ? "Chỉnh sửa tin tuyển dụng" : "Tạo tin tuyển dụng"}
+                </h2>
                 <p className={styles.paperSub}>
-                  Điền đủ các mục bắt buộc (*) — lưu nháp rồi chuyển sang bước
-                  thanh toán.
+                  {jobId
+                    ? "Cập nhật nội dung tin nháp trước khi gửi duyệt."
+                    : "Điền đủ các mục bắt buộc (*) — lưu nháp rồi chuyển sang bước thanh toán."}
                 </p>
                 {form.title.trim() ? (
                   <p className={styles.previewLine}>{form.title.trim()}</p>
@@ -734,7 +856,9 @@ export function JobCreateForm() {
                 {save.isPending && (
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                 )}
-                Tiếp tục — thanh toán &amp; gửi duyệt
+                {jobId
+                  ? "Lưu thay đổi"
+                  : "Tiếp tục — thanh toán & gửi duyệt"}
               </button>
             </div>
           </div>
