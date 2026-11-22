@@ -69,6 +69,7 @@ const WORK_DAY_LABELS = Object.fromEntries(WORK_DAYS);
 type SearchFilters = {
   province: string;
   ward: string;
+  categoryId: string;
   jobType: string;
   dayOfWeek: string;
   startTime: string;
@@ -80,6 +81,7 @@ function readFilters(params: URLSearchParams): SearchFilters {
   return {
     province: params.get("province") ?? "",
     ward: params.get("ward") ?? "",
+    categoryId: params.get("categoryId") ?? "",
     jobType: params.get("jobType") ?? "",
     dayOfWeek: params.get("dayOfWeek") ?? "",
     startTime: params.get("startTime") ?? "",
@@ -154,6 +156,7 @@ export function PublicJobsList() {
           keyword: appliedKeyword || undefined,
           province: appliedFilters.province || undefined,
           ward: appliedFilters.ward || undefined,
+          categoryId: appliedFilters.categoryId || undefined,
           jobType: appliedFilters.jobType || undefined,
           dayOfWeek: appliedFilters.dayOfWeek || undefined,
           startTime: appliedFilters.startTime || undefined,
@@ -181,6 +184,17 @@ export function PublicJobsList() {
       return res;
     },
     staleTime: 30_000,
+  });
+
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const { data: res } = await api.get<
+        { categoryId: string; categoryName: string }[]
+      >("/categories");
+      return res;
+    },
+    staleTime: 5 * 60_000,
   });
 
   const totalPages = useMemo(() => {
@@ -216,6 +230,7 @@ export function PublicJobsList() {
     const emptyFilters: SearchFilters = {
       province: "",
       ward: "",
+      categoryId: "",
       jobType: "",
       dayOfWeek: "",
       startTime: "",
@@ -228,6 +243,14 @@ export function PublicJobsList() {
     setAppliedFilters(emptyFilters);
     setPage(1);
     pushSearchState("", 1, emptyFilters);
+  };
+
+  const applyTagFilter = (patch: Partial<SearchFilters>) => {
+    const next = { ...filters, ...patch };
+    setFilters(next);
+    setAppliedFilters(next);
+    setPage(1);
+    pushSearchState(appliedKeyword, 1, next);
   };
 
   const hasSuggestions =
@@ -248,16 +271,9 @@ export function PublicJobsList() {
       />
 
       <section className={styles.searchNote} aria-labelledby="jobs-search-title">
-        <div className={styles.searchHead}>
-          <p className={styles.hand}>hoặc gõ từ khóa</p>
-          <h2 id="jobs-search-title" className={styles.searchTitle}>
-            Tìm kiếm việc làm
-          </h2>
-          <p className={styles.searchLead}>
-            Vị trí, ngành nghề, tên công ty — gợi ý hiện khi bạn gõ từ 2 ký tự trở lên.
-          </p>
-        </div>
-
+        <h2 id="jobs-search-title" className={styles.searchTitle}>
+          Tìm kiếm việc làm
+        </h2>
         <div ref={suggestRef} className={styles.searchFormWrap}>
           <form
             onSubmit={(e) => {
@@ -334,7 +350,52 @@ export function PublicJobsList() {
               ))}
             </ul>
           ) : null}
+        </div>
+      </section>
 
+      <form
+        className={styles.topFilters}
+        onSubmit={(event) => {
+          event.preventDefault();
+          setAppliedFilters(filters);
+          setPage(1);
+          pushSearchState(appliedKeyword, 1, filters);
+        }}
+      >
+        <LocationFields
+          province={filters.province}
+          ward={filters.ward}
+          className={styles.topLocationFields}
+          onChange={(location) =>
+            setFilters((current) => ({ ...current, ...location }))
+          }
+        />
+        <label className={styles.topSalaryField}>
+          <span>Lương tối thiểu (VND)</span>
+          <input
+            type="number"
+            min="0"
+            value={filters.salaryMin}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                salaryMin: event.target.value,
+              }))
+            }
+            placeholder="Không bắt buộc"
+          />
+        </label>
+        <button
+          type="submit"
+          className={`button button-primary ${styles.topFilterSubmit}`}
+          disabled={isFetching && !data}
+        >
+          Áp dụng
+        </button>
+      </form>
+
+      <div className={styles.resultsLayout}>
+        <aside className={styles.filtersAside} aria-label="Bộ lọc việc làm">
           <form
             className={styles.filterForm}
             onSubmit={(event) => {
@@ -345,43 +406,64 @@ export function PublicJobsList() {
             }}
           >
             <h3 className={styles.filterTitle}>Lọc công việc</h3>
-            <div className={styles.filterGrid}>
-              <LocationFields
-                province={filters.province}
-                ward={filters.ward}
-                className={styles.locationFields}
-                onChange={(location) =>
-                  setFilters((current) => ({ ...current, ...location }))
-                }
-              />
-              <label className={styles.filterField}>
-                <span>Loại hình</span>
-                <select
-                  value={filters.jobType}
-                  onChange={(event) =>
-                    setFilters((current) => ({
-                      ...current,
-                      jobType: event.target.value,
-                      dayOfWeek:
-                        event.target.value === "PART_TIME"
-                          ? current.dayOfWeek
-                          : "",
-                      startTime:
-                        event.target.value === "PART_TIME"
-                          ? current.startTime
-                          : "",
-                      endTime:
-                        event.target.value === "PART_TIME"
-                          ? current.endTime
-                          : "",
-                    }))
-                  }
+            <div className={styles.filterTags}>
+              <p className={styles.tagGroupTitle}>Loại hình</p>
+              <div className={styles.tagList}>
+                {[
+                  ["", "Tất cả"],
+                  ["FULL_TIME", "Full-time"],
+                  ["PART_TIME", "Part-time"],
+                ].map(([value, label]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    className={`${styles.filterTag} ${
+                      filters.jobType === value ? styles.filterTagActive : ""
+                    }`}
+                    onClick={() =>
+                      applyTagFilter({
+                        jobType: value,
+                        dayOfWeek: value === "PART_TIME" ? filters.dayOfWeek : "",
+                        startTime: value === "PART_TIME" ? filters.startTime : "",
+                        endTime: value === "PART_TIME" ? filters.endTime : "",
+                      })
+                    }
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <p className={styles.tagGroupTitle}>Ngành nghề</p>
+              <div className={styles.categoryTagList}>
+                <button
+                  type="button"
+                  className={`${styles.filterTag} ${
+                    !filters.categoryId ? styles.filterTagActive : ""
+                  }`}
+                  onClick={() => applyTagFilter({ categoryId: "" })}
                 >
-                  <option value="">Tất cả</option>
-                  <option value="PART_TIME">Part-time</option>
-                  <option value="FULL_TIME">Full-time</option>
-                </select>
-              </label>
+                  Tất cả
+                </button>
+                {categories?.map((category) => (
+                  <button
+                    key={category.categoryId}
+                    type="button"
+                    className={`${styles.filterTag} ${
+                      filters.categoryId === category.categoryId
+                        ? styles.filterTagActive
+                        : ""
+                    }`}
+                    onClick={() =>
+                      applyTagFilter({ categoryId: category.categoryId })
+                    }
+                  >
+                    {category.categoryName}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className={styles.filterGrid}>
               {filters.jobType === "PART_TIME" ? (
                 <>
                   <label className={styles.filterField}>
@@ -431,21 +513,6 @@ export function PublicJobsList() {
                   </label>
                 </>
               ) : null}
-              <label className={styles.filterField}>
-                <span>Lương tối thiểu (VND)</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={filters.salaryMin}
-                  onChange={(event) =>
-                    setFilters((current) => ({
-                      ...current,
-                      salaryMin: event.target.value,
-                    }))
-                  }
-                  placeholder="Không bắt buộc"
-                />
-              </label>
             </div>
             <div className={styles.filterActions}>
               <button
@@ -466,8 +533,9 @@ export function PublicJobsList() {
               ) : null}
             </div>
           </form>
-        </div>
-      </section>
+        </aside>
+
+        <main className={styles.resultPanel}>
 
       {appliedKeyword ? (
         <p className={styles.meta}>
@@ -540,6 +608,18 @@ export function PublicJobsList() {
               <span className={styles.icon} aria-hidden>
                 {initial}
               </span>
+              <div className={styles.wayTags}>
+                {job.category?.categoryName ? (
+                  <span className={styles.categoryTag}>{job.category.categoryName}</span>
+                ) : null}
+                <span className={styles.typeTag}>
+                  {job.workScheduleType === "PART_TIME"
+                    ? "Part-time"
+                    : job.workScheduleType === "FULL_TIME"
+                      ? "Full-time"
+                      : "Full-time"}
+                </span>
+              </div>
               <h3 className={styles.wayTitle}>
                 <Link href={`/viec-lam/${job.slug}`}>{job.title}</Link>
               </h3>
@@ -613,6 +693,8 @@ export function PublicJobsList() {
           </button>
         </nav>
       ) : null}
+        </main>
+      </div>
     </div>
   );
 }

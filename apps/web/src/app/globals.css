@@ -276,12 +276,7 @@ textarea::placeholder {
 
 /* Dotted paper background (Doory-style) */
 .th-dotted-page {
-  background-color: var(--color-bg);
-  background-image: radial-gradient(
-    color-mix(in srgb, var(--accent-lilac) 14%, transparent) 1.2px,
-    transparent 1.3px
-  );
-  background-size: 26px 26px;
+  background: #fff;
 }
 
 .th-site-header {
@@ -289,7 +284,7 @@ textarea::placeholder {
   top: 0;
   z-index: 50;
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
-  background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+  background: rgb(255 255 255 / 95%);
   backdrop-filter: saturate(1.35) blur(14px);
 }
 

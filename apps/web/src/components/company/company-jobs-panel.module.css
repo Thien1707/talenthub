@@ -264,12 +264,7 @@
   padding: 1.35rem 1.25rem 1.5rem;
   border-radius: 0.35rem;
   background-color: var(--paper-card);
-  background-image: repeating-linear-gradient(
-    transparent,
-    transparent 1.45rem,
-    var(--paper-card-line) 1.45rem,
-    var(--paper-card-line) calc(1.45rem + 1px)
-  );
+  background-image: none;
   box-shadow: 0 1px 0 rgb(0 0 0 / 0.06);
 }
 

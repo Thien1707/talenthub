@@ -30,7 +30,7 @@ export function AppShell({
       <main
         className={
           marketing
-            ? "mx-auto w-full max-w-7xl flex-1 px-5 py-10 lg:px-8"
+            ? "mx-auto w-full max-w-7xl flex-1 px-5 py-0 lg:px-8"
             : `mx-auto w-full flex-1 px-5 py-10 lg:px-8 ${
                 narrow ? "max-w-lg" : "max-w-7xl"
               }`

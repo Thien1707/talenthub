@@ -11,7 +11,6 @@ import { MoneyInput } from "@/components/ui/money-input";
 import { api } from "@/lib/api/client";
 import { extractApiErrorMessage } from "@/lib/extract-api-error";
 import { formatVND, parseVndAmount } from "@/lib/format-money";
-import shell from "./company-jobs-panel.module.css";
 import profilePaper from "./company-profile-form.module.css";
 import styles from "./job-create-form.module.css";
 
@@ -212,11 +211,11 @@ export function JobCreateForm() {
     `${profilePaper.input} ${fieldErrors[field] ? styles.inputError : ""}`;
 
   return (
-    <div className={shell.workspace}>
-      <div className={shell.layout}>
-        <aside className={shell.rail}>
-          <h1 className={shell.railTitle}>Soạn tin.</h1>
-          <p className={shell.railLead}>
+    <div className={styles.workspace}>
+      <div className={styles.layout}>
+        <aside className={styles.rail}>
+          <h1>Soạn tin.</h1>
+          <p>
             Nhập thông tin tin — bước tiếp theo chọn quảng bá và thanh toán từ
             ví.
           </p>
@@ -244,20 +243,20 @@ export function JobCreateForm() {
           </Link>
         </aside>
 
-        <div className={shell.stack}>
-          <div className={shell.tabRow} aria-hidden>
-            <span className={`${shell.tab} ${shell.tabActive}`}>Soạn tin</span>
-            <span className={`${shell.tab} ${styles.tabUpcoming}`}>
+        <div>
+          <div className={styles.tabRow} aria-hidden>
+            <span>Soạn tin</span>
+            <span className={styles.tabUpcoming}>
               Thanh toán
             </span>
-            <span className={`${shell.tab} ${styles.tabUpcoming}`}>Duyệt</span>
+            <span className={styles.tabUpcoming}>Duyệt</span>
           </div>
 
-          <div className={shell.folder}>
-            <div className={shell.paper}>
-              <div className={shell.paperHead}>
-                <h2 className={shell.paperTitle}>Tạo tin tuyển dụng</h2>
-                <p className={shell.paperSub}>
+          <div className={styles.folder}>
+            <div className={styles.paper}>
+              <div className={styles.paperHead}>
+                <h2 className={styles.paperTitle}>Tạo tin tuyển dụng</h2>
+                <p className={styles.paperSub}>
                   Điền đủ các mục bắt buộc (*) — lưu nháp rồi chuyển sang bước
                   thanh toán.
                 </p>

@@ -1,20 +1,36 @@
 .page {
-  max-width: 72rem;
+  max-width: 74rem;
   margin: 0 auto;
   width: 100%;
+}
+
+.page :global([class*="stage"]) {
+  display: none;
+}
+
+.page :global([class*="intro"]) {
+  max-width: 74rem;
+  grid-template-columns: 1fr;
+  padding: 1.25rem 0 1.5rem;
+}
+
+.page :global([class*="copy"]) {
+  gap: 0.5rem;
+}
+
+.page :global([class*="eyebrow"]) {
+  display: none;
+}
+
+.page :global([class*="lead"]) {
+  margin-top: 0.25rem;
 }
 
 /* Search — kiểu “Leave a note” trên Doory contact */
 .searchNote {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-  gap: var(--space-10);
-  margin-top: var(--space-4);
-  padding: var(--space-10);
-  border: 1px solid var(--color-border);
-  border-radius: var(--th-radius-xl);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
+  gap: 0.75rem;
+  margin: 0 0 1.75rem;
 }
 
 .searchHead {
@@ -34,10 +50,7 @@
 }
 
 .searchTitle {
-  font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3.5vw, 2.35rem);
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  display: none;
 }
 
 .searchLead {
@@ -48,22 +61,20 @@
 
 .searchFormWrap {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
+  display: block;
+  width: 100%;
 }
 
 .fieldLabel {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--ink);
+  display: none;
 }
 
 .searchRow {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-top: var(--space-2);
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0;
 }
 
 .inputWrap {
@@ -72,11 +83,11 @@
   flex: 1;
   align-items: center;
   gap: var(--space-2);
-  min-height: 2.75rem;
+  min-height: 3.25rem;
   width: 100%;
   padding: 0 var(--space-3);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--th-radius-lg);
+  border-radius: 0.75rem;
   background: var(--paper);
   box-shadow: inset 0 1px 2px rgb(43 28 23 / 0.04);
 }
@@ -118,10 +129,69 @@
 }
 
 .submitBtn {
-  align-self: flex-end;
+  align-self: stretch;
+  min-height: 3.25rem;
+  min-width: 7.5rem;
+  border-radius: 0.75rem;
+  background: var(--violet-600);
+  color: white;
+  box-shadow: none;
+}
+
+.topFilters {
+  display: grid;
+  grid-template-columns: minmax(22rem, 1fr) minmax(12rem, 0.42fr) auto;
+  align-items: end;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.topLocationFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.topLocationFields label,
+.topSalaryField > span {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.topLocationFields input,
+.topSalaryField input {
+  width: 100%;
   min-height: 2.75rem;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 0.75rem;
+  background: var(--paper);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  outline: none;
+}
+
+.topLocationFields input:focus,
+.topSalaryField input:focus {
+  border-color: var(--accent-lilac);
+  box-shadow: var(--focus-ring);
+}
+
+.topSalaryField {
+  display: block;
+}
+
+.topFilterSubmit {
+  min-height: 2.75rem;
+  margin-bottom: 0;
+  border-radius: 0.75rem;
+  white-space: nowrap;
 }
 
 @media (min-width: 640px) {
@@ -133,6 +203,26 @@
   .submitBtn {
     align-self: auto;
   }
+}
+
+.resultsLayout {
+  display: grid;
+  grid-template-columns: 17rem minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+.filtersAside {
+  position: sticky;
+  top: 6.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.resultPanel {
+  min-width: 0;
 }
 
 .suggestList {
@@ -170,10 +260,10 @@
 
 .filterForm {
   display: grid;
-  gap: var(--space-4);
-  margin-top: var(--space-5);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
+  gap: 1.25rem;
+  margin: 0;
+  padding: 1.25rem;
+  border: 0;
 }
 
 .filterTitle {
@@ -182,16 +272,60 @@
   color: var(--ink);
 }
 
+.filterTags {
+  display: grid;
+  gap: 0.55rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tagGroupTitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.tagList,
+.categoryTagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.filterTag {
+  min-height: 2rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--paper);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.filterTag:hover {
+  border-color: var(--violet-300);
+  color: var(--violet-700);
+}
+
+.filterTagActive {
+  border-color: var(--violet-600);
+  background: var(--violet-50);
+  color: var(--violet-700);
+}
+
 .filterGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
 }
 
 .locationFields {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 0.5rem var(--space-3);
 }
 
@@ -250,14 +384,13 @@
 /* Job cards — tối đa 3 cột/hàng, rộng đều; hàng lẻ căn giữa (flex) */
 .ways {
   --ways-gap: var(--space-6);
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-8) var(--ways-gap);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
   width: 100%;
-  max-width: 72rem;
-  margin: var(--space-12) auto 0;
-  padding: 0 0 var(--space-8);
+  max-width: none;
+  margin: 1.25rem 0 0;
+  padding: 0 0 2rem;
   list-style: none;
 }
 
@@ -266,23 +399,50 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-4);
+  gap: 0.65rem;
   box-sizing: border-box;
-  flex: 0 1 calc((100% - 2 * var(--ways-gap)) / 3);
-  min-width: min(100%, 14rem);
-  max-width: calc((100% - 2 * var(--ways-gap)) / 3);
-  padding: 3.25rem 2rem 2rem;
+  min-width: 0;
+  max-width: none;
+  min-height: 13rem;
+  padding: 1.5rem;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  background: var(--tone);
-  box-shadow:
-    0 1px 0 rgb(43 28 23 / 0.06),
-    0 18px 30px -18px rgb(43 28 23 / 0.35);
-  transform: rotate(var(--tilt));
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  transform: none;
   transition: transform var(--duration-base) var(--ease-out);
 }
 
+.wayTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.categoryTag,
+.typeTag {
+  border-radius: var(--radius-full);
+  padding: 0.22rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.categoryTag {
+  border: 1px solid var(--violet-200);
+  background: var(--violet-50);
+  color: var(--violet-700);
+}
+
+.typeTag {
+  border: 1px solid #f5d5a8;
+  background: #fff8ed;
+  color: #a86616;
+}
+
 .way:nth-child(3n + 1) {
-  --tilt: -1.4deg;
+  --tilt: 0deg;
 }
 
 .way:nth-child(3n + 2) {
@@ -295,22 +455,13 @@
 
 .way:hover,
 .way:focus-within {
-  transform: rotate(0deg) translateY(-4px);
+  transform: translateY(-2px);
+  border-color: var(--violet-300);
+  box-shadow: var(--shadow-md);
 }
 
 .way::before {
-  content: "";
-  position: absolute;
-  top: -0.7rem;
-  left: 50%;
-  width: 4.75rem;
-  height: 1.4rem;
-  margin-left: -2.375rem;
-  background:
-    repeating-linear-gradient(45deg, rgb(255 255 255 / 0.5) 0 6px, transparent 6px 12px),
-    var(--tape);
-  opacity: 0.9;
-  transform: rotate(-3deg);
+  display: none;
 }
 
 .way[data-tone="pink"] {
@@ -331,22 +482,21 @@
 .icon {
   display: grid;
   place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border: 2px solid var(--ink);
-  border-radius: 50%;
-  background: var(--paper);
-  color: var(--ink);
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid var(--violet-100);
+  border-radius: 0.75rem;
+  background: var(--violet-50);
+  color: var(--violet-700);
   font-size: 1.125rem;
   font-weight: 800;
-  box-shadow: 2px 2px 0 rgb(43 28 23 / 0.15);
+  box-shadow: none;
 }
 
 .wayTitle {
-  font-family: var(--font-display);
   color: var(--ink);
-  font-size: clamp(1.15rem, 1.6vw, 1.35rem);
-  font-weight: 700;
+  font-size: 1.05rem;
+  font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.25;
 }
@@ -365,7 +515,7 @@
   flex: 1;
   width: 100%;
   padding-right: 0.25rem;
-  color: #4a3b3f;
+  color: var(--color-text-muted);
   font-weight: 600;
   font-size: 0.9375rem;
   line-height: 1.55;
@@ -381,8 +531,9 @@
 
 .promoTag {
   border-radius: var(--radius-full);
-  border: 1px solid rgb(43 28 23 / 0.12);
-  background: rgb(255 255 255 / 0.55);
+  border: 1px solid var(--violet-200);
+  background: var(--violet-50);
+  color: var(--violet-700);
   padding: 0.15rem 0.5rem;
   font-size: 0.6875rem;
   font-weight: 800;
@@ -394,12 +545,13 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  margin-top: var(--space-3);
+  align-self: flex-end;
+  margin-top: auto;
   padding: 0.55rem 1.15rem;
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--violet-200);
   border-radius: var(--radius-full);
   background: var(--color-surface);
-  color: var(--ink);
+  color: var(--violet-700);
   font-size: var(--text-sm);
   font-weight: 700;
   text-decoration: none;
@@ -476,30 +628,56 @@
 }
 
 @media (max-width: 900px) {
-  .way {
-    flex: 0 1 calc((100% - var(--ways-gap)) / 2);
-    max-width: calc((100% - var(--ways-gap)) / 2);
+  .topFilters {
+    grid-template-columns: minmax(0, 1fr) minmax(10rem, 0.35fr) auto;
+  }
+
+  .resultsLayout {
+    grid-template-columns: 14.5rem minmax(0, 1fr);
+    gap: 1.25rem;
   }
 }
 
 @media (max-width: 760px) {
-  .searchNote {
-    grid-template-columns: 1fr;
-    gap: var(--space-6);
-    padding: var(--space-6);
+  .searchRow {
+    flex-direction: column;
   }
 
-  .hand {
-    transform-origin: center;
+  .topFilters {
+    grid-template-columns: 1fr;
   }
 
-  .filterGrid,
-  .locationFields {
+  .topLocationFields {
     grid-template-columns: 1fr;
+  }
+
+  .topFilterSubmit {
+    width: 100%;
+  }
+
+  .inputWrap,
+  .submitBtn {
+    width: 100%;
+  }
+
+  .submitBtn {
+    justify-content: center;
+  }
+
+  .resultsLayout {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .filtersAside {
+    position: static;
   }
 
   .way {
-    flex: 0 1 100%;
-    max-width: 22rem;
+    max-width: none;
+  }
+
+  .ways {
+    grid-template-columns: 1fr;
   }
 }

@@ -216,3 +216,129 @@
   color: #1b5e40;
   line-height: 1.3;
 }
+
+/* JobHive-style Post Job card */
+.workspace {
+  max-width: 48rem;
+}
+
+.layout {
+  display: block;
+}
+
+.rail,
+.tabRow {
+  display: none;
+}
+
+.folder {
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.paper {
+  padding: 1.5rem;
+  border: 0;
+  border-radius: 1rem;
+  background: var(--color-surface);
+  box-shadow: none;
+}
+
+.paperHead {
+  margin: 0 0 1.25rem;
+  padding: 0 0 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.paperTitle {
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.paperSub {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.formSection {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.formSection:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.workspace input,
+.workspace select,
+.workspace textarea {
+  min-height: 2.75rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+  padding: 0.65rem 0.75rem;
+  color: var(--ink);
+  outline: none;
+}
+
+.workspace textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.workspace input:focus,
+.workspace select:focus,
+.workspace textarea:focus {
+  border-color: var(--violet-500);
+  box-shadow: 0 0 0 3px rgb(139 117 234 / 0.16);
+}
+
+.workspace input[type="checkbox"] {
+  min-height: 0;
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  border-radius: 0.25rem;
+  box-shadow: none;
+  accent-color: var(--violet-600);
+}
+
+.scheduleCard {
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+}
+
+.submitBtn {
+  width: 100%;
+  min-height: 3rem;
+  margin-top: 1.5rem;
+  border-radius: 0.75rem;
+  background: var(--violet-600);
+  color: #fff;
+  font-size: 0.875rem;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: var(--violet-700);
+}
+
+@media (max-width: 620px) {
+  .paper {
+    padding: 1.25rem;
+  }
+
+  .folder {
+    border-radius: 0.75rem;
+  }
+}

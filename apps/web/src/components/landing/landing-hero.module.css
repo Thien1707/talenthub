@@ -8,22 +8,25 @@
 
 .heroUpper {
   position: relative;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(21rem, 0.92fr);
   align-items: center;
   max-width: 76rem;
   margin: 0 auto;
-  padding: var(--space-2) var(--space-4) var(--space-2);
-  text-align: center;
+  min-height: 38rem;
+  padding: var(--space-8) var(--space-4) var(--space-10);
+  text-align: left;
 }
 
 .stage {
   position: relative;
+  grid-column: 2;
+  grid-row: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  height: 22.5rem;
+  height: 34rem;
   width: 100%;
 }
 
@@ -31,7 +34,7 @@
   position: relative;
   z-index: 1;
   width: auto;
-  height: 20.625rem;
+  height: 31.5rem;
   transform-origin: 50% 95%;
   animation: bob 4.5s ease-in-out infinite;
   cursor: pointer;
@@ -43,7 +46,7 @@
 }
 
 .ground {
-  width: 10.5rem;
+  width: 13.5rem;
   height: 1.125rem;
   margin-top: -1.1rem;
   border-radius: 50%;
@@ -53,8 +56,8 @@
 
 .bubble {
   position: absolute;
-  top: 2.75rem;
-  right: -9.5rem;
+  top: 5.25rem;
+  right: 1.5rem;
   padding: 0.6rem 1.1rem 0.75rem;
   background: var(--color-surface);
   border: 2.5px solid var(--color-text);
@@ -71,8 +74,8 @@
 
 .hearts {
   position: absolute;
-  top: 5.5rem;
-  left: -4rem;
+  top: 8.5rem;
+  left: 2.5rem;
   color: var(--pastel-blush);
   font-size: 1.4rem;
   line-height: 1.1;
@@ -125,18 +128,65 @@
 }
 
 @media (max-width: 900px) {
+  .heroUpper {
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.75fr);
+    min-height: 32rem;
+  }
+
+  .stage {
+    height: 29rem;
+  }
+
+  .bunny {
+    height: 27rem;
+  }
+
   .bubble {
-    right: -7.5rem;
+    right: 0;
   }
 }
 
 @media (max-width: 640px) {
+  .heroUpper {
+    display: flex;
+    flex-direction: column;
+    min-height: auto;
+    padding-top: var(--space-4);
+  }
+
+  .copyBlock {
+    width: 100%;
+    max-width: 100%;
+    padding: var(--space-2) var(--space-2) var(--space-4);
+  }
+
+  .badge {
+    max-width: 100%;
+    margin-bottom: var(--space-4);
+    padding: 0.45rem 0.7rem;
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
+
+  .titleCenter {
+    max-width: 100%;
+    font-size: 2.35rem;
+  }
+
+  .leadCenter {
+    max-width: 100%;
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
   .stage {
-    height: 17rem;
+    order: 2;
+    height: 18.5rem;
+    margin-top: var(--space-4);
   }
 
   .bunny {
-    height: 15.3rem;
+    height: 16.75rem;
   }
 
   .ground {
@@ -166,11 +216,13 @@
 /* —— 2. Copy VN —— */
 .copyBlock {
   position: relative;
+  grid-column: 1;
+  grid-row: 1;
   width: 100%;
-  max-width: 76rem;
+  max-width: 42rem;
   margin: 0 auto;
-  padding: var(--space-4) var(--space-4) var(--space-2);
-  text-align: center;
+  padding: var(--space-4) var(--space-8) var(--space-4) var(--space-4);
+  text-align: left;
 }
 
 .badge {
@@ -189,12 +241,12 @@
 }
 
 .titleCenter {
-  max-width: 40rem;
-  margin: 0 auto;
+  max-width: 42rem;
+  margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(2rem, 5vw, 3.25rem);
+  font-size: clamp(2.5rem, 5vw, 4.25rem);
   font-weight: 600;
-  line-height: 1.12;
+  line-height: 1.08;
   letter-spacing: -0.035em;
   color: var(--ink);
 }
@@ -227,10 +279,10 @@
 }
 
 .leadCenter {
-  max-width: 42rem;
-  margin: var(--space-5) auto 0;
-  font-size: 1.0625rem;
-  line-height: 1.75;
+  max-width: 38rem;
+  margin: var(--space-5) 0 0;
+  font-size: 1.125rem;
+  line-height: 1.7;
   font-weight: 500;
   color: var(--color-text-muted);
 }
@@ -239,7 +291,7 @@
 .lowerPanel {
   position: relative;
   overflow: hidden;
-  margin-top: var(--space-10);
+  margin-top: var(--space-6);
   border-radius: var(--th-radius-xl);
   border: 1px solid color-mix(in srgb, var(--color-border) 90%, white);
   background: linear-gradient(120deg, #efeaff 0%, #f6f0ff 55%, #fdeef3 100%);
