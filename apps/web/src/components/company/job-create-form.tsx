@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { LocationFields } from "@/components/locations/location-fields";
 import { MoneyInput } from "@/components/ui/money-input";
 import { api } from "@/lib/api/client";
 import { extractApiErrorMessage } from "@/lib/extract-api-error";
@@ -15,6 +16,23 @@ import profilePaper from "./company-profile-form.module.css";
 import styles from "./job-create-form.module.css";
 
 type Category = { categoryId: string; categoryName: string };
+type ScheduleRow = {
+  id: number;
+  shiftName: string;
+  startTime: string;
+  endTime: string;
+  days: string[];
+};
+
+const WORK_DAYS = [
+  ["MONDAY", "Thứ 2"],
+  ["TUESDAY", "Thứ 3"],
+  ["WEDNESDAY", "Thứ 4"],
+  ["THURSDAY", "Thứ 5"],
+  ["FRIDAY", "Thứ 6"],
+  ["SATURDAY", "Thứ 7"],
+  ["SUNDAY", "Chủ nhật"],
+] as const;
 
 const MAX_SALARY_VND = 999_999_999_999;
 
@@ -25,8 +43,10 @@ type FieldErrors = Partial<
     | "description"
     | "requirements"
     | "location"
+    | "streetAddress"
     | "salaryMin"
-    | "salaryMax",
+    | "salaryMax"
+    | "schedules",
     string
   >
 >;
@@ -41,13 +61,31 @@ export function JobCreateForm() {
     description: "",
     requirements: "",
     location: "",
+    province: "",
+    ward: "",
+    streetAddress: "",
     salaryMin: "",
     salaryMax: "",
     salaryNegotiable: false,
     jobType: "NORMAL" as "NORMAL" | "VIP",
+    workScheduleType: "FULL_TIME" as "FULL_TIME" | "PART_TIME",
   });
+  const [scheduleRows, setScheduleRows] = useState<ScheduleRow[]>([
+    {
+      id: 1,
+      shiftName: "",
+      startTime: "09:00",
+      endTime: "18:00",
+      days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"],
+    },
+  ]);
+  const [nextScheduleId, setNextScheduleId] = useState(2);
 
-  const { data: categories } = useQuery({
+  const {
+    data: categories,
+    isPending: categoriesLoading,
+    isError: categoriesError,
+  } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
       const { data } = await api.get<Category[]>("/categories");
@@ -63,7 +101,21 @@ export function JobCreateForm() {
     const err: FieldErrors = {};
     if (!form.title.trim()) err.title = "Nhập tiêu đề tin tuyển dụng.";
     if (!form.categoryId) err.categoryId = "Chọn danh mục ngành nghề.";
-    if (!form.location.trim()) err.location = "Nhập địa điểm làm việc.";
+    if (!form.province) err.location = "Chọn tỉnh/thành phố.";
+    if (!form.streetAddress.trim())
+      err.streetAddress = "Nhập số nhà và tên đường.";
+    if (
+      scheduleRows.length === 0 ||
+      scheduleRows.some(
+        (row) =>
+          !row.startTime ||
+          !row.endTime ||
+          row.startTime >= row.endTime ||
+          row.days.length === 0,
+      )
+    ) {
+      err.schedules = "Mỗi ca cần giờ hợp lệ và ít nhất một ngày làm việc.";
+    }
     if (!form.description.trim()) err.description = "Nhập mô tả công việc.";
     if (!form.requirements.trim()) err.requirements = "Nhập yêu cầu ứng viên.";
 
@@ -98,7 +150,24 @@ export function JobCreateForm() {
         categoryId: form.categoryId,
         description: form.description.trim(),
         requirements: form.requirements.trim(),
-        location: form.location.trim(),
+        location: [form.streetAddress.trim(), form.ward, form.province]
+          .filter(Boolean)
+          .join(", "),
+        province: form.province,
+        ward: form.ward || undefined,
+        streetAddress: form.streetAddress.trim(),
+        detailAddress: [form.streetAddress.trim(), form.ward, form.province]
+          .filter(Boolean)
+          .join(", "),
+        workScheduleType: form.workScheduleType,
+        schedules: scheduleRows.flatMap((row) =>
+          row.days.map((dayOfWeek) => ({
+            dayOfWeek,
+            startTime: row.startTime,
+            endTime: row.endTime,
+            shiftName: row.shiftName.trim() || undefined,
+          })),
+        ),
         jobType: form.jobType,
         salaryCurrency: "VND",
         salaryMin:
@@ -232,6 +301,7 @@ export function JobCreateForm() {
                         id="categoryId"
                         className={`${styles.selectInput} ${fieldErrors.categoryId ? styles.inputError : ""}`}
                         value={form.categoryId}
+                        disabled={categoriesLoading || categoriesError}
                         onChange={(e) => {
                           setForm({ ...form, categoryId: e.target.value });
                           if (fieldErrors.categoryId)
@@ -241,13 +311,32 @@ export function JobCreateForm() {
                             });
                         }}
                       >
-                        <option value="">Chọn danh mục</option>
+                        <option value="">
+                          {categoriesLoading
+                            ? "Đang tải danh mục..."
+                            : "Chọn danh mục"}
+                        </option>
                         {categories?.map((c) => (
                           <option key={c.categoryId} value={c.categoryId}>
                             {c.categoryName}
                           </option>
                         ))}
                       </select>
+                      {categoriesError ? (
+                        <p role="alert" className={styles.fieldError}>
+                          Không tải được danh mục. Vui lòng kiểm tra API.
+                        </p>
+                      ) : null}
+                      {!categoriesLoading &&
+                      !categoriesError &&
+                      (categories?.length ?? 0) === 0 ? (
+                        <p role="alert" className={styles.fieldError}>
+                          Chưa có danh mục nghề nghiệp. Tại thư mục gốc dự án,
+                          chạy{" "}
+                          <code>npm run db:seed:categories</code> rồi tải lại
+                          trang.
+                        </p>
+                      ) : null}
                       {fieldErrors.categoryId ? (
                         <p className={styles.fieldError}>
                           {fieldErrors.categoryId}
@@ -274,23 +363,44 @@ export function JobCreateForm() {
                       </select>
                     </div>
                   </div>
+                  <LocationFields
+                    province={form.province}
+                    ward={form.ward}
+                    required
+                    className={profilePaper.fieldGridTwo}
+                    onChange={(location) => {
+                      setForm({ ...form, ...location });
+                      if (fieldErrors.location) {
+                        setFieldErrors({ ...fieldErrors, location: undefined });
+                      }
+                    }}
+                  />
                   <div className={profilePaper.field}>
-                    <label className={profilePaper.fieldLabel} htmlFor="location">
-                      Địa điểm làm việc *
+                    <label
+                      className={profilePaper.fieldLabel}
+                      htmlFor="streetAddress"
+                    >
+                      Số nhà, tên đường *
                     </label>
                     <input
-                      id="location"
-                      className={lineInput("location")}
-                      value={form.location}
+                      id="streetAddress"
+                      className={lineInput("streetAddress")}
+                      value={form.streetAddress}
                       onChange={(e) => {
-                        setForm({ ...form, location: e.target.value });
-                        if (fieldErrors.location)
+                        setForm({ ...form, streetAddress: e.target.value });
+                        if (fieldErrors.streetAddress)
                           setFieldErrors({
                             ...fieldErrors,
-                            location: undefined,
+                            streetAddress: undefined,
                           });
                       }}
+                      required
                     />
+                    {fieldErrors.streetAddress ? (
+                      <p className={styles.fieldError}>
+                        {fieldErrors.streetAddress}
+                      </p>
+                    ) : null}
                     {fieldErrors.location ? (
                       <p className={styles.fieldError}>{fieldErrors.location}</p>
                     ) : null}
@@ -299,6 +409,179 @@ export function JobCreateForm() {
                     <p className={profilePaper.hint}>Ngành: {categoryName}</p>
                   ) : null}
                 </div>
+              </section>
+
+              <section className={styles.formSection} aria-labelledby="jc-work">
+                <h3 id="jc-work" className={profilePaper.sectionLabel}>
+                  Thời gian làm việc
+                </h3>
+                <div className={profilePaper.field}>
+                  <label
+                    className={profilePaper.fieldLabel}
+                    htmlFor="workScheduleType"
+                  >
+                    Loại hình tuyển dụng
+                  </label>
+                  <select
+                    id="workScheduleType"
+                    className={styles.selectInput}
+                    value={form.workScheduleType}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        workScheduleType: event.target.value as
+                          | "FULL_TIME"
+                          | "PART_TIME",
+                      })
+                    }
+                  >
+                    <option value="FULL_TIME">Full-time</option>
+                    <option value="PART_TIME">Part-time</option>
+                  </select>
+                </div>
+                <p className={profilePaper.hint}>
+                  {form.workScheduleType === "PART_TIME"
+                    ? "Thêm từng ca và chọn các ngày trong tuần cần tuyển."
+                    : "Khai báo giờ và ngày làm việc full-time. Bạn có thể giữ nhiều ca nếu cần."}
+                </p>
+                <div className={styles.scheduleList}>
+                  {scheduleRows.map((row, index) => (
+                    <fieldset className={styles.scheduleCard} key={row.id}>
+                      <legend className={styles.scheduleLegend}>
+                        {form.workScheduleType === "PART_TIME"
+                          ? `Ca ${index + 1}`
+                          : `Lịch ${index + 1}`}
+                      </legend>
+                      <div className={styles.scheduleFields}>
+                        <label className={profilePaper.field}>
+                          <span className={profilePaper.fieldLabel}>
+                            Tên ca (không bắt buộc)
+                          </span>
+                          <input
+                            className={profilePaper.input}
+                            value={row.shiftName}
+                            placeholder={
+                              form.workScheduleType === "PART_TIME"
+                                ? "Ca sáng"
+                                : "Giờ hành chính"
+                            }
+                            onChange={(event) =>
+                              setScheduleRows((rows) =>
+                                rows.map((item) =>
+                                  item.id === row.id
+                                    ? { ...item, shiftName: event.target.value }
+                                    : item,
+                                ),
+                              )
+                            }
+                          />
+                        </label>
+                        <label className={profilePaper.field}>
+                          <span className={profilePaper.fieldLabel}>
+                            Bắt đầu
+                          </span>
+                          <input
+                            className={profilePaper.input}
+                            type="time"
+                            value={row.startTime}
+                            onChange={(event) =>
+                              setScheduleRows((rows) =>
+                                rows.map((item) =>
+                                  item.id === row.id
+                                    ? { ...item, startTime: event.target.value }
+                                    : item,
+                                ),
+                              )
+                            }
+                            required
+                          />
+                        </label>
+                        <label className={profilePaper.field}>
+                          <span className={profilePaper.fieldLabel}>
+                            Kết thúc
+                          </span>
+                          <input
+                            className={profilePaper.input}
+                            type="time"
+                            value={row.endTime}
+                            onChange={(event) =>
+                              setScheduleRows((rows) =>
+                                rows.map((item) =>
+                                  item.id === row.id
+                                    ? { ...item, endTime: event.target.value }
+                                    : item,
+                                ),
+                              )
+                            }
+                            required
+                          />
+                        </label>
+                      </div>
+                      <div className={styles.dayChoices}>
+                        {WORK_DAYS.map(([value, label]) => (
+                          <label className={styles.dayChoice} key={value}>
+                            <input
+                              type="checkbox"
+                              checked={row.days.includes(value)}
+                              onChange={(event) =>
+                                setScheduleRows((rows) =>
+                                  rows.map((item) =>
+                                    item.id === row.id
+                                      ? {
+                                          ...item,
+                                          days: event.target.checked
+                                            ? [...item.days, value]
+                                            : item.days.filter(
+                                                (day) => day !== value,
+                                              ),
+                                        }
+                                      : item,
+                                  ),
+                                )
+                              }
+                            />
+                            {label}
+                          </label>
+                        ))}
+                      </div>
+                      {scheduleRows.length > 1 ? (
+                        <button
+                          type="button"
+                          className={styles.removeSchedule}
+                          onClick={() =>
+                            setScheduleRows((rows) =>
+                              rows.filter((item) => item.id !== row.id),
+                            )
+                          }
+                        >
+                          Xóa lịch này
+                        </button>
+                      ) : null}
+                    </fieldset>
+                  ))}
+                </div>
+                {fieldErrors.schedules ? (
+                  <p className={styles.fieldError}>{fieldErrors.schedules}</p>
+                ) : null}
+                <button
+                  type="button"
+                  className={styles.addSchedule}
+                  onClick={() => {
+                    setScheduleRows((rows) => [
+                      ...rows,
+                      {
+                        id: nextScheduleId,
+                        shiftName: "",
+                        startTime: "13:00",
+                        endTime: "18:00",
+                        days: [],
+                      },
+                    ]);
+                    setNextScheduleId((id) => id + 1);
+                  }}
+                >
+                  + Thêm {form.workScheduleType === "PART_TIME" ? "ca" : "lịch"}
+                </button>
               </section>
 
               <section className={styles.formSection} aria-labelledby="jc-salary">

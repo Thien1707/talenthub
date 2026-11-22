@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { WorkScheduleType, WorkDayOfWeek } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString, Matches } from 'class-validator';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 export class PublicJobsQueryDto extends PaginationQueryDto {
@@ -23,6 +24,38 @@ export class PublicJobsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   city?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  province?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  ward?: string;
+
+  @ApiPropertyOptional({ enum: WorkScheduleType })
+  @IsOptional()
+  @IsEnum(WorkScheduleType)
+  jobType?: WorkScheduleType;
+
+  @ApiPropertyOptional({ enum: WorkDayOfWeek })
+  @IsOptional()
+  @IsEnum(WorkDayOfWeek)
+  dayOfWeek?: WorkDayOfWeek;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  startTime?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  endTime?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

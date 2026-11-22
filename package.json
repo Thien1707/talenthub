@@ -19,6 +19,8 @@
     "db:migrate": "npm run prisma:migrate -w api",
     "db:deploy": "npm run prisma:deploy -w api",
     "db:seed": "npm run prisma:seed -w api",
+    "db:seed:categories": "npm run prisma:seed:categories -w api",
+    "db:reset-super-admin-password": "npm run prisma:reset-super-admin-password -w api",
     "build:render": "npm run db:generate && npm run build:api",
     "start:api": "npm run start:prod -w api",
     "start:render": "npm run build:render && npm run start:api"

@@ -11,9 +11,19 @@ export function foldSearchAscii(input: string): string {
 }
 
 export function tokenizeJobKeyword(keyword: string): string[] {
-  const trimmed = keyword.trim();
-  if (!trimmed) return [];
-  return trimmed.split(/\s+/).filter((t) => t.length > 0);
+  const normalized = (keyword ?? '')
+    .normalize('NFKC')
+    .replace(/[\p{P}\p{S}]+/gu, ' ')
+    .replace(/[_]+/g, ' ')
+    .replace(/[-]+/g, ' ')
+    .trim();
+
+  if (!normalized) return [];
+
+  return normalized
+    .split(/\s+/)
+    .map((token) => foldSearchAscii(token).trim())
+    .filter((token) => token.length > 0 && /[\p{L}\p{N}]/u.test(token));
 }
 
 function searchVariants(token: string): string[] {
@@ -21,8 +31,9 @@ function searchVariants(token: string): string[] {
   if (!raw) return [];
   const folded = foldSearchAscii(raw);
   const lower = raw.toLowerCase();
-  const set = new Set<string>([raw, lower, folded, folded.toLowerCase()]);
-  return [...set].filter(Boolean);
+  const foldedLower = folded.toLowerCase();
+  const set = new Set<string>([raw, lower, folded, foldedLower]);
+  return [...set].filter((value) => value && value.trim().length > 0);
 }
 
 /** Một token khớp ít nhất một trường tìm kiếm. */

@@ -7,10 +7,13 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { LocationFields } from "@/components/locations/location-fields";
 import { api } from "@/lib/api/client";
 
 const schema = z.object({
   city: z.string().optional(),
+  province: z.string().optional(),
+  ward: z.string().optional(),
   schoolName: z.string().optional(),
   major: z.string().optional(),
   bio: z.string().optional(),
@@ -33,6 +36,8 @@ export function StudentProfileForm() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
@@ -50,6 +55,9 @@ export function StudentProfileForm() {
     onError: () => toast.error("Lưu thất bại"),
   });
 
+  const province = watch("province") ?? "";
+  const ward = watch("ward") ?? "";
+
   if (isLoading) return <p className="text-slate-500">Đang tải hồ sơ...</p>;
 
   return (
@@ -57,9 +65,18 @@ export function StudentProfileForm() {
       onSubmit={handleSubmit((v) => mutation.mutate(v))}
       className="max-w-lg space-y-4"
     >
+      <LocationFields
+        province={province}
+        ward={ward}
+        provinceLabel="Nơi ở — tỉnh/thành phố"
+        wardLabel="Nơi ở — phường/xã"
+        onChange={(location) => {
+          setValue("province", location.province, { shouldDirty: true });
+          setValue("ward", location.ward, { shouldDirty: true });
+        }}
+      />
       {(
         [
-          ["city", "Tỉnh/Thành phố"],
           ["schoolName", "Trường học"],
           ["major", "Chuyên ngành"],
           ["educationLevel", "Trình độ"],

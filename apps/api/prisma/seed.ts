@@ -1,23 +1,11 @@
-import {
-  PlanType,
-  PrismaClient,
-  UserRole,
-  UserStatus,
-} from '@prisma/client';
+import { PlanType, PrismaClient, UserRole, UserStatus } from '@prisma/client';
 import * as argon2 from 'argon2';
+import { CATEGORY_CATALOG } from './category-catalog';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const categories = [
-    { categoryName: 'Công nghệ thông tin', slug: 'cong-nghe-thong-tin' },
-    { categoryName: 'Marketing', slug: 'marketing' },
-    { categoryName: 'Kế toán', slug: 'ke-toan' },
-    { categoryName: 'Kinh doanh', slug: 'kinh-doanh' },
-    { categoryName: 'Nhân sự', slug: 'nhan-su' },
-  ];
-
-  for (const cat of categories) {
+  for (const cat of CATEGORY_CATALOG) {
     await prisma.category.upsert({
       where: { slug: cat.slug },
       update: {},
@@ -144,8 +132,7 @@ async function main() {
     },
   });
 
-  const staffEmail =
-    process.env.STAFF_SEED_EMAIL ?? 'staff@talenthub.local';
+  const staffEmail = process.env.STAFF_SEED_EMAIL ?? 'staff@talenthub.local';
   const staffPassword =
     process.env.STAFF_SEED_PASSWORD ?? 'ChangeMe_Staff_123!';
   const staffHash = await argon2.hash(staffPassword);

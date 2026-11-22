@@ -1,17 +1,46 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { EmploymentType, JobType } from '@prisma/client';
+import {
+  EmploymentType,
+  JobType,
+  WorkDayOfWeek,
+  WorkScheduleType,
+} from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsEnum,
+  IsArray,
   IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   Max,
+  Matches,
   Min,
+  ValidateNested,
 } from 'class-validator';
 import { MAX_VND_SALARY } from '../../common/constants/money.constants';
+
+class JobWorkScheduleDto {
+  @ApiProperty({ enum: WorkDayOfWeek })
+  @IsEnum(WorkDayOfWeek)
+  dayOfWeek: WorkDayOfWeek;
+
+  @ApiProperty()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  startTime: string;
+
+  @ApiProperty()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  endTime: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  shiftName?: string;
+}
 
 export class CreateJobDto {
   @ApiProperty()
@@ -42,6 +71,43 @@ export class CreateJobDto {
   @IsString()
   @IsNotEmpty()
   location: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  province?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  district?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  ward?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  streetAddress?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  detailAddress?: string;
+
+  @ApiPropertyOptional({ enum: WorkScheduleType })
+  @IsOptional()
+  @IsEnum(WorkScheduleType)
+  workScheduleType?: WorkScheduleType;
+
+  @ApiPropertyOptional({ type: [JobWorkScheduleDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => JobWorkScheduleDto)
+  schedules?: JobWorkScheduleDto[];
 
   @ApiPropertyOptional()
   @IsOptional()

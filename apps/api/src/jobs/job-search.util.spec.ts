@@ -17,9 +17,23 @@ describe('job-search.util', () => {
     ]);
   });
 
+  it('tokenizeJobKeyword bỏ dấu câu và ký tự đặc biệt', () => {
+    expect(tokenizeJobKeyword('Frontend, Developer!')).toEqual([
+      'Frontend',
+      'Developer',
+    ]);
+    expect(tokenizeJobKeyword('Full-stack Developer')).toEqual([
+      'Full',
+      'stack',
+      'Developer',
+    ]);
+    expect(tokenizeJobKeyword('!!!')).toEqual([]);
+  });
+
   it('buildPublicJobKeywordWhere trả null khi rỗng', () => {
     expect(buildPublicJobKeywordWhere('')).toBeNull();
     expect(buildPublicJobKeywordWhere(undefined)).toBeNull();
+    expect(buildPublicJobKeywordWhere('!!!')).toBeNull();
   });
 
   it('buildPublicJobKeywordWhere AND nhiều token', () => {

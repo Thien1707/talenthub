@@ -36,6 +36,12 @@ export class JobsController {
     return this.jobsService.listPublic(query);
   }
 
+  @Get('search')
+  @ApiOperation({ summary: 'Tìm kiếm tin tuyển dụng theo vị trí và lịch làm việc' })
+  search(@Query() query: PublicJobsQueryDto) {
+    return this.jobsService.listPublic(query);
+  }
+
   @Get('search-suggestions')
   @ApiOperation({ summary: 'Gợi ý tìm việc (tiêu đề tin, ngành)' })
   searchSuggestions(

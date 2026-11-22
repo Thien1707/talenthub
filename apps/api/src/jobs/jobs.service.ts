@@ -11,6 +11,8 @@ import {
   JobType,
   ModerationTargetType,
   Prisma,
+  WorkDayOfWeek,
+  WorkScheduleType,
 } from '@prisma/client';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import {
@@ -33,6 +35,15 @@ export class JobsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createDraft(userId: bigint, dto: CreateJobDto) {
+    if (
+      dto.schedules?.some(
+        (schedule) => schedule.endTime <= schedule.startTime,
+      )
+    ) {
+      throw new BadRequestException(
+        'Giờ kết thúc của ca làm phải sau giờ bắt đầu',
+      );
+    }
     if (dto.salaryMin != null && dto.salaryMin > MAX_VND_SALARY) {
       throw new BadRequestException(
         `Lương tối thiểu vượt giới hạn ${MAX_VND_SALARY.toLocaleString('en-US')} VND`,
@@ -67,6 +78,17 @@ export class JobsService {
         requirements: dto.requirements,
         benefits: dto.benefits,
         location: dto.location,
+        province: dto.province,
+        district: dto.district,
+        ward: dto.ward,
+        streetAddress: dto.streetAddress,
+        detailAddress: dto.detailAddress,
+        workScheduleType: dto.workScheduleType,
+        schedules: dto.schedules
+          ? {
+              create: dto.schedules,
+            }
+          : undefined,
         salaryMin: dto.salaryMin,
         salaryMax: dto.salaryMax,
         salaryCurrency: dto.salaryCurrency ?? 'VND',
@@ -322,6 +344,28 @@ export class JobsService {
     if (query.city) {
       where.location = { contains: query.city };
     }
+    if (query.province) {
+      where.province = query.province;
+    }
+    if (query.ward) {
+      where.ward = query.ward;
+    }
+    if (query.jobType) {
+      where.workScheduleType = query.jobType as WorkScheduleType;
+    }
+    const scheduleWhere: Prisma.JobWorkScheduleWhereInput = {};
+    if (query.dayOfWeek) {
+      scheduleWhere.dayOfWeek = query.dayOfWeek as WorkDayOfWeek;
+    }
+    if (query.startTime) {
+      scheduleWhere.startTime = { gte: query.startTime };
+    }
+    if (query.endTime) {
+      scheduleWhere.endTime = { lte: query.endTime };
+    }
+    if (Object.keys(scheduleWhere).length > 0) {
+      where.schedules = { some: scheduleWhere };
+    }
     if (query.salaryMin != null) {
       where.salaryMax = { gte: query.salaryMin };
     }
@@ -339,6 +383,7 @@ export class JobsService {
         ],
         include: {
           category: true,
+          schedules: true,
           company: {
             select: {
               companyId: true,

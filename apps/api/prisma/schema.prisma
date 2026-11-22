@@ -45,6 +45,21 @@ enum EmploymentType {
   FULL_TIME
 }
 
+enum WorkScheduleType {
+  PART_TIME
+  FULL_TIME
+}
+
+enum WorkDayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
 enum JobType {
   NORMAL
   VIP
@@ -241,6 +256,7 @@ model User {
   conversationMembers ConversationMember[]
   messagesSent       Message[]
   notifications      Notification[]
+  studentAvailabilities StudentAvailability[]
   reviewsGiven       Review[] @relation("Reviewer")
   reviewsReceived    Review[] @relation("Reviewed")
   reportsFiled       UserReport[] @relation("Reporter")
@@ -276,25 +292,36 @@ model RefreshToken {
 }
 
 model StudentProfile {
-  studentProfileId BigInt   @id @default(autoincrement()) @map("student_profile_id")
-  userId           BigInt   @unique @map("user_id")
-  dateOfBirth      DateTime? @map("date_of_birth") @db.Date
-  gender           Gender?
-  address          String?  @db.VarChar(255)
-  city             String?  @db.VarChar(100)
-  educationLevel   String?  @map("education_level") @db.VarChar(100)
-  schoolName       String?  @map("school_name") @db.VarChar(255)
-  major            String?  @db.VarChar(150)
-  graduationYear   Int?     @map("graduation_year") @db.SmallInt
-  experienceYears  Decimal? @map("experience_years") @db.Decimal(4, 1)
-  bio              String?  @db.Text
-  linkedinUrl      String?  @map("linkedin_url") @db.VarChar(500)
-  portfolioUrl     String?  @map("portfolio_url") @db.VarChar(500)
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  studentProfileId      BigInt            @id @default(autoincrement()) @map("student_profile_id")
+  userId                BigInt            @unique @map("user_id")
+  dateOfBirth           DateTime?         @map("date_of_birth") @db.Date
+  gender                Gender?
+  address               String?           @db.VarChar(255)
+  city                  String?           @db.VarChar(100)
+  district              String?           @db.VarChar(100)
+  ward                  String?           @db.VarChar(100)
+  province              String?           @db.VarChar(100)
+  preferredAddress      String?           @map("preferred_address") @db.VarChar(255)
+  preferredProvince     String?           @map("preferred_province") @db.VarChar(100)
+  preferredDistrict     String?           @map("preferred_district") @db.VarChar(100)
+  preferredWard         String?           @map("preferred_ward") @db.VarChar(100)
+  workScheduleType      WorkScheduleType? @map("work_schedule_type")
+  availableFromDate     DateTime?         @map("available_from_date") @db.Date
+  educationLevel        String?           @map("education_level") @db.VarChar(100)
+  schoolName            String?           @map("school_name") @db.VarChar(255)
+  major                 String?           @db.VarChar(150)
+  graduationYear        Int?              @map("graduation_year") @db.SmallInt
+  experienceYears       Decimal?          @map("experience_years") @db.Decimal(4, 1)
+  bio                   String?           @db.Text
+  linkedinUrl           String?           @map("linkedin_url") @db.VarChar(500)
+  portfolioUrl          String?           @map("portfolio_url") @db.VarChar(500)
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user        User                 @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  availabilities StudentAvailability[]
 
+  @@index([preferredProvince, preferredWard])
   @@map("student_profiles")
 }
 
@@ -363,55 +390,63 @@ model Category {
 }
 
 model Job {
-  jobId           BigInt         @id @default(autoincrement()) @map("job_id")
-  companyId       BigInt         @map("company_id")
-  categoryId      BigInt         @map("category_id")
-  title           String         @db.VarChar(255)
-  slug            String         @unique @db.VarChar(300)
-  description     String         @db.LongText
-  requirements    String         @db.LongText
-  benefits        String?        @db.LongText
-  location        String         @db.VarChar(255)
-  salaryMin       Decimal?       @map("salary_min") @db.Decimal(15, 2)
-  salaryMax       Decimal?       @map("salary_max") @db.Decimal(15, 2)
-  salaryCurrency  String         @default("VND") @map("salary_currency") @db.Char(3)
-  employmentType  EmploymentType @default(FULL_TIME) @map("employment_type")
-  experienceLevel String?        @map("experience_level") @db.VarChar(100)
-  quantity        Int            @default(1)
-  jobType         JobType        @default(NORMAL) @map("job_type")
-  status          JobStatus      @default(DRAFT)
-  isPaid          Boolean        @default(false) @map("is_paid")
-  quotaConsumed   Boolean        @default(false) @map("quota_consumed")
-  moderatedBy     BigInt?        @map("moderated_by")
-  moderatedAt     DateTime?      @map("moderated_at")
-  rejectionReason String?        @map("rejection_reason") @db.Text
-  publishedAt     DateTime?      @map("published_at")
-  expiresAt       DateTime?      @map("expires_at")
-  promotionTopUntil DateTime?    @map("promotion_top_until")
-  highlightUntil  DateTime?      @map("highlight_until")
-  featuredUntil   DateTime?      @map("featured_until")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
-  deletedAt       DateTime?      @map("deleted_at")
+  jobId             BigInt           @id @default(autoincrement()) @map("job_id")
+  companyId         BigInt           @map("company_id")
+  categoryId        BigInt           @map("category_id")
+  title             String           @db.VarChar(255)
+  slug              String           @unique @db.VarChar(300)
+  description       String           @db.LongText
+  requirements      String           @db.LongText
+  benefits          String?          @db.LongText
+  location          String           @db.VarChar(255)
+  province          String?          @db.VarChar(100)
+  district          String?          @db.VarChar(100)
+  ward              String?          @db.VarChar(100)
+  streetAddress     String?          @map("street_address") @db.VarChar(255)
+  detailAddress     String?          @map("detail_address") @db.VarChar(255)
+  workScheduleType  WorkScheduleType? @map("work_schedule_type")
+  salaryMin         Decimal?         @map("salary_min") @db.Decimal(15, 2)
+  salaryMax         Decimal?         @map("salary_max") @db.Decimal(15, 2)
+  salaryCurrency    String           @default("VND") @map("salary_currency") @db.Char(3)
+  employmentType    EmploymentType   @default(FULL_TIME) @map("employment_type")
+  experienceLevel   String?          @map("experience_level") @db.VarChar(100)
+  quantity          Int              @default(1)
+  jobType           JobType          @default(NORMAL) @map("job_type")
+  status            JobStatus        @default(DRAFT)
+  isPaid            Boolean          @default(false) @map("is_paid")
+  quotaConsumed     Boolean          @default(false) @map("quota_consumed")
+  moderatedBy       BigInt?          @map("moderated_by")
+  moderatedAt       DateTime?        @map("moderated_at")
+  rejectionReason   String?          @map("rejection_reason") @db.Text
+  publishedAt       DateTime?        @map("published_at")
+  expiresAt         DateTime?        @map("expires_at")
+  promotionTopUntil DateTime?        @map("promotion_top_until")
+  highlightUntil    DateTime?        @map("highlight_until")
+  featuredUntil     DateTime?        @map("featured_until")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  deletedAt         DateTime?        @map("deleted_at")
 
-  company    CompanyProfile @relation(fields: [companyId], references: [companyId], onDelete: Restrict)
-  category   Category       @relation(fields: [categoryId], references: [categoryId], onDelete: Restrict)
-  moderator  User?          @relation("JobModerator", fields: [moderatedBy], references: [userId], onDelete: SetNull)
+  company          CompanyProfile    @relation(fields: [companyId], references: [companyId], onDelete: Restrict)
+  category         Category           @relation(fields: [categoryId], references: [categoryId], onDelete: Restrict)
+  moderator        User?              @relation("JobModerator", fields: [moderatedBy], references: [userId], onDelete: SetNull)
 
-  statusHistory JobStatusHistory[]
-  applications  Application[]
-  savedBy       SavedJob[]
-  orderItems    OrderItem[]
-  aiAnalyses    CvAiAnalysis[]
-  reports       UserReport[]
-  promotions    JobPromotion[]
-  publishRequests JobPublishRequest[]
+  statusHistory    JobStatusHistory[]
+  applications     Application[]
+  savedBy          SavedJob[]
+  orderItems       OrderItem[]
+  aiAnalyses       CvAiAnalysis[]
+  reports          UserReport[]
+  promotions       JobPromotion[]
+  publishRequests  JobPublishRequest[]
   walletTransactions WalletTransaction[]
+  schedules        JobWorkSchedule[]
 
   @@index([status, jobType, publishedAt])
   @@index([promotionTopUntil])
   @@index([companyId])
   @@index([expiresAt])
+  @@index([province, ward])
   @@map("jobs")
 }
 
@@ -429,6 +464,40 @@ model JobStatusHistory {
 
   @@index([jobId])
   @@map("job_status_history")
+}
+
+model JobWorkSchedule {
+  scheduleId   BigInt           @id @default(autoincrement()) @map("schedule_id")
+  jobId        BigInt           @map("job_id")
+  dayOfWeek    WorkDayOfWeek    @map("day_of_week")
+  startTime    String           @map("start_time") @db.VarChar(5)
+  endTime      String           @map("end_time") @db.VarChar(5)
+  shiftName    String?          @map("shift_name") @db.VarChar(50)
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  job Job @relation(fields: [jobId], references: [jobId], onDelete: Cascade)
+
+  @@index([jobId, dayOfWeek])
+  @@map("job_work_schedules")
+}
+
+model StudentAvailability {
+  availabilityId BigInt           @id @default(autoincrement()) @map("availability_id")
+  userId         BigInt           @map("user_id")
+  studentProfileId BigInt?        @map("student_profile_id")
+  dayOfWeek      WorkDayOfWeek    @map("day_of_week")
+  startTime      String           @map("start_time") @db.VarChar(5)
+  endTime        String           @map("end_time") @db.VarChar(5)
+  workScheduleType WorkScheduleType? @map("work_schedule_type")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  studentProfile StudentProfile? @relation(fields: [studentProfileId], references: [studentProfileId], onDelete: SetNull)
+  user           User            @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId, dayOfWeek])
+  @@map("student_availability")
 }
 
 model Application {

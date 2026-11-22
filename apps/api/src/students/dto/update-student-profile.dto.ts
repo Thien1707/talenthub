@@ -1,7 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Gender } from '@prisma/client';
+import { Gender, WorkScheduleType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
+  IsDate,
   IsEnum,
   IsInt,
   IsNumber,
@@ -32,6 +33,52 @@ export class UpdateStudentProfileDto {
   @IsOptional()
   @IsString()
   city?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  district?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  ward?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  province?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  preferredAddress?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  preferredProvince?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  preferredDistrict?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  preferredWard?: string;
+
+  @ApiPropertyOptional({ enum: WorkScheduleType })
+  @IsOptional()
+  @IsEnum(WorkScheduleType)
+  workScheduleType?: WorkScheduleType;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  availableFromDate?: Date;
 
   @ApiPropertyOptional()
   @IsOptional()

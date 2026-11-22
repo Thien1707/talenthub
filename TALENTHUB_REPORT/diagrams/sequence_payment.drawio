@@ -1,0 +1,24 @@
+<mxfile host="app.diagrams.net" modified="2026-11-01T00:00:00.000Z" agent="TalentHub" version="22.1.0" type="device">
+  <diagram name="Sequence — VNPAY" id="38bd7f7f">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="2" value="NTD" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="80" y="40" width="110" height="40" as="geometry"/></mxCell>
+        <mxCell id="3" value="Frontend" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="260" y="40" width="110" height="40" as="geometry"/></mxCell>
+        <mxCell id="4" value="PaymentsService" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="440" y="40" width="110" height="40" as="geometry"/></mxCell>
+        <mxCell id="5" value="VNPAY" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="620" y="40" width="110" height="40" as="geometry"/></mxCell>
+        <mxCell id="6" value="MySQL" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="800" y="40" width="110" height="40" as="geometry"/></mxCell>
+        <mxCell id="7" value="Nạp ví" style="endArrow=block;html=1;strokeWidth=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="135" y="120" as="sourcePoint"/><mxPoint x="315" y="120" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="8" value="Order WALLET_TOPUP" style="endArrow=block;html=1;strokeWidth=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="315" y="165" as="sourcePoint"/><mxPoint x="495" y="165" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="9" value="Order + PaymentTx" style="endArrow=block;html=1;strokeWidth=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="495" y="210" as="sourcePoint"/><mxPoint x="855" y="210" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="10" value="Redirect URL" style="endArrow=block;html=1;strokeWidth=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="495" y="255" as="sourcePoint"/><mxPoint x="675" y="255" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="11" value="Cổng thanh toán" style="endArrow=block;html=1;dashed=1;strokeWidth=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="135" y="300" as="sourcePoint"/><mxPoint x="675" y="300" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="12" value="Thanh toán" style="endArrow=block;html=1;strokeWidth=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="135" y="345" as="sourcePoint"/><mxPoint x="675" y="345" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="13" value="IPN / Return" style="endArrow=block;html=1;strokeWidth=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="495" y="390" as="sourcePoint"/><mxPoint x="675" y="390" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="14" value="SUCCESS + cộng ví" style="endArrow=block;html=1;strokeWidth=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="495" y="435" as="sourcePoint"/><mxPoint x="855" y="435" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="15" value="/thanh-toan/ket-qua" style="endArrow=block;html=1;dashed=1;strokeWidth=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="315" y="480" as="sourcePoint"/><mxPoint x="495" y="480" as="targetPoint"/></mxGeometry></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

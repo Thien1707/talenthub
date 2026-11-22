@@ -168,6 +168,74 @@
   background: var(--violet-50);
 }
 
+.filterForm {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.filterTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.locationFields {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem var(--space-3);
+}
+
+.locationFields label {
+  margin-top: 0 !important;
+}
+
+.filterField {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.filterField input,
+.filterField select {
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--th-radius-lg);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.filterActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.clearFilters {
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .meta {
   margin-top: var(--space-6);
   font-size: var(--text-sm);
@@ -423,6 +491,11 @@
 
   .hand {
     transform-origin: center;
+  }
+
+  .filterGrid,
+  .locationFields {
+    grid-template-columns: 1fr;
   }
 
   .way {

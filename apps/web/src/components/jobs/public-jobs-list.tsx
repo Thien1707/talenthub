@@ -9,6 +9,7 @@ import {
   MarketingPageIntro,
   PageIntroAccent,
 } from "@/components/marketing/page-intro";
+import { LocationFields } from "@/components/locations/location-fields";
 import { api } from "@/lib/api/client";
 import { formatSalaryRange } from "@/lib/format-money";
 import styles from "./public-jobs-list.module.css";
@@ -19,6 +20,17 @@ type JobItem = {
   slug: string;
   location: string;
   jobType: string;
+  workScheduleType?: string | null;
+  province?: string | null;
+  ward?: string | null;
+  streetAddress?: string | null;
+  detailAddress?: string | null;
+  schedules?: {
+    dayOfWeek: string;
+    startTime: string;
+    endTime: string;
+    shiftName?: string | null;
+  }[];
   highlightUntil?: string | null;
   featuredUntil?: string | null;
   promotionTopUntil?: string | null;
@@ -43,6 +55,42 @@ function promoActive(until?: string | null) {
 }
 
 const PAGE_SIZE = 20;
+const WORK_DAYS = [
+  ["MONDAY", "Thứ 2"],
+  ["TUESDAY", "Thứ 3"],
+  ["WEDNESDAY", "Thứ 4"],
+  ["THURSDAY", "Thứ 5"],
+  ["FRIDAY", "Thứ 6"],
+  ["SATURDAY", "Thứ 7"],
+  ["SUNDAY", "Chủ nhật"],
+] as const;
+const WORK_DAY_LABELS = Object.fromEntries(WORK_DAYS);
+
+type SearchFilters = {
+  province: string;
+  ward: string;
+  jobType: string;
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  salaryMin: string;
+};
+
+function readFilters(params: URLSearchParams): SearchFilters {
+  return {
+    province: params.get("province") ?? "",
+    ward: params.get("ward") ?? "",
+    jobType: params.get("jobType") ?? "",
+    dayOfWeek: params.get("dayOfWeek") ?? "",
+    startTime: params.get("startTime") ?? "",
+    endTime: params.get("endTime") ?? "",
+    salaryMin: params.get("salaryMin") ?? "",
+  };
+}
+
+function hasActiveFilters(filters: SearchFilters) {
+  return Object.values(filters).some(Boolean);
+}
 
 export function PublicJobsList() {
   const router = useRouter();
@@ -50,25 +98,36 @@ export function PublicJobsList() {
 
   const keywordFromUrl = searchParams.get("keyword") ?? searchParams.get("q") ?? "";
   const pageFromUrl = Math.max(1, Number(searchParams.get("page") || "1") || 1);
+  const searchParamString = searchParams.toString();
+  const filtersFromUrl = readFilters(new URLSearchParams(searchParamString));
 
   const [keyword, setKeyword] = useState(keywordFromUrl);
   const [appliedKeyword, setAppliedKeyword] = useState(keywordFromUrl);
+  const [filters, setFilters] = useState(filtersFromUrl);
+  const [appliedFilters, setAppliedFilters] = useState(filtersFromUrl);
   const [page, setPage] = useState(pageFromUrl);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const suggestRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setKeyword(keywordFromUrl);
-    setAppliedKeyword(keywordFromUrl);
-    setPage(pageFromUrl);
-  }, [keywordFromUrl, pageFromUrl]);
+    const params = new URLSearchParams(searchParamString);
+    const nextKeyword = params.get("keyword") ?? params.get("q") ?? "";
+    setKeyword(nextKeyword);
+    setAppliedKeyword(nextKeyword);
+    setFilters(readFilters(params));
+    setAppliedFilters(readFilters(params));
+    setPage(Math.max(1, Number(params.get("page") || "1") || 1));
+  }, [searchParamString]);
 
   const pushSearchState = useCallback(
-    (nextKeyword: string, nextPage: number) => {
+    (nextKeyword: string, nextPage: number, nextFilters: SearchFilters) => {
       const params = new URLSearchParams();
       const trimmed = nextKeyword.trim();
       if (trimmed) params.set("keyword", trimmed);
       if (nextPage > 1) params.set("page", String(nextPage));
+      for (const [key, value] of Object.entries(nextFilters)) {
+        if (value) params.set(key, value);
+      }
       const qs = params.toString();
       router.replace(qs ? `/viec-lam?${qs}` : "/viec-lam", { scroll: false });
     },
@@ -79,19 +138,27 @@ export function PublicJobsList() {
     (value?: string) => {
       const next = (value ?? keyword).trim();
       setAppliedKeyword(next);
+      setAppliedFilters(filters);
       setPage(1);
       setSuggestOpen(false);
-      pushSearchState(next, 1);
+      pushSearchState(next, 1, filters);
     },
-    [keyword, pushSearchState],
+    [filters, keyword, pushSearchState],
   );
 
   const { data, isLoading, isFetching, isError } = useQuery({
-    queryKey: ["jobs", "public", appliedKeyword, page],
+    queryKey: ["jobs", "public", appliedKeyword, appliedFilters, page],
     queryFn: async () => {
       const { data: res } = await api.get<JobsResponse>("/jobs", {
         params: {
           keyword: appliedKeyword || undefined,
+          province: appliedFilters.province || undefined,
+          ward: appliedFilters.ward || undefined,
+          jobType: appliedFilters.jobType || undefined,
+          dayOfWeek: appliedFilters.dayOfWeek || undefined,
+          startTime: appliedFilters.startTime || undefined,
+          endTime: appliedFilters.endTime || undefined,
+          salaryMin: appliedFilters.salaryMin || undefined,
           page,
           limit: PAGE_SIZE,
         },
@@ -134,14 +201,33 @@ export function PublicJobsList() {
   const clearSearch = () => {
     setKeyword("");
     setAppliedKeyword("");
+    setFilters(appliedFilters);
     setPage(1);
-    pushSearchState("", 1);
+    pushSearchState("", 1, appliedFilters);
   };
 
   const goPage = (p: number) => {
     const next = Math.min(Math.max(1, p), totalPages);
     setPage(next);
-    pushSearchState(appliedKeyword, next);
+    pushSearchState(appliedKeyword, next, appliedFilters);
+  };
+
+  const clearAllFilters = () => {
+    const emptyFilters: SearchFilters = {
+      province: "",
+      ward: "",
+      jobType: "",
+      dayOfWeek: "",
+      startTime: "",
+      endTime: "",
+      salaryMin: "",
+    };
+    setKeyword("");
+    setAppliedKeyword("");
+    setFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    setPage(1);
+    pushSearchState("", 1, emptyFilters);
   };
 
   const hasSuggestions =
@@ -157,7 +243,7 @@ export function PublicJobsList() {
             Tìm cơ hội <PageIntroAccent>phù hợp</PageIntroAccent> với bạn.
           </>
         }
-        lead="Tin tuyển dụng full-time từ doanh nghiệp đã kiểm duyệt trên TalentHub — tìm kiếm, lưu tin và ứng tuyển ngay."
+        lead="Tìm việc theo địa điểm, loại hình và thời gian bạn có thể làm — lưu tin và ứng tuyển ngay."
         bubble="chào bạn!"
       />
 
@@ -248,6 +334,138 @@ export function PublicJobsList() {
               ))}
             </ul>
           ) : null}
+
+          <form
+            className={styles.filterForm}
+            onSubmit={(event) => {
+              event.preventDefault();
+              setAppliedFilters(filters);
+              setPage(1);
+              pushSearchState(appliedKeyword, 1, filters);
+            }}
+          >
+            <h3 className={styles.filterTitle}>Lọc công việc</h3>
+            <div className={styles.filterGrid}>
+              <LocationFields
+                province={filters.province}
+                ward={filters.ward}
+                className={styles.locationFields}
+                onChange={(location) =>
+                  setFilters((current) => ({ ...current, ...location }))
+                }
+              />
+              <label className={styles.filterField}>
+                <span>Loại hình</span>
+                <select
+                  value={filters.jobType}
+                  onChange={(event) =>
+                    setFilters((current) => ({
+                      ...current,
+                      jobType: event.target.value,
+                      dayOfWeek:
+                        event.target.value === "PART_TIME"
+                          ? current.dayOfWeek
+                          : "",
+                      startTime:
+                        event.target.value === "PART_TIME"
+                          ? current.startTime
+                          : "",
+                      endTime:
+                        event.target.value === "PART_TIME"
+                          ? current.endTime
+                          : "",
+                    }))
+                  }
+                >
+                  <option value="">Tất cả</option>
+                  <option value="PART_TIME">Part-time</option>
+                  <option value="FULL_TIME">Full-time</option>
+                </select>
+              </label>
+              {filters.jobType === "PART_TIME" ? (
+                <>
+                  <label className={styles.filterField}>
+                    <span>Ngày có thể làm</span>
+                    <select
+                      value={filters.dayOfWeek}
+                      onChange={(event) =>
+                        setFilters((current) => ({
+                          ...current,
+                          dayOfWeek: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Tất cả các ngày</option>
+                      {WORK_DAYS.map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className={styles.filterField}>
+                    <span>Bắt đầu từ</span>
+                    <input
+                      type="time"
+                      value={filters.startTime}
+                      onChange={(event) =>
+                        setFilters((current) => ({
+                          ...current,
+                          startTime: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className={styles.filterField}>
+                    <span>Kết thúc trước</span>
+                    <input
+                      type="time"
+                      value={filters.endTime}
+                      onChange={(event) =>
+                        setFilters((current) => ({
+                          ...current,
+                          endTime: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                </>
+              ) : null}
+              <label className={styles.filterField}>
+                <span>Lương tối thiểu (VND)</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={filters.salaryMin}
+                  onChange={(event) =>
+                    setFilters((current) => ({
+                      ...current,
+                      salaryMin: event.target.value,
+                    }))
+                  }
+                  placeholder="Không bắt buộc"
+                />
+              </label>
+            </div>
+            <div className={styles.filterActions}>
+              <button
+                type="submit"
+                className="button button-primary"
+                disabled={isFetching && !data}
+              >
+                Áp dụng bộ lọc
+              </button>
+              {hasActiveFilters(filters) || appliedKeyword ? (
+                <button
+                  type="button"
+                  className={styles.clearFilters}
+                  onClick={clearAllFilters}
+                >
+                  Xóa tất cả
+                </button>
+              ) : null}
+            </div>
+          </form>
         </div>
       </section>
 
@@ -329,12 +547,30 @@ export function PublicJobsList() {
                 <strong>{company}</strong>
                 {job.category?.categoryName ? ` · ${job.category.categoryName}` : ""}
                 <br />
-                {job.location}
+                {[job.streetAddress ?? job.location, job.ward, job.province]
+                  .filter(Boolean)
+                  .join(", ")}
                 {job.company?.city ? ` · ${job.company.city}` : ""}
                 <br />
                 <span className="text-violet-700">{formatSalaryRange(job.salaryMin, job.salaryMax)}</span>
                 {" · "}
-                {job.jobType}
+                {job.workScheduleType === "PART_TIME"
+                  ? "Part-time"
+                  : job.workScheduleType === "FULL_TIME"
+                    ? "Full-time"
+                    : job.jobType}
+                {job.schedules?.length ? (
+                  <>
+                    <br />
+                    Ca làm:{" "}
+                    {job.schedules
+                      .map(
+                        (schedule) =>
+                          `${schedule.shiftName ? `${schedule.shiftName}: ` : ""}${WORK_DAY_LABELS[schedule.dayOfWeek as keyof typeof WORK_DAY_LABELS] ?? schedule.dayOfWeek} ${schedule.startTime}–${schedule.endTime}`,
+                      )
+                      .join(" · ")}
+                  </>
+                ) : null}
               </p>
               {promos.length > 0 ? (
                 <div className={styles.wayMeta}>

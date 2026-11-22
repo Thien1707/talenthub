@@ -25,6 +25,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
+    "prisma:seed:categories": "ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" prisma/seed-categories.ts",
+    "prisma:reset-super-admin-password": "ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" prisma/reset-super-admin-password.ts",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {

@@ -1,3 +1,4 @@
+import * as path from 'node:path';
 import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ConfigModule } from '@nestjs/config';
@@ -19,6 +20,7 @@ import { AiModule } from './ai/ai.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { CvsModule } from './cvs/cvs.module';
 import { JobsModule } from './jobs/jobs.module';
+import { LocationsModule } from './locations/locations.module';
 import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PricingModule } from './pricing/pricing.module';
@@ -35,6 +37,11 @@ import { PostingModule } from './posting/posting.module';
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
+      envFilePath: [
+        path.resolve(process.cwd(), '.env'),
+        path.resolve(process.cwd(), 'apps/api/.env'),
+        '.env',
+      ],
     }),
     EventEmitterModule.forRoot(),
     MailModule,
@@ -51,6 +58,7 @@ import { PostingModule } from './posting/posting.module';
     CompaniesModule,
     CategoriesModule,
     JobsModule,
+    LocationsModule,
     PricingModule,
     OrdersModule,
     PaymentsModule,
