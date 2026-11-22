@@ -51,7 +51,12 @@ export function RegisterForm() {
   });
 
   return (
-    <form onSubmit={onSubmit} className={formStyles.form} aria-label="Đăng ký">
+    <form
+      onSubmit={onSubmit}
+      noValidate
+      className={formStyles.form}
+      aria-label="Đăng ký"
+    >
       <div className={formStyles.roleSwitch} role="group" aria-label="Loại tài khoản">
         <Link
           href="/dang-ky"
@@ -71,9 +76,24 @@ export function RegisterForm() {
         <label className={formStyles.label} htmlFor="register-fullName">
           Họ tên
         </label>
-        <input id="register-fullName" className="input-field" {...register("fullName")} />
+        <input
+          id="register-fullName"
+          autoComplete="name"
+          aria-invalid={Boolean(errors.fullName)}
+          aria-describedby={
+            errors.fullName ? "register-fullName-error" : undefined
+          }
+          className="input-field"
+          {...register("fullName")}
+        />
         {errors.fullName && (
-          <p className={formStyles.error}>{errors.fullName.message}</p>
+          <p
+            id="register-fullName-error"
+            className={formStyles.error}
+            role="alert"
+          >
+            {errors.fullName.message}
+          </p>
         )}
       </div>
 
@@ -84,11 +104,22 @@ export function RegisterForm() {
           </label>
           <input
             id="register-companyName"
+            autoComplete="organization"
+            aria-invalid={Boolean("companyName" in errors && errors.companyName)}
+            aria-describedby={
+              "companyName" in errors && errors.companyName
+                ? "register-companyName-error"
+                : undefined
+            }
             className="input-field"
             {...register("companyName" as keyof RegisterCompanyForm)}
           />
           {"companyName" in errors && errors.companyName && (
-            <p className={formStyles.error}>
+            <p
+              id="register-companyName-error"
+              className={formStyles.error}
+              role="alert"
+            >
               {(errors.companyName as { message?: string }).message}
             </p>
           )}
@@ -103,11 +134,21 @@ export function RegisterForm() {
           id="register-email"
           type="email"
           autoComplete="email"
+          aria-invalid={Boolean(errors.email)}
+          aria-describedby={
+            errors.email ? "register-email-error" : undefined
+          }
           className="input-field"
           {...register("email")}
         />
         {errors.email && (
-          <p className={formStyles.error}>{errors.email.message}</p>
+          <p
+            id="register-email-error"
+            className={formStyles.error}
+            role="alert"
+          >
+            {errors.email.message}
+          </p>
         )}
       </div>
 
@@ -119,11 +160,21 @@ export function RegisterForm() {
           id="register-password"
           type="password"
           autoComplete="new-password"
+          aria-invalid={Boolean(errors.password)}
+          aria-describedby={
+            errors.password ? "register-password-error" : undefined
+          }
           className="input-field"
           {...register("password")}
         />
         {errors.password && (
-          <p className={formStyles.error}>{errors.password.message}</p>
+          <p
+            id="register-password-error"
+            className={formStyles.error}
+            role="alert"
+          >
+            {errors.password.message}
+          </p>
         )}
       </div>
 

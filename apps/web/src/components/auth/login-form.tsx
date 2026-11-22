@@ -29,7 +29,12 @@ export function LoginForm() {
   });
 
   return (
-    <form onSubmit={onSubmit} className={formStyles.form} aria-label="Đăng nhập">
+    <form
+      onSubmit={onSubmit}
+      noValidate
+      className={formStyles.form}
+      aria-label="Đăng nhập"
+    >
       <div className={formStyles.field}>
         <label className={formStyles.label} htmlFor="login-email">
           Email
@@ -38,11 +43,19 @@ export function LoginForm() {
           id="login-email"
           type="email"
           autoComplete="email"
+          aria-invalid={Boolean(errors.email)}
+          aria-describedby={errors.email ? "login-email-error" : undefined}
           className="input-field"
           {...register("email")}
         />
         {errors.email && (
-          <p className={formStyles.error}>{errors.email.message}</p>
+          <p
+            id="login-email-error"
+            className={formStyles.error}
+            role="alert"
+          >
+            {errors.email.message}
+          </p>
         )}
       </div>
 
@@ -54,11 +67,21 @@ export function LoginForm() {
           id="login-password"
           type="password"
           autoComplete="current-password"
+          aria-invalid={Boolean(errors.password)}
+          aria-describedby={
+            errors.password ? "login-password-error" : undefined
+          }
           className="input-field"
           {...register("password")}
         />
         {errors.password && (
-          <p className={formStyles.error}>{errors.password.message}</p>
+          <p
+            id="login-password-error"
+            className={formStyles.error}
+            role="alert"
+          >
+            {errors.password.message}
+          </p>
         )}
       </div>
 
