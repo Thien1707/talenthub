@@ -599,7 +599,10 @@ export class JobsService {
     rejectionReason?: string,
   ) {
     return this.prisma.$transaction(async (tx) => {
-      const job = await tx.job.findUnique({ where: { jobId } });
+      const job = await tx.job.findUnique({
+        where: { jobId },
+        include: { company: { select: { userId: true } } },
+      });
       if (!job || job.deletedAt) {
         throw new NotFoundException('Không tìm thấy tin');
       }
@@ -645,6 +648,23 @@ export class JobsService {
           reason: rejectionReason,
           beforeData: { status: job.status },
           afterData: { status: newStatus },
+        },
+      });
+
+      await tx.notification.create({
+        data: {
+          userId: job.company.userId,
+          notificationType: 'JOB_MODERATION',
+          title:
+            newStatus === JobStatus.APPROVED
+              ? 'Tin tuyển dụng đã được duyệt'
+              : 'Tin tuyển dụng bị từ chối',
+          content:
+            newStatus === JobStatus.APPROVED
+              ? `Tin "${job.title}" đã được duyệt và đang hiển thị.`
+              : `Tin "${job.title}" bị từ chối.${rejectionReason ? ` Lý do: ${rejectionReason}` : ''}`,
+          referenceType: 'JOB',
+          referenceId: jobId,
         },
       });
 

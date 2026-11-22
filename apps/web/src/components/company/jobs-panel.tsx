@@ -17,6 +17,7 @@ type JobRow = {
   jobType: string;
   slug: string;
   isPaid: boolean;
+  rejectionReason?: string | null;
 };
 
 type JobDetails = {
@@ -83,6 +84,7 @@ export function CompanyJobsPanel() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["jobs", "company"],
+    refetchInterval: 15_000,
     queryFn: async () => {
       const { data } = await api.get<{ items: JobRow[] }>("/jobs/company/mine");
       return data.items;
@@ -337,6 +339,11 @@ export function CompanyJobsPanel() {
                           </span>
                           <span className={styles.typeTag}>{job.jobType}</span>
                         </div>
+                        {job.status === "REJECTED" && job.rejectionReason ? (
+                          <p className={styles.rejectionReason}>
+                            Lý do từ chối: {job.rejectionReason}
+                          </p>
+                        ) : null}
                       </div>
                       <div className={styles.jobActions}>
                         {job.status === "APPROVED" && (

@@ -68,6 +68,19 @@ export class ConversationsController {
     );
   }
 
+  @Post('company/:companyId')
+  @Roles(UserRole.STUDENT)
+  @ApiOperation({ summary: 'Mở hội thoại DIRECT với công ty' })
+  openCompany(
+    @CurrentUser() user: { userId: string },
+    @Param('companyId') companyId: string,
+  ) {
+    return this.conversationsService.openCompanyDirect(
+      BigInt(user.userId),
+      BigInt(companyId),
+    );
+  }
+
   @Post('application/:applicationId')
   @Roles(UserRole.STUDENT, UserRole.COMPANY)
   @ApiOperation({ summary: 'Mở hội thoại theo hồ sơ ứng tuyển' })

@@ -100,6 +100,15 @@ export function NotificationsBell() {
                     Mở tin nhắn
                   </Link>
                 )}
+                {n.referenceType === "JOB" && n.referenceId && (
+                  <Link
+                    href="/cong-ty/tin-tuyen-dung"
+                    className="text-xs text-blue-700 hover:underline"
+                    onClick={() => setOpen(false)}
+                  >
+                    Xem trạng thái tin
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

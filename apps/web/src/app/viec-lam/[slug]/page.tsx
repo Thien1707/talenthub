@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { CompanyJobApplicantsHint } from "@/components/company/company-job-applicants-hint";
 import { ApplyJobPanel } from "@/components/jobs/apply-job-panel";
+import { MessageCompanyButton } from "@/components/jobs/message-company-button";
 import { SaveJobButton } from "@/components/jobs/save-job-button";
 import { ReportJobLink } from "@/components/reports/report-job-link";
 import { formatSalaryRange } from "@/lib/format-money";
@@ -81,6 +82,9 @@ export default async function JobDetailPage({
         <aside className={styles.sidebar}>
           <div className={styles.sideCard}>
             <ApplyJobPanel jobId={String(job.jobId)} jobTitle={job.title} />
+            {job.company ? (
+              <MessageCompanyButton companyId={job.company.companyId} />
+            ) : null}
             <div className={styles.sideActions}>
               <SaveJobButton jobId={String(job.jobId)} />
               <div className={styles.sideLinks}>

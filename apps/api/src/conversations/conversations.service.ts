@@ -195,6 +195,24 @@ export class ConversationsService {
     });
   }
 
+  async openCompanyDirect(userId: bigint, companyId: bigint) {
+    const company = await this.prisma.companyProfile.findUnique({
+      where: { companyId },
+      select: {
+        userId: true,
+        user: { select: { deletedAt: true, status: true } },
+      },
+    });
+    if (
+      !company ||
+      company.user.deletedAt ||
+      company.user.status !== UserStatus.ACTIVE
+    ) {
+      throw new NotFoundException('Không tìm thấy công ty');
+    }
+    return this.openDirect(userId, company.userId);
+  }
+
   ensureMemberPublic(userId: bigint, conversationId: bigint) {
     return this.ensureConversationAccess(conversationId, userId);
   }

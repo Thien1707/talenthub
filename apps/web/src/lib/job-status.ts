@@ -2,7 +2,7 @@
 export const JOB_STATUS_LABEL: Record<string, string> = {
   DRAFT: "Nháp",
   PENDING: "Chờ duyệt",
-  APPROVED: "Đang tuyển",
+  APPROVED: "Đã duyệt · Đang tuyển",
   REJECTED: "Bị từ chối",
   PAUSED: "Tạm dừng",
   CLOSED: "Đã đóng",
