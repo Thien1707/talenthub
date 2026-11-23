@@ -1,0 +1,60 @@
+<mxfile host="app.diagrams.net" agent="TalentHub-diagram-gen">
+  <diagram id="9891e6b7-5efb-4f50-a62c-a91f69c4a932" name="Kien truc thuc te">
+    <mxGraphModel dx="1511" dy="956" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1280" pageHeight="1120" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="rt_title" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;align=center;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=14;" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;&lt;b style=&quot;&quot;&gt;TalentHub — Sơ đồ kiến trúc THỰC TẾ&lt;/b&gt; (monorepo npm workspaces: apps/web + apps/api)&lt;/font&gt;" vertex="1">
+          <mxGeometry height="44" width="930" x="80" y="23" as="geometry" />
+        </mxCell>
+        <mxCell id="p5GeklUl474Bo8qsGCND-1" edge="1" parent="1" source="rc1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;defaultLabelBackgroundColor=page;" target="rc2" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rc1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#cfe2f3;strokeColor=#666666;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=14;" value="&lt;b&gt;Lớp client — trình duyệt&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;apps/web&lt;/b&gt; (Next.js 15): src/app/* — page.tsx theo route; components/*; lib/api/client.ts (Bearer + cookie refresh); lib/chat-socket.ts (Socket.IO client).&lt;br&gt;&lt;b&gt;Chạy dev:&lt;/b&gt; npm run dev:web → http://localhost:3000" vertex="1">
+          <mxGeometry height="101" width="945" x="84" y="71" as="geometry" />
+        </mxCell>
+        <mxCell id="rc2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fce5cd;strokeColor=#666666;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=14;" value="&lt;b&gt;Lớp Presentation — NestJS Controllers + Middleware/Guards&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Entry:&lt;/b&gt; apps/api/src/main.ts → AppModule; global prefix &lt;code&gt;/api/v1&lt;/code&gt;; Swagger &lt;code&gt;/api/docs&lt;/code&gt;.&lt;br&gt;&lt;b&gt;Controllers:&lt;/b&gt; auth.controller, jobs.controller, applications.controller, cvs.controller, companies.controller, students.controller, reviews.controller, notifications.controller, moderation.controller, payments.controller, conversations.controller, admin.controller …&lt;br&gt;&lt;b&gt;Bảo vệ:&lt;/b&gt; JwtAuthGuard, RolesGuard, class-validator DTO, Throttler (auth)." vertex="1">
+          <mxGeometry height="123" width="941" x="84" y="232" as="geometry" />
+        </mxCell>
+        <mxCell id="rc3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d9ead3;strokeColor=#666666;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=14;" value="&lt;b&gt;Lớp Business — src/**/*.service.ts, listeners, gateway&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Services:&lt;/b&gt; auth.service, jobs.service, job-publish.service, applications.service, cvs.service, reviews.service, notifications.service, payments.service, orders.service, wallet.service, ai.service (Gemini), conversations.service …&lt;br&gt;&lt;b&gt;Realtime:&lt;/b&gt; chat.gateway.ts (namespace /chat), chat-realtime.listener.ts, ai-analysis.listener.ts.&lt;br&gt;&lt;b&gt;Lưu ý:&lt;/b&gt; Service không phụ thuộc Express req/res; logic nghiệp vụ + transaction Prisma." vertex="1">
+          <mxGeometry height="123" width="941" x="84" y="417" as="geometry" />
+        </mxCell>
+        <mxCell id="rc4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#666666;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=14;" value="&lt;b&gt;Lớp Data access — Prisma + tích hợp ngoài&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;prisma/schema.prisma&lt;/b&gt; + PrismaService; migrate/seed trong apps/api/prisma/.&lt;br&gt;&lt;b&gt;Tích hợp:&lt;/b&gt; CloudinaryService, MailService, vnpay.util / payments IPN.&lt;br&gt;Không viết business rule trong raw SQL — dùng Prisma Client typed queries." vertex="1">
+          <mxGeometry height="108" width="941" x="82" y="605" as="geometry" />
+        </mxCell>
+        <mxCell id="rc5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f4cccc;strokeColor=#666666;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=14;" value="&lt;b&gt;Lớp Data store + vận hành&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Runtime:&lt;/b&gt; MySQL 8 (DATABASE_URL) — migration SQL trong repo.&lt;br&gt;&lt;b&gt;Media:&lt;/b&gt; Cloudinary. &lt;b&gt;Thanh toán (sandbox):&lt;/b&gt; VNPAY callback/IPN.&lt;br&gt;&lt;b&gt;Kiểm thử:&lt;/b&gt; Jest (apps/api), Playwright (e2e/). &lt;b&gt;Deploy:&lt;/b&gt; render.yaml, docs/DEPLOY_*.md" vertex="1">
+          <mxGeometry height="111" width="945" x="78" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="re1" edge="1" parent="1" source="rc1" style="endArrow=block;html=1;rounded=0;strokeWidth=2;verticalAlign=middle;labelBackgroundColor=#ffffff;fontSize=10;" target="rc2" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;HTTP/JSON + Authorization: Bearer&lt;br&gt;(+ refresh cookie)&lt;/font&gt;">
+          <mxGeometry relative="1" x="0.0362" y="108" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="re2" edge="1" parent="1" source="rc2" style="endArrow=block;html=1;rounded=0;strokeWidth=2;verticalAlign=middle;labelBackgroundColor=#ffffff;fontSize=10;" target="rc3" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;Gọi service (DI NestJS)&lt;/font&gt;">
+          <mxGeometry relative="1" x="0.1081" y="76" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="re3" edge="1" parent="1" source="rc3" style="endArrow=block;html=1;rounded=0;strokeWidth=2;verticalAlign=middle;labelBackgroundColor=#ffffff;fontSize=10;" target="rc4" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;prisma.* / Cloudinary / SMTP&lt;/font&gt;">
+          <mxGeometry relative="1" x="-0.0934" y="88" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="re4" edge="1" parent="1" source="rc4" style="endArrow=block;html=1;rounded=0;strokeWidth=2;verticalAlign=middle;labelBackgroundColor=#ffffff;fontSize=10;" target="rc5" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;SQL + HTTPS API bên thứ 3&lt;/font&gt;">
+          <mxGeometry relative="1" x="0.0106" y="88" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffef5;strokeColor=#d6b656;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=14;" value="&lt;b&gt;Phiên đăng nhập&lt;/b&gt;&lt;br&gt;JWT access (header) + refresh HttpOnly; rotate khi POST /auth/refresh." vertex="1">
+          <mxGeometry height="90" width="285" x="78" y="910" as="geometry" />
+        </mxCell>
+        <mxCell id="fn2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffef5;strokeColor=#d6b656;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=14;" value="&lt;b&gt;Khác SRS lý thuyết&lt;/b&gt;&lt;br&gt;4 role (thêm STAFF tách khỏi SUPER_ADMIN); tin phải APPROVED mới công khai; đánh giá sau HIRED." vertex="1">
+          <mxGeometry height="90" width="331" x="388" y="911" as="geometry" />
+        </mxCell>
+        <mxCell id="fn3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffef5;strokeColor=#d79b00;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=14;" value="&lt;b&gt;NGOÀI PHẠM VI sơ đồ&lt;/b&gt;&lt;br&gt;App mobile native; SMS OTP; tích hợp HR/ERP doanh nghiệp." vertex="1">
+          <mxGeometry height="90" width="279" x="744" y="911" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
