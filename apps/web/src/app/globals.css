@@ -639,6 +639,51 @@ html.dark .cv-upload-picked {
   background: var(--color-surface);
 }
 
+html.dark .dark-mode-lower-panel {
+  border-color: var(--color-border);
+  background: linear-gradient(120deg, #211a31 0%, #261d33 55%, #30202d 100%);
+}
+
+html.dark .dark-mode-perks {
+  color: #f0eaf7;
+}
+
+html.dark .dark-mode-view-all {
+  background: #392b5c;
+  color: #fff;
+}
+
+html.dark .dark-mode-view-all:hover {
+  background: #4b3975;
+  color: #fff;
+}
+
+html.dark .admin-dark-surface input:not([type="checkbox"]),
+html.dark .admin-dark-surface select,
+html.dark .admin-dark-surface textarea {
+  border-color: var(--color-border-strong);
+  background-color: #292231;
+  color: var(--foreground);
+  caret-color: var(--foreground);
+}
+
+html.dark .admin-dark-surface input::placeholder,
+html.dark .admin-dark-surface textarea::placeholder {
+  color: #b8adc4;
+  opacity: 1;
+}
+
+html.dark .admin-dark-surface [class~="bg-white"] {
+  border-color: var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--foreground);
+}
+
+html.dark .admin-dark-surface [class~="bg-slate-50/80"] {
+  border-color: var(--color-border);
+  background-color: #211b2b;
+}
+
 html.dark .input-field::placeholder {
   color: #73667a;
 }

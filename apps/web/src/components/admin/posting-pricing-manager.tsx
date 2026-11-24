@@ -140,7 +140,7 @@ export function PostingPricingManager() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="admin-dark-surface space-y-8">
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-900">Phí đăng tin cơ bản</h2>
         <p className="mt-1 text-sm text-slate-600">

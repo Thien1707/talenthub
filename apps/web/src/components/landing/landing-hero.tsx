@@ -65,11 +65,11 @@ export function LandingHero() {
       <LandingJobsFeed />
 
       {/* 4. CTA + perks */}
-      <section className={styles.lowerPanel}>
+      <section className={`${styles.lowerPanel} dark-mode-lower-panel`}>
         <div className={styles.glowLeft} aria-hidden />
         <div className={styles.glowRight} aria-hidden />
 
-        <ul className={styles.perks}>
+        <ul className={`${styles.perks} dark-mode-perks`}>
           {PERKS.map((perk) => (
             <li key={perk}>{perk}</li>
           ))}

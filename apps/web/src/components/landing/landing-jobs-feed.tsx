@@ -435,7 +435,7 @@ export function LandingJobsFeed() {
               ? `/viec-lam?keyword=${encodeURIComponent(appliedKeyword)}`
               : "/viec-lam"
           }
-          className={styles.viewAllBtn}
+          className={`${styles.viewAllBtn} dark-mode-view-all`}
         >
           <span>
             Xem tất cả {data?.total ? `${data.total}+ ` : ""}việc làm

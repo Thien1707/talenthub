@@ -58,7 +58,7 @@ export function ExpenseWorkflow() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="admin-dark-surface space-y-6">
       <div className="rounded-xl border bg-white p-4">
         <h2 className="font-semibold">Tạo chi phí</h2>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">

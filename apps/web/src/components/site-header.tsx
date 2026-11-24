@@ -82,11 +82,11 @@ export function SiteHeader() {
           )}
         </nav>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1.5 pr-12 sm:gap-2 sm:pr-14">
           {!loading && !user && (
             <Link
               href="/dang-nhap"
-              className="font-hand mr-10 hidden text-2xl font-bold leading-none text-slate-800 hover:text-violet-700 sm:inline"
+              className="font-hand hidden text-2xl font-bold leading-none text-slate-800 hover:text-violet-700 sm:inline"
             >
               Đăng nhập
             </Link>

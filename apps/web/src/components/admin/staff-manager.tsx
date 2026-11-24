@@ -48,7 +48,7 @@ export function StaffManager() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="admin-dark-surface space-y-8">
       <div className="rounded-xl border bg-white p-4">
         <h2 className="font-semibold">Tạo nhân viên Staff</h2>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
