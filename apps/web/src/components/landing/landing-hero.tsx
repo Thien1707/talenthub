@@ -1,7 +1,7 @@
 import { Sparkles } from "lucide-react";
 import { HomeHeroActions } from "@/components/home-hero-actions";
 import { LandingDoodles } from "./doodles";
-import { LandingHeroCards } from "./hero-cards";
+import { LandingJobsFeed } from "./landing-jobs-feed";
 import styles from "./landing-hero.module.css";
 
 const PERKS = ["CV & AI hỗ trợ", "Duyệt tin minh bạch", "Chat realtime"];
@@ -54,20 +54,20 @@ export function LandingHero() {
             Tìm việc full-time, tạo CV, ứng tuyển và chat trực tiếp với nhà tuyển dụng.
             Doanh nghiệp đăng tin, duyệt ứng viên và thanh toán dịch vụ an toàn qua VNPAY.
           </p>
+
+          <div className={styles.heroActions}>
+            <HomeHeroActions />
+          </div>
         </div>
       </section>
 
-      {/* 3. Ảnh fan Doory */}
-      <LandingHeroCards />
+      {/* 3. Bảng tin tuyển dụng ngay dưới div con thỏ và chữ */}
+      <LandingJobsFeed />
 
       {/* 4. CTA + perks */}
       <section className={styles.lowerPanel}>
         <div className={styles.glowLeft} aria-hidden />
         <div className={styles.glowRight} aria-hidden />
-
-        <div className={styles.actionsWrap}>
-          <HomeHeroActions />
-        </div>
 
         <ul className={styles.perks}>
           {PERKS.map((perk) => (

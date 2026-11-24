@@ -287,6 +287,18 @@
   color: var(--color-text-muted);
 }
 
+.heroActions {
+  margin-top: var(--space-6);
+  display: flex;
+  justify-content: flex-start;
+}
+
+@media (max-width: 640px) {
+  .heroActions {
+    justify-content: center;
+  }
+}
+
 /* —— 4. Panel dưới —— */
 .lowerPanel {
   position: relative;
@@ -306,6 +318,16 @@ html.dark .lowerPanel {
     #261d33 55%,
     #30202d 100%
   );
+}
+
+html.dark .heroActions :global(.button-primary) {
+  background: #4b3b78;
+  color: #fff;
+}
+
+html.dark .heroActions :global(.button-secondary) {
+  background: #292231;
+  color: var(--ink);
 }
 
 .glowLeft,

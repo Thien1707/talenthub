@@ -343,6 +343,23 @@
   color: var(--color-text-muted);
 }
 
+html.dark .card,
+html.dark .createCard {
+  background: var(--color-surface);
+}
+
+html.dark .thumb {
+  background: #292231;
+}
+
+html.dark .createPanel {
+  background: color-mix(in srgb, var(--violet-50) 78%, var(--color-surface));
+}
+
+html.dark .createThumb {
+  background: color-mix(in srgb, var(--violet-50) 82%, var(--color-surface));
+}
+
 @media (hover: none) {
   .delete {
     opacity: 1;

@@ -101,9 +101,9 @@ export function PlatformUsersManager() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-3 rounded-xl border bg-white p-4">
+      <div className="admin-users-filter flex flex-wrap gap-3 rounded-xl border bg-white p-4">
         <select
-          className="rounded border px-2 py-1.5 text-sm"
+          className="admin-users-control rounded border px-2 py-1.5 text-sm"
           value={role}
           onChange={(e) =>
             setRole(e.target.value as "" | "STUDENT" | "COMPANY")
@@ -114,7 +114,7 @@ export function PlatformUsersManager() {
           <option value="COMPANY">Nhà tuyển dụng</option>
         </select>
         <select
-          className="rounded border px-2 py-1.5 text-sm"
+          className="admin-users-control rounded border px-2 py-1.5 text-sm"
           value={status}
           onChange={(e) => setStatus(e.target.value as typeof status)}
         >
@@ -124,7 +124,7 @@ export function PlatformUsersManager() {
           <option value="SUSPENDED">Tạm khóa</option>
         </select>
         <input
-          className="min-w-[200px] flex-1 rounded border px-2 py-1.5 text-sm"
+          className="admin-users-control min-w-[200px] flex-1 rounded border px-2 py-1.5 text-sm"
           placeholder="Tìm email, tên, SĐT…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}

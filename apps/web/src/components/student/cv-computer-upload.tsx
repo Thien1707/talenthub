@@ -92,8 +92,8 @@ export function CvComputerUpload({
     <div
       className={
         isCompact
-          ? "rounded-xl border border-dashed border-emerald-600/40 bg-emerald-50/50 p-4"
-          : "mt-6 rounded-xl border border-slate-200 bg-slate-50/80 p-5"
+          ? "cv-upload-dropzone rounded-xl border border-dashed border-emerald-600/40 bg-emerald-50/50 p-4"
+          : "cv-upload-dropzone mt-6 rounded-xl border border-slate-200 bg-slate-50/80 p-5"
       }
     >
       {!isCompact && (
@@ -116,7 +116,7 @@ export function CvComputerUpload({
           Tải CV từ máy tính
         </button>
       ) : (
-        <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
+        <div className="cv-upload-picked mt-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="font-semibold text-slate-900">{picked.name}</p>

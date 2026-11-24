@@ -52,7 +52,7 @@ export default function MyApplicationsPage() {
             <li key={app.applicationId} className="th-card">
               <Link
                 href={`/viec-lam/${app.job?.slug ?? ""}`}
-                className="font-bold text-slate-900 hover:text-blue-600"
+                className="font-bold text-slate-900 hover:text-blue-600 dark:text-slate-100 dark:hover:text-violet-300"
               >
                 {app.job?.title}
               </Link>

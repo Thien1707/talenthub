@@ -45,7 +45,7 @@ export function SiteHeader() {
 
   return (
     <header className="th-site-header">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5 lg:px-8">
+      <div className="flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-6">
         <TalentHubLogo />
 
         <nav
@@ -86,7 +86,7 @@ export function SiteHeader() {
           {!loading && !user && (
             <Link
               href="/dang-nhap"
-              className="font-hand hidden text-2xl font-bold leading-none text-slate-800 hover:text-violet-700 sm:inline"
+              className="font-hand mr-10 hidden text-2xl font-bold leading-none text-slate-800 hover:text-violet-700 sm:inline"
             >
               Đăng nhập
             </Link>

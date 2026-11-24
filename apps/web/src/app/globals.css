@@ -614,6 +614,31 @@ html.dark .input-field {
   color: #2b1c17;
 }
 
+html.dark .admin-users-filter {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+}
+
+html.dark .admin-users-control {
+  border-color: var(--color-border-strong);
+  background: #292231;
+  color: var(--foreground);
+}
+
+html.dark .admin-users-control::placeholder {
+  color: var(--color-text-muted);
+}
+
+html.dark .cv-upload-dropzone {
+  border-color: var(--color-border-strong);
+  background: #211b2b;
+}
+
+html.dark .cv-upload-picked {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+}
+
 html.dark .input-field::placeholder {
   color: #73667a;
 }
