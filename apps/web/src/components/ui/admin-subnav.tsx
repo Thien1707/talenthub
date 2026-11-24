@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/admin/tong-quan", label: "Tổng quan" },
+  { href: "/admin/tong-quan", label: "Bảng điều khiển" },
   { href: "/admin/nhan-vien", label: "Nhân viên" },
   { href: "/admin/chi-phi", label: "Chi phí" },
   { href: "/admin/bang-gia", label: "Giá đăng tin" },

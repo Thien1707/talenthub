@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api/client";
 
@@ -24,13 +24,32 @@ export function StaffManager() {
     position: "",
   });
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["admin", "staff"],
     queryFn: async () => {
       const { data } = await api.get<StaffRow[]>("/admin/staff");
       return data;
     },
   });
+
+  const nextEmployeeCode = useMemo(() => {
+    if (!data) return "";
+    const codes = data
+      .map((staff) => staff.staffProfile?.employeeCode ?? "")
+      .filter((code) => /^\d+$/.test(code))
+      .map((code) => Number(code));
+    const highest = codes.reduce(
+      (max, code) => (code > max ? code : max),
+      0,
+    );
+    return String(highest + 1).padStart(3, "0");
+  }, [data]);
+
+  useEffect(() => {
+    if (nextEmployeeCode) {
+      setForm((current) => ({ ...current, employeeCode: nextEmployeeCode }));
+    }
+  }, [nextEmployeeCode]);
 
   const create = useMutation({
     mutationFn: () => api.post("/admin/staff", form),
@@ -57,7 +76,6 @@ export function StaffManager() {
               ["email", "Email"],
               ["password", "Mật khẩu"],
               ["fullName", "Họ tên"],
-              ["employeeCode", "Mã NV"],
               ["department", "Phòng ban"],
               ["position", "Chức vụ"],
             ] as const
@@ -71,12 +89,26 @@ export function StaffManager() {
             />
           ))}
         </div>
+        <label className="mt-3 block max-w-sm text-sm font-medium text-slate-700">
+          Mã NV (tự động)
+          <input
+            className="mt-1 w-full rounded border bg-slate-100 px-2 py-1.5 text-sm text-slate-700"
+            value={form.employeeCode}
+            placeholder={isLoading ? "Đang lấy mã tiếp theo…" : "Chưa tạo được mã"}
+            readOnly
+            aria-readonly="true"
+          />
+        </label>
+        <p className="mt-1 text-xs text-slate-500">
+          Mã tiếp theo được tạo từ mã nhân viên hiện có.
+        </p>
         <button
           type="button"
           className="mt-3 rounded bg-blue-700 px-3 py-2 text-sm text-white"
           onClick={() => create.mutate()}
+          disabled={isLoading || !form.employeeCode || create.isPending}
         >
-          Tạo
+          {create.isPending ? "Đang tạo…" : "Tạo"}
         </button>
       </div>
       <ul className="space-y-2">
