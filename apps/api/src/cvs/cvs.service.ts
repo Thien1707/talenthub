@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -57,11 +58,12 @@ export class CvsService {
       emptyCvContent(user?.fullName, user?.email ?? undefined);
 
     return this.prisma.$transaction(async (tx) => {
+      await this.assertCvNameAvailable(tx, userId, dto.cvName);
       const cv = await tx.cv.create({
         data: {
           studentUserId: userId,
           templateId: dto.templateId ? BigInt(dto.templateId) : null,
-          cvName: dto.cvName,
+          cvName: dto.cvName.trim(),
         },
       });
       const version = await tx.cvVersion.create({
@@ -91,10 +93,13 @@ export class CvsService {
 
     return this.prisma.$transaction(async (tx) => {
       if (dto.cvName || dto.templateId) {
+        if (dto.cvName) {
+          await this.assertCvNameAvailable(tx, userId, dto.cvName, cvId);
+        }
         await tx.cv.update({
           where: { cvId },
           data: {
-            ...(dto.cvName ? { cvName: dto.cvName } : {}),
+            ...(dto.cvName ? { cvName: dto.cvName.trim() } : {}),
             ...(dto.templateId
               ? { templateId: BigInt(dto.templateId) }
               : {}),
@@ -169,8 +174,9 @@ export class CvsService {
       );
     }
     const content = ver.contentJson as CvContent | null;
+    const cvName = await this.getAvailableCopyName(userId, source.cvName);
     return this.createCv(userId, {
-      cvName: `${source.cvName} (bản sao)`,
+      cvName,
       templateId: source.templateId?.toString(),
       contentJson: (content ?? emptyCvContent()) as Record<string, unknown>,
     });
@@ -195,6 +201,46 @@ export class CvsService {
     return cv;
   }
 
+  private async assertCvNameAvailable(
+    tx: Prisma.TransactionClient,
+    userId: bigint,
+    cvName: string,
+    excludeCvId?: bigint,
+  ) {
+    const normalizedName = this.normalizeCvName(cvName);
+    if (!normalizedName) {
+      throw new BadRequestException('Tên CV không được để trống');
+    }
+    const cvs = await tx.cv.findMany({
+      where: {
+        studentUserId: userId,
+        deletedAt: null,
+        ...(excludeCvId ? { cvId: { not: excludeCvId } } : {}),
+      },
+      select: { cvName: true },
+    });
+    if (cvs.some((cv) => this.normalizeCvName(cv.cvName) === normalizedName)) {
+      throw new ConflictException('Tên CV đã được sử dụng. Vui lòng chọn tên khác.');
+    }
+  }
+
+  private normalizeCvName(name: string) {
+    return name.trim().normalize('NFC').toLocaleLowerCase('vi');
+  }
+
+  private async getAvailableCopyName(userId: bigint, sourceName: string) {
+    const cvs = await this.prisma.cv.findMany({
+      where: { studentUserId: userId, deletedAt: null },
+      select: { cvName: true },
+    });
+    const existingNames = new Set(cvs.map((cv) => this.normalizeCvName(cv.cvName)));
+    const base = `${sourceName} (bản sao)`;
+    if (!existingNames.has(this.normalizeCvName(base))) return base;
+    let suffix = 2;
+    while (existingNames.has(this.normalizeCvName(`${base} ${suffix}`))) suffix++;
+    return `${base} ${suffix}`;
+  }
+
   async uploadCvFile(
     userId: bigint,
     file: Express.Multer.File,
@@ -213,16 +259,20 @@ export class CvsService {
       plainText = await extractPlainTextFromPdf(file.buffer);
     }
 
+    const baseName =
+      file.originalname?.replace(/\.(pdf|docx?|PDF|DOCX?)$/i, '') ?? 'CV upload';
+    const cvName = options?.cvName?.trim() || baseName || 'CV upload';
+
+    await this.prisma.$transaction((tx) =>
+      this.assertCvNameAvailable(tx, userId, cvName, options?.cvId),
+    );
+
     const asset = await this.media.upload(
       userId,
       UserRole.STUDENT,
       AssetType.CV,
       file,
     );
-
-    const baseName =
-      file.originalname?.replace(/\.(pdf|docx?|PDF|DOCX?)$/i, '') ?? 'CV upload';
-    const cvName = options?.cvName?.trim() || baseName || 'CV upload';
 
     return this.prisma.$transaction(async (tx) => {
       let cvId = options?.cvId;
@@ -231,6 +281,7 @@ export class CvsService {
           where: { cvId, studentUserId: userId, deletedAt: null },
         });
         if (!owned) throw new NotFoundException('Không tìm thấy CV');
+        await this.assertCvNameAvailable(tx, userId, cvName, cvId);
       } else {
         const cv = await tx.cv.create({
           data: { studentUserId: userId, cvName },

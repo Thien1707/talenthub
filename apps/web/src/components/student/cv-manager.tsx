@@ -53,6 +53,10 @@ type CvDetail = {
   };
 };
 
+function normalizeCvName(name: string) {
+  return name.trim().normalize("NFC").toLocaleLowerCase("vi");
+}
+
 const DEFAULT_ACCENT = "#1e3a5f";
 
 export function CvManager({
@@ -78,6 +82,16 @@ export function CvManager({
       return data;
     },
   });
+  const { data: myCvs } = useQuery({
+    queryKey: ["cvs", "me"],
+    queryFn: async () => {
+      const { data } = await api.get<{ cvId: string; cvName: string }[]>("/cvs/me");
+      return data;
+    },
+  });
+  const duplicateName = (myCvs ?? []).some(
+    (item) => item.cvId !== cvId && normalizeCvName(item.cvName) === normalizeCvName(cvName),
+  );
 
   const { data: templates } = useQuery({
     queryKey: ["cvs", "templates"],
@@ -145,7 +159,7 @@ export function CvManager({
       quiet?: boolean;
     }) =>
       api.patch(`/cvs/me/${cvId}`, {
-        cvName: payload?.cvName ?? cvName,
+        cvName: duplicateName && !payload?.cvName ? (cv?.cvName ?? cvName) : (payload?.cvName ?? cvName),
         contentJson: sanitizeCvContentForSave(
           payload?.contentJson ?? content,
         ),
@@ -248,7 +262,13 @@ export function CvManager({
         value={cvName}
         onChange={(e) => setCvName(e.target.value)}
         aria-label="Tên CV"
+        aria-invalid={duplicateName}
       />
+      {duplicateName && (
+        <span className="w-full text-sm text-red-600" role="alert">
+          Tên CV này đã được sử dụng. Vui lòng chọn tên khác.
+        </span>
+      )}
       {!isUpload && (
         <button
           type="button"
@@ -264,8 +284,14 @@ export function CvManager({
       )}
       <button
         type="button"
-        disabled={updateCv.isPending || isUpload}
-        onClick={() => updateCv.mutate(undefined)}
+        disabled={updateCv.isPending || isUpload || duplicateName || !cvName.trim()}
+        onClick={() => {
+          if (duplicateName) {
+            toast.error("Tên CV này đã được sử dụng. Vui lòng chọn tên khác.");
+            return;
+          }
+          updateCv.mutate(undefined);
+        }}
         className="button button-primary !rounded-lg !px-3 !py-1.5 text-sm"
       >
         {updateCv.isPending && (

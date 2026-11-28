@@ -96,6 +96,10 @@ function CvPolaroidThumb({
   );
 }
 
+function normalizeCvName(name: string) {
+  return name.trim().normalize("NFC").toLocaleLowerCase("vi");
+}
+
 export function CvListPanel({
   jobId,
   jobTitle,
@@ -117,6 +121,9 @@ export function CvListPanel({
       return data;
     },
   });
+  const duplicateName = (cvs ?? []).some(
+    (cv) => normalizeCvName(cv.cvName) === normalizeCvName(newName),
+  );
 
   const { data: templates } = useQuery({
     queryKey: ["cvs", "templates"],
@@ -143,7 +150,10 @@ export function CvListPanel({
         : "";
       router.push(`/sinh-vien/cv/${id}${q}`);
     },
-    onError: () => toast.error("Tạo CV thất bại"),
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(typeof msg === "string" ? msg : "Tạo CV thất bại");
+    },
   });
 
   const remove = useMutation({
@@ -334,6 +344,11 @@ export function CvListPanel({
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
             />
+            {duplicateName && (
+              <p className="mt-2 text-sm text-red-600" role="alert">
+                Tên CV này đã được sử dụng. Vui lòng chọn tên khác.
+              </p>
+            )}
             {templates && templates.length > 0 && (
               <div className="mt-6">
                 <p className="text-sm font-bold text-slate-900">Chọn mẫu</p>
@@ -351,7 +366,7 @@ export function CvListPanel({
             <div className={styles.createActions}>
               <button
                 type="button"
-                disabled={createCv.isPending}
+                disabled={createCv.isPending || !newName.trim() || duplicateName}
                 onClick={() => createCv.mutate()}
                 className="button"
               >
