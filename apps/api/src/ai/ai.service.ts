@@ -247,6 +247,13 @@ export class AiService {
         take: 30,
         include: {
           job: { select: { title: true, slug: true, jobId: true } },
+          cvVersion: {
+            select: {
+              versionNumber: true,
+              cv: { select: { cvName: true } },
+              fileAsset: { select: { originalFilename: true } },
+            },
+          },
         },
       });
     }
@@ -282,7 +289,7 @@ export class AiService {
       where: { analysisId },
       include: {
         job: true,
-        cvVersion: { include: { cv: true } },
+        cvVersion: { include: { cv: true, fileAsset: true } },
       },
     });
     if (!analysis) {

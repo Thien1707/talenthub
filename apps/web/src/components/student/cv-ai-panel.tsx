@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Send, Sparkles } from "lucide-react";
+import { Loader2, Send, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api/client";
@@ -13,10 +13,155 @@ type AnalysisRow = {
   analysisType: string;
   status: string;
   score?: string | number | null;
-  analysisResult?: { summary?: string } | null;
+  analysisResult?: AnalysisResult | null;
+  summary?: string | null;
+  strengths?: string[] | null;
+  weaknesses?: string[] | null;
+  recommendations?: string[] | null;
+  cvVersion?: {
+    versionNumber: number;
+    cv: { cvName: string };
+    fileAsset?: { originalFilename?: string | null } | null;
+  };
   job?: { title?: string; slug?: string } | null;
   createdAt: string;
 };
+
+type AnalysisResult = {
+  summary?: string;
+  strengths?: string[];
+  weaknesses?: string[];
+  recommendations?: string[];
+};
+
+function AnalysisDetailDialog({
+  row,
+  onClose,
+}: {
+  row: AnalysisRow;
+  onClose: () => void;
+}) {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["ai", "analysis", row.analysisId],
+    queryFn: async () => {
+      const { data } = await api.get<AnalysisRow>(
+        `/ai/analyses/${row.analysisId}`,
+      );
+      return data;
+    },
+  });
+  const result =
+    data?.analysisResult ??
+    (data
+      ? {
+          summary: data.summary ?? undefined,
+          strengths: data.strengths ?? undefined,
+          weaknesses: data.weaknesses ?? undefined,
+          recommendations: data.recommendations ?? undefined,
+        }
+      : undefined);
+  const sections: { key: keyof AnalysisResult; title: string }[] = [
+    { key: "summary", title: "Nhận xét tổng quan" },
+    { key: "strengths", title: "Điểm mạnh" },
+    { key: "weaknesses", title: "Điểm cần cải thiện" },
+    { key: "recommendations", title: "Đề xuất" },
+  ];
+  const cvLabel =
+    data?.cvVersion?.fileAsset?.originalFilename ||
+    data?.cvVersion?.cv.cvName ||
+    row.cvVersion?.fileAsset?.originalFilename ||
+    row.cvVersion?.cv.cvName ||
+    "CV";
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-4"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cv-analysis-title"
+        className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+      >
+        <header className="flex items-start justify-between gap-4 border-b border-slate-200 p-5">
+          <div className="min-w-0">
+            <h2
+              id="cv-analysis-title"
+              className="text-lg font-bold text-slate-900"
+            >
+              Chi tiết phân tích CV
+            </h2>
+            <p className="mt-1 break-words text-sm text-slate-600">{cvLabel}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {data?.createdAt
+                ? new Date(data.createdAt).toLocaleString("vi-VN")
+                : new Date(row.createdAt).toLocaleString("vi-VN")}
+              {data?.score != null || row.score != null
+                ? ` · ${scoreLabel(data?.score ?? row.score)}`
+                : ""}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+            aria-label="Đóng"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </header>
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
+          {isLoading && (
+            <p className="text-sm text-slate-600">
+              Đang tải nội dung phân tích…
+            </p>
+          )}
+          {isError && (
+            <p className="text-sm text-red-600">
+              Không tải được nội dung chi tiết.
+            </p>
+          )}
+          {data?.status && data.status !== "COMPLETED" && (
+            <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+              Trạng thái: {data.status}
+            </p>
+          )}
+          {result &&
+            sections.map(({ key, title }) => {
+              const value = result[key];
+              if (!value || (Array.isArray(value) && value.length === 0))
+                return null;
+              return (
+                <section key={key}>
+                  <h3 className="font-semibold text-slate-900">{title}</h3>
+                  {Array.isArray(value) ? (
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700">
+                      {value.map((item, index) => (
+                        <li key={`${key}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                      {value}
+                    </p>
+                  )}
+                </section>
+              );
+            })}
+          {!isLoading && !isError && !result && (
+            <p className="text-sm text-slate-600">
+              Chưa có nội dung phân tích.
+            </p>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
 
 type ChatMessage = {
   id: string;
@@ -94,6 +239,9 @@ export function CvAiPanel({
     loadChatMessages(cvId),
   );
   const [input, setInput] = useState("");
+  const [selectedAnalysis, setSelectedAnalysis] = useState<AnalysisRow | null>(
+    null,
+  );
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -189,8 +337,7 @@ export function CvAiPanel({
   });
 
   const general = useMutation({
-    mutationFn: () =>
-      api.post("/ai/analyses/general", { cvVersionId }),
+    mutationFn: () => api.post("/ai/analyses/general", { cvVersionId }),
     onSuccess: (res) => {
       const status = res.data.status;
       toast.success(
@@ -374,20 +521,41 @@ export function CvAiPanel({
                 )}
               </div>
               {history && history.length > 0 && (
-                <ul className="mt-4 space-y-2 border-t border-violet-200 pt-3 text-sm">
-                  {history.slice(0, 5).map((row) => (
-                    <li key={row.analysisId} className="text-slate-800">
-                      <span className="font-medium">{row.analysisType}</span>
-                      {row.job?.title ? ` · ${row.job.title}` : ""} —{" "}
-                      <span className="text-violet-800">
-                        {scoreLabel(row.score)}
-                      </span>{" "}
-                      <span className="text-slate-500">({row.status})</span>
-                      {row.analysisResult?.summary && (
-                        <p className="mt-1 line-clamp-2 text-slate-600">
-                          {row.analysisResult.summary}
-                        </p>
-                      )}
+                <ul className="mt-4 max-h-72 space-y-2 overflow-y-auto border-t border-violet-200 pt-3 text-sm">
+                  {history.map((row, index) => (
+                    <li key={row.analysisId}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAnalysis(row)}
+                        className="w-full rounded-lg p-2 text-left text-slate-800 hover:bg-violet-100/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600"
+                      >
+                        <span className="font-medium">
+                          {row.cvVersion?.fileAsset?.originalFilename ||
+                            row.cvVersion?.cv.cvName ||
+                            "CV"}
+                        </span>
+                        {row.cvVersion?.versionNumber != null && (
+                          <span className="ml-1 text-xs text-slate-500">
+                            · Phiên bản {row.cvVersion.versionNumber}
+                          </span>
+                        )}
+                        {index === 0 && (
+                          <span className="ml-2 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800">
+                            Mới nhất
+                          </span>
+                        )}
+                        <span className="mt-1 block text-xs text-slate-500">
+                          {new Date(row.createdAt).toLocaleString("vi-VN")} ·{" "}
+                          {row.analysisType}
+                          {row.job?.title ? ` · ${row.job.title}` : ""} ·{" "}
+                          {scoreLabel(row.score)} · {row.status}
+                        </span>
+                        {row.analysisResult?.summary && (
+                          <span className="mt-1 block line-clamp-2 text-slate-600">
+                            {row.analysisResult.summary}
+                          </span>
+                        )}
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -395,6 +563,12 @@ export function CvAiPanel({
             </>
           )}
         </div>
+      )}
+      {selectedAnalysis && (
+        <AnalysisDetailDialog
+          row={selectedAnalysis}
+          onClose={() => setSelectedAnalysis(null)}
+        />
       )}
     </div>
   );

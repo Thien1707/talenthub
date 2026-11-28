@@ -1,14 +1,12 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  ModerationTargetType,
-  ReportStatus,
-  UserRole,
-} from '@prisma/client';
+import { ModerationTargetType, ReportStatus, UserRole } from '@prisma/client';
 import { assertStaffOrAdmin } from '../common/utils/staff-access.util';
+import { getCompanyProfileForUser } from '../common/utils/company-access.util';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateReportDto } from './dto/create-report.dto';
@@ -21,25 +19,43 @@ export class ReportsService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  async create(reporterUserId: bigint, dto: CreateReportDto) {
+  async create(
+    reporterUserId: bigint,
+    reporterRole: UserRole,
+    dto: CreateReportDto,
+  ) {
     if (!dto.reportedUserId && !dto.jobId && !dto.messageId) {
       throw new BadRequestException(
         'Cần ít nhất một đối tượng: người dùng, tin tuyển dụng hoặc tin nhắn',
       );
     }
-    if (
-      dto.reportedUserId &&
-      BigInt(dto.reportedUserId) === reporterUserId
-    ) {
+    if (dto.reportedUserId && BigInt(dto.reportedUserId) === reporterUserId) {
       throw new BadRequestException('Không thể báo cáo chính mình');
+    }
+
+    if (dto.jobId) {
+      const job = await this.prisma.job.findUnique({
+        where: { jobId: BigInt(dto.jobId) },
+        select: { companyId: true },
+      });
+      if (!job) throw new NotFoundException('Không tìm thấy tin tuyển dụng');
+      if (reporterRole === UserRole.COMPANY) {
+        const company = await getCompanyProfileForUser(
+          this.prisma,
+          reporterUserId,
+        );
+        if (company.companyId === job.companyId) {
+          throw new ForbiddenException(
+            'Không thể báo cáo tin tuyển dụng của công ty mình',
+          );
+        }
+      }
     }
 
     return this.prisma.userReport.create({
       data: {
         reporterUserId,
-        reportedUserId: dto.reportedUserId
-          ? BigInt(dto.reportedUserId)
-          : null,
+        reportedUserId: dto.reportedUserId ? BigInt(dto.reportedUserId) : null,
         jobId: dto.jobId ? BigInt(dto.jobId) : null,
         messageId: dto.messageId ? BigInt(dto.messageId) : null,
         reportType: dto.reportType,

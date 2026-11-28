@@ -29,10 +29,10 @@ export class ReportsController {
   @Roles(UserRole.STUDENT, UserRole.COMPANY)
   @ApiOperation({ summary: 'Gửi báo cáo vi phạm' })
   create(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: { userId: string; role: UserRole },
     @Body() dto: CreateReportDto,
   ) {
-    return this.reportsService.create(BigInt(user.userId), dto);
+    return this.reportsService.create(BigInt(user.userId), user.role, dto);
   }
 
   @Get('staff/queue')

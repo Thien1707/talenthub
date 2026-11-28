@@ -3,9 +3,21 @@
 import Link from "next/link";
 import { useAuth } from "@/components/auth-provider";
 
-export function ReportJobLink({ jobId }: { jobId: string }) {
+export function ReportJobLink({
+  jobId,
+  companyId,
+}: {
+  jobId: string;
+  companyId: string;
+}) {
   const { user } = useAuth();
   if (!user || (user.role !== "STUDENT" && user.role !== "COMPANY")) {
+    return null;
+  }
+  if (
+    user.role === "COMPANY" &&
+    String(user.companyProfile?.companyId ?? "") === companyId
+  ) {
     return null;
   }
   return (
