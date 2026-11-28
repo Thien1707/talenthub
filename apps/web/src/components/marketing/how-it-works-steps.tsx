@@ -20,7 +20,7 @@ export function ApplicationsHowItWorks() {
     <section className={styles.section} aria-labelledby="applications-how-it-works">
       <p className={styles.hand}>cách hoạt động</p>
       <h2 id="applications-how-it-works" className={styles.heading}>
-        Tìm việc trước, quản lý đơn tại đây
+        Tìm việc trước, quản lý hồ sơ tại đây
       </h2>
       <ol className={styles.steps}>
         {APPLICATION_STEPS.map((step, index) => (

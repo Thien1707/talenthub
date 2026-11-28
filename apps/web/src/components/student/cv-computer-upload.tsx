@@ -108,7 +108,7 @@ export function CvComputerUpload({
       {!picked ? (
         <button
           type="button"
-          className={`button ${isCompact ? "button-secondary mt-3 w-full justify-center" : "mt-4"}`}
+          className={`button button-secondary hover:text-violet-800 ${isCompact ? "mt-3 w-full justify-center" : "mt-4"}`}
           onClick={() => inputRef.current?.click()}
           disabled={upload.isPending}
         >

@@ -176,11 +176,8 @@ function ActivitySection({
       {activities.map((act, i) => (
         <div
           key={act.id ?? `act-${i}`}
-          className="cv-form-divider relative mt-3 grid gap-2 pt-3 sm:grid-cols-2"
+          className="cv-form-divider mt-3 grid gap-2 pt-3 sm:grid-cols-2"
         >
-          <div className="absolute right-0 top-3 sm:col-span-2">
-            <CvEntryDeleteButton onClick={() => del.requestDelete(act)} />
-          </div>
           <input
             placeholder="Tổ chức / CLB"
             className="cv-form-input"
@@ -191,16 +188,19 @@ function ActivitySection({
               onChange({ ...content, activities: next });
             }}
           />
-          <input
-            placeholder="Vai trò"
-            className="cv-form-input"
-            value={act.role ?? ""}
-            onChange={(e) => {
-              const next = [...activities];
-              next[i] = { ...act, role: e.target.value };
-              onChange({ ...content, activities: next });
-            }}
-          />
+          <div className="flex min-w-0 items-center gap-2">
+            <input
+              placeholder="Vai trò"
+              className="cv-form-input min-w-0 flex-1"
+              value={act.role ?? ""}
+              onChange={(e) => {
+                const next = [...activities];
+                next[i] = { ...act, role: e.target.value };
+                onChange({ ...content, activities: next });
+              }}
+            />
+            <CvEntryDeleteButton onClick={() => del.requestDelete(act)} />
+          </div>
           <input
             placeholder="Từ"
             className="cv-form-input"
@@ -546,11 +546,8 @@ function ExpSection({
       {content.experience.map((ex, i) => (
         <div
           key={ex.id ?? `exp-${i}`}
-          className="cv-form-divider relative mt-3 grid gap-2 pt-3 sm:grid-cols-2"
+          className="cv-form-divider mt-3 grid gap-2 pt-3 sm:grid-cols-2"
         >
-          <div className="absolute right-0 top-3 sm:col-span-2">
-            <CvEntryDeleteButton onClick={() => del.requestDelete(ex)} />
-          </div>
           <input
             placeholder="Công ty"
             className="cv-form-input"
@@ -561,16 +558,19 @@ function ExpSection({
               onChange({ ...content, experience });
             }}
           />
-          <input
-            placeholder="Vị trí"
-            className="cv-form-input"
-            value={ex.title ?? ""}
-            onChange={(e) => {
-              const experience = [...content.experience];
-              experience[i] = { ...ex, title: e.target.value };
-              onChange({ ...content, experience });
-            }}
-          />
+          <div className="flex min-w-0 items-center gap-2">
+            <input
+              placeholder="Vị trí"
+              className="cv-form-input min-w-0 flex-1"
+              value={ex.title ?? ""}
+              onChange={(e) => {
+                const experience = [...content.experience];
+                experience[i] = { ...ex, title: e.target.value };
+                onChange({ ...content, experience });
+              }}
+            />
+            <CvEntryDeleteButton onClick={() => del.requestDelete(ex)} />
+          </div>
           <input
             placeholder="Từ (VD: 2022)"
             className="cv-form-input"
@@ -654,11 +654,8 @@ function EduSection({
       {content.education.map((ed, i) => (
         <div
           key={ed.id ?? `edu-${i}`}
-          className="cv-form-divider relative mt-3 grid gap-2 pt-3 sm:grid-cols-2"
+          className="cv-form-divider mt-3 grid gap-2 pt-3 sm:grid-cols-2"
         >
-          <div className="absolute right-0 top-3 sm:col-span-2">
-            <CvEntryDeleteButton onClick={() => del.requestDelete(ed)} />
-          </div>
           <input
             placeholder="Trường"
             className="cv-form-input"
@@ -669,16 +666,19 @@ function EduSection({
               onChange({ ...content, education });
             }}
           />
-          <input
-            placeholder="Chuyên ngành"
-            className="cv-form-input"
-            value={ed.major ?? ""}
-            onChange={(e) => {
-              const education = [...content.education];
-              education[i] = { ...ed, major: e.target.value };
-              onChange({ ...content, education });
-            }}
-          />
+          <div className="flex min-w-0 items-center gap-2">
+            <input
+              placeholder="Chuyên ngành"
+              className="cv-form-input min-w-0 flex-1"
+              value={ed.major ?? ""}
+              onChange={(e) => {
+                const education = [...content.education];
+                education[i] = { ...ed, major: e.target.value };
+                onChange({ ...content, education });
+              }}
+            />
+            <CvEntryDeleteButton onClick={() => del.requestDelete(ed)} />
+          </div>
           <input
             placeholder="Từ"
             className="cv-form-input"
