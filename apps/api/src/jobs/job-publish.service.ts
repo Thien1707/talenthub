@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Logger,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -20,6 +21,8 @@ import { WalletService } from '../wallet/wallet.service';
 
 @Injectable()
 export class JobPublishService {
+  private readonly logger = new Logger(JobPublishService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly postingFee: PostingFeeService,
@@ -67,15 +70,15 @@ export class JobPublishService {
       freePostUsed: quota.freePostUsed,
       freePostLimit: quota.freePostLimit,
       ...quote,
-      availablePromotions: (
-        await this.postingFee.listActivePromotions()
-      ).map((p) => ({
-        code: p.code,
-        displayName: p.displayName,
-        description: p.description,
-        priceVnd: p.priceVnd,
-        durationDays: p.durationDays,
-      })),
+      availablePromotions: (await this.postingFee.listActivePromotions()).map(
+        (p) => ({
+          code: p.code,
+          displayName: p.displayName,
+          description: p.description,
+          priceVnd: p.priceVnd,
+          durationDays: p.durationDays,
+        }),
+      ),
     };
   }
 
@@ -92,7 +95,10 @@ export class JobPublishService {
     const existingReq = await this.prisma.jobPublishRequest.findUnique({
       where: { idempotencyKey },
     });
-    if (existingReq?.status === JobPublishRequestStatus.COMPLETED && existingReq.response) {
+    if (
+      existingReq?.status === JobPublishRequestStatus.COMPLETED &&
+      existingReq.response
+    ) {
       return existingReq.response;
     }
     if (existingReq?.status === JobPublishRequestStatus.PROCESSING) {
@@ -119,10 +125,13 @@ export class JobPublishService {
       },
     });
 
+    let failureStage = 'start publish transaction';
     try {
       const result = await this.prisma.$transaction(async (tx) => {
+        failureStage = 'lock posting quota';
         await tx.$queryRaw`SELECT quota_id FROM company_posting_quotas WHERE company_id = ${company.companyId} FOR UPDATE`;
 
+        failureStage = 'load job';
         const freshJob = await tx.job.findUnique({ where: { jobId } });
         if (!freshJob || freshJob.deletedAt) {
           throw new NotFoundException('Không tìm thấy tin');
@@ -131,14 +140,19 @@ export class JobPublishService {
           freshJob.status !== JobStatus.DRAFT &&
           freshJob.status !== JobStatus.REJECTED
         ) {
-          throw new BadRequestException('Tin không thể gửi duyệt ở trạng thái hiện tại');
+          throw new BadRequestException(
+            'Tin không thể gửi duyệt ở trạng thái hiện tại',
+          );
         }
 
+        failureStage = 'load posting quota';
         const quota = await tx.companyPostingQuota.findUniqueOrThrow({
           where: { companyId: company.companyId },
         });
 
+        failureStage = 'load posting fee';
         const config = await this.postingFee.getConfig();
+        failureStage = 'load promotion definitions';
         const promoDefs = await tx.promotionFeatureDefinition.findMany({
           where: { isActive: true },
           orderBy: { sortOrder: 'asc' },
@@ -157,16 +171,18 @@ export class JobPublishService {
           })),
         });
 
-        const validCodes = new Set(
-          quote.promotionLines.map((p) => p.code),
-        );
+        const validCodes = new Set(quote.promotionLines.map((p) => p.code));
         for (const code of selectedCodes) {
           if (!validCodes.has(code)) {
             throw new BadRequestException(`Gói quảng bá không hợp lệ: ${code}`);
           }
         }
 
-        const txLines: { label: string; amountVnd: number; featureCode?: string }[] = [];
+        const txLines: {
+          label: string;
+          amountVnd: number;
+          featureCode?: string;
+        }[] = [];
         if (quote.baseFeeVnd > 0) {
           txLines.push({
             label: 'Phí đăng tin',
@@ -183,6 +199,7 @@ export class JobPublishService {
 
         let walletTx = null;
         if (quote.totalVnd > 0) {
+          failureStage = 'debit company wallet';
           walletTx = await this.wallet.debitInTransaction(tx, {
             companyId: company.companyId,
             jobId,
@@ -196,6 +213,7 @@ export class JobPublishService {
         let quotaConsumed = freshJob.quotaConsumed;
 
         if (quote.qualifiesForFreeBase && quote.totalVnd === 0) {
+          failureStage = 'consume free posting quota';
           await tx.companyPostingQuota.update({
             where: { companyId: company.companyId },
             data: { freePostUsed: { increment: 1 } },
@@ -204,11 +222,13 @@ export class JobPublishService {
           isPaid = true;
         } else if (quote.totalVnd > 0) {
           isPaid = true;
+          failureStage = 'update paid posting quota';
           await tx.companyPostingQuota.update({
             where: { companyId: company.companyId },
             data: { paidPostCount: { increment: 1 } },
           });
         } else if (quote.qualifiesForFreeBase && quote.promotionTotalVnd > 0) {
+          failureStage = 'consume free posting quota';
           await tx.companyPostingQuota.update({
             where: { companyId: company.companyId },
             data: { freePostUsed: { increment: 1 } },
@@ -224,11 +244,13 @@ export class JobPublishService {
           featuredUntil?: Date;
         } = {};
 
+        failureStage = 'load selected promotions';
         const promotions = await tx.promotionFeatureDefinition.findMany({
           where: { code: { in: selectedCodes }, isActive: true },
         });
 
         for (const def of promotions) {
+          failureStage = `create promotion ${def.code}`;
           const expires = new Date(
             now.getTime() + def.durationDays * 86_400_000,
           );
@@ -253,6 +275,7 @@ export class JobPublishService {
           }
         }
 
+        failureStage = 'update job status';
         const updatedJob = await tx.job.update({
           where: { jobId },
           data: {
@@ -264,6 +287,7 @@ export class JobPublishService {
           },
         });
 
+        failureStage = 'write job status history';
         await tx.jobStatusHistory.create({
           data: {
             jobId,
@@ -274,6 +298,7 @@ export class JobPublishService {
           },
         });
 
+        failureStage = 'read company wallet balance';
         const wallet = await tx.companyWallet.findUniqueOrThrow({
           where: { companyId: company.companyId },
         });
@@ -294,6 +319,7 @@ export class JobPublishService {
         transactionId: result.transactionId,
       };
 
+      failureStage = 'save completed publish request';
       await this.prisma.jobPublishRequest.update({
         where: { requestId: publishReq.requestId },
         data: {
@@ -309,6 +335,10 @@ export class JobPublishService {
 
       return response;
     } catch (err) {
+      this.logger.error(
+        `Publish failed at stage "${failureStage}" for job ${jobId}, company ${company.companyId}, request ${publishReq.requestId}`,
+        err instanceof Error ? err.stack : String(err),
+      );
       await this.prisma.jobPublishRequest.update({
         where: { requestId: publishReq.requestId },
         data: { status: JobPublishRequestStatus.FAILED },
