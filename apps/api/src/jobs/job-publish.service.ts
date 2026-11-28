@@ -116,6 +116,9 @@ export class JobPublishService {
 
     await this.wallet.ensureWallet(company.companyId);
 
+    const config = await this.postingFee.getConfig();
+    const promoDefs = await this.postingFee.listActivePromotions();
+
     const publishReq = await this.prisma.jobPublishRequest.create({
       data: {
         idempotencyKey,
@@ -150,13 +153,6 @@ export class JobPublishService {
           where: { companyId: company.companyId },
         });
 
-        failureStage = 'load posting fee';
-        const config = await this.postingFee.getConfig();
-        failureStage = 'load promotion definitions';
-        const promoDefs = await tx.promotionFeatureDefinition.findMany({
-          where: { isActive: true },
-          orderBy: { sortOrder: 'asc' },
-        });
         const quote = calculatePostingQuote({
           jobType: freshJob.jobType,
           freePostUsed: quota.freePostUsed,
@@ -244,26 +240,11 @@ export class JobPublishService {
           featuredUntil?: Date;
         } = {};
 
-        failureStage = 'load selected promotions';
-        const promotions = await tx.promotionFeatureDefinition.findMany({
-          where: { code: { in: selectedCodes }, isActive: true },
-        });
-
-        for (const def of promotions) {
-          failureStage = `create promotion ${def.code}`;
+        const promotions = promoDefs.filter((def) => selectedCodes.includes(def.code));
+        const promotionRows = promotions.map((def) => {
           const expires = new Date(
             now.getTime() + def.durationDays * 86_400_000,
           );
-          await tx.jobPromotion.create({
-            data: {
-              jobId,
-              featureId: def.featureId,
-              code: def.code,
-              priceVnd: def.priceVnd,
-              startsAt: now,
-              expiresAt: expires,
-            },
-          });
           if (def.code === PromotionFeatureCode.TOP_LISTING) {
             promotionUpdates.promotionTopUntil = expires;
           }
@@ -273,6 +254,18 @@ export class JobPublishService {
           if (def.code === PromotionFeatureCode.FEATURED) {
             promotionUpdates.featuredUntil = expires;
           }
+          return {
+            jobId,
+            featureId: def.featureId,
+            code: def.code,
+            priceVnd: def.priceVnd,
+            startsAt: now,
+            expiresAt: expires,
+          };
+        });
+        if (promotionRows.length > 0) {
+          failureStage = 'create selected promotions';
+          await tx.jobPromotion.createMany({ data: promotionRows });
         }
 
         failureStage = 'update job status';
@@ -309,7 +302,7 @@ export class JobPublishService {
           walletBalanceVnd: wallet.balanceVnd.toString(),
           transactionId: walletTx?.transactionId.toString() ?? null,
         };
-      });
+      }, { maxWait: 10_000, timeout: 15_000 });
 
       const response = {
         jobId: result.job.jobId.toString(),
