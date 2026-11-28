@@ -88,17 +88,19 @@ export default async function JobDetailPage({
             <div className={styles.sideActions}>
               <SaveJobButton jobId={String(job.jobId)} />
               <div className={styles.sideLinks}>
-                <ReportJobLink
-                  jobId={String(job.jobId)}
-                  companyId={job.company.companyId}
-                />
                 {job.company ? (
-                  <Link
-                    href={`/cong-ty/${job.company.companyId}`}
-                    className="text-link"
-                  >
-                    Xem công ty
-                  </Link>
+                  <>
+                    <ReportJobLink
+                      jobId={String(job.jobId)}
+                      companyId={job.company.companyId}
+                    />
+                    <Link
+                      href={`/cong-ty/${job.company.companyId}`}
+                      className="text-link"
+                    >
+                      Xem công ty
+                    </Link>
+                  </>
                 ) : null}
               </div>
             </div>
