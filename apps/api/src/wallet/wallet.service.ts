@@ -154,7 +154,7 @@ export class WalletService {
       return null;
     }
 
-    await tx.$executeRaw`SELECT wallet_id FROM company_wallets WHERE company_id = ${params.companyId} FOR UPDATE`;
+    await tx.$queryRaw`SELECT wallet_id FROM company_wallets WHERE company_id = ${params.companyId} FOR UPDATE`;
 
     const wallet = await tx.companyWallet.findUnique({
       where: { companyId: params.companyId },

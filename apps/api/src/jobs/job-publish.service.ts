@@ -121,7 +121,7 @@ export class JobPublishService {
 
     try {
       const result = await this.prisma.$transaction(async (tx) => {
-        await tx.$executeRaw`SELECT quota_id FROM company_posting_quotas WHERE company_id = ${company.companyId} FOR UPDATE`;
+        await tx.$queryRaw`SELECT quota_id FROM company_posting_quotas WHERE company_id = ${company.companyId} FOR UPDATE`;
 
         const freshJob = await tx.job.findUnique({ where: { jobId } });
         if (!freshJob || freshJob.deletedAt) {
